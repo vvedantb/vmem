@@ -3,6 +3,7 @@ import type { TablerIcon } from "@tabler/icons-react";
 import {
   IconAlertTriangle,
   IconArrowsJoin,
+  IconBolt,
   IconBulb,
   IconLink,
   IconPencil,
@@ -98,6 +99,19 @@ const PROPOSAL_KIND_CONFIG: Record<ProposedUpdateKind, ProposalKindConfig> = {
     synthesisApproveLabel: "Merge",
     synthesisRejectLabel: "Reject",
     sourceListPrefix: "Replaces",
+  },
+  // a Dream Mode skill draft; approving creates the skill, nothing is
+  // published before that
+  skill: {
+    label: "Skill",
+    Icon: IconBolt,
+    badgeVariant: "secondary",
+    accentClass: "bg-success",
+    approveToast: "Skill created",
+    synthesisContentLabel: "Steps",
+    synthesisApproveLabel: "Create skill",
+    synthesisRejectLabel: "Reject",
+    sourceListPrefix: "Drafted from",
   },
 };
 

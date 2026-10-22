@@ -34,7 +34,7 @@ import {
 
 export const SKILLS_IMPORT_MAX = 25;
 
-type SkillOrigin = "web" | "mcp" | "vibot";
+type SkillOrigin = "web" | "mcp" | "vibot" | "dream";
 
 // missing enabled is treated as enabled for existing rows
 function isSkillEnabled(skill: { enabled?: boolean }): boolean {
@@ -708,6 +708,23 @@ export const createByClerkIdInternal = internalMutation({
     return created;
   },
 });
+
+// An approved Dream Mode skill proposal: the same create path and name checks
+// as a web or MCP skill, origin "dream".
+export async function createDreamSkill(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    teamId?: Id<"teams">;
+    name: string;
+    description: string;
+    instructions: string;
+  },
+): Promise<Id<"skills">> {
+  const id = await createSkillRecord(ctx, { ...args, origin: "dream" });
+  await invalidateContextPromptIfPersonal(ctx, args.userId, args.teamId);
+  return id;
+}
 
 export type SkillImportItem = {
   name: string;

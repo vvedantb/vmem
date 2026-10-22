@@ -61,6 +61,7 @@ export const PROPOSED_UPDATE_KINDS = [
   "contradiction",
   "anomaly",
   "merge",
+  "skill",
 ] as const;
 
 export type ProposedUpdateKind = (typeof PROPOSED_UPDATE_KINDS)[number];
@@ -82,4 +83,6 @@ export interface ProposedUpdateNode {
   source: ProposalSource;
   memorySnapshot: { title: string; content: string } | null;
   sourceMemorySnapshots: { id: string; title: string; content: string }[];
+  // kind "skill" only: the drafted skill
+  skill: { name: string; description: string; instructions: string } | null;
 }

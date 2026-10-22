@@ -8,7 +8,17 @@ import {
   type Budget,
   type LlmClient,
 } from "./llm.ts";
-import { isUnsafeSkill, isUnsafeText } from "./skillSafety.ts";
+import {
+  MAX_SKILL_STEPS,
+  MIN_SKILL_STEPS,
+  RUN_SPECIFIC_PATTERN,
+  skillSteps,
+  triggerDescription,
+} from "../../engine/memory/skills/draft.ts";
+import {
+  isUnsafeSkill,
+  isUnsafeText,
+} from "../../engine/memory/skills/safety.ts";
 import {
   approxTokens,
   jaccard,
@@ -16,7 +26,6 @@ import {
   plainTitle,
   shortHash,
   slugify,
-  tokenize,
 } from "./text.ts";
 import {
   lessonSchema,
@@ -35,20 +44,8 @@ const PREFERENCE_TOPIC_THRESHOLD = 0.35;
 const SUPERSEDES_MATCH_THRESHOLD = 0.5;
 const MAX_INSTRUCTIONS = 20;
 const MAX_SKILLS = 3;
-const MIN_SKILL_STEPS = 3;
-const MAX_SKILL_STEPS = 10;
 const EXPECTED_MERGE_OUTPUT_TOKENS = 1500;
 const MERGE_PROMPT_VERSION = 2;
-
-// uuids, long hex, temp paths, ISO times, long numbers: true for one run only.
-const RUN_SPECIFIC_PATTERN =
-  /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b|\b[0-9a-f]{10,}\b|\/tmp\/|\/var\/folders\/|\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}|\b\d{6,}\b/i;
-// Sizes, counts and precise values a skill step must not carry from one run.
-const RUN_NUMBER_PATTERN =
-  /\b\d+\.\d{3,}\b|\b\d[\d,.]*\s*(?:bytes?|[kmgt]i?b|rows?|lines?|records?|entries|items?|samples?|tokens?|files?|seconds?|ms|%)(?![a-z])/i;
-// A step that opens with an article or pronoun is a statement, not a command.
-const NOT_IMPERATIVE =
-  /^(?:the|this|that|these|those|it|its|there|i|we|you|they|my|our|a|an|is|are|was|were)\b/i;
 
 interface Candidate {
   lesson: Lesson;
@@ -205,93 +202,6 @@ function toSurvivor(cluster: Cluster): Survivor {
     ),
     position: Math.min(...cluster.members.map((member) => member.position)),
   };
-}
-
-/** One imperative step that holds for any future run, else null. */
-function skillStep(text: string): string | null {
-  const step = text
-    .replace(/^\s*(?:step\s*\d+\s*[:.)-]?|\d+[.)])\s*/i, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (
-    step.length === 0 ||
-    NOT_IMPERATIVE.test(step) ||
-    RUN_SPECIFIC_PATTERN.test(step) ||
-    RUN_NUMBER_PATTERN.test(step)
-  ) {
-    return null;
-  }
-  return step;
-}
-
-function skillSteps(texts: readonly string[]): string[] {
-  const steps: string[] = [];
-  for (const text of texts) {
-    const step = skillStep(text);
-    if (step === null) continue;
-    const key = lessonKey(step);
-    if (
-      steps.some((kept) => jaccard(lessonKey(kept), key) >= DUPLICATE_THRESHOLD)
-    ) {
-      continue;
-    }
-    steps.push(step);
-  }
-  return steps.slice(0, MAX_SKILL_STEPS);
-}
-
-const TRIGGER_PATTERN = /^use when a task (names|asks to)\s+(.+)$/i;
-/** Near-miss openers the model writes, and the trigger verb they mean. */
-const TRIGGER_REPAIRS: readonly [RegExp, "names" | "asks to"][] = [
-  [
-    /^use when (?:a |the )?(?:task|user|prompt|request)s?\s+(?:names?|mentions?|references?|is about|involves)\s+/i,
-    "names",
-  ],
-  [
-    /^use when (?:a |the )?(?:task|user|prompt|request)s?\s+(?:asks?|wants?|needs?|requires?|tells?)\s+(?:you\s+)?to\s+/i,
-    "asks to",
-  ],
-  [
-    /^use when (?:you\s+)?(?:need|want|are asked|have|must|are required)\s+to\s+/i,
-    "asks to",
-  ],
-  [/^use when (?:asked|needing|required)\s+to\s+/i, "asks to"],
-];
-// Triggers that name no concrete task, product, file, tool or action.
-const VAGUE_TRIGGER =
-  /^(?:work(?:ing)?\s+on|deal(?:ing)?\s+with|help(?:ing)?\s+with|handl(?:e|ing)|do(?:ing)?|perform(?:ing)?|this|these|that|it|similar|related|any|something|(?:a|the|this)\s+(?:same\s+|similar\s+|current\s+|given\s+)?task)\b/i;
-
-/**
- * A direct trigger ("Use when a task names X" / "Use when a task asks to
- * X"), repaired from a near miss. Null when vague or another shape.
- */
-export function triggerDescription(description: string): string | null {
-  const text = description
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/^["']+|["']+$/g, "");
-  let verb: "names" | "asks to" | null = null;
-  let rest = "";
-  const direct = TRIGGER_PATTERN.exec(text);
-  if (direct) {
-    verb = direct[1]?.toLowerCase() === "names" ? "names" : "asks to";
-    rest = direct[2] ?? "";
-  } else {
-    for (const [pattern, repaired] of TRIGGER_REPAIRS) {
-      if (!pattern.test(text)) continue;
-      verb = repaired;
-      rest = text.replace(pattern, "");
-      break;
-    }
-  }
-  if (
-    verb === null ||
-    VAGUE_TRIGGER.test(rest) ||
-    tokenize(rest).length === 0
-  ) {
-    return null;
-  }
-  return `Use when a task ${verb} ${rest}`;
 }
 
 function fallbackDescription(title: string): string {
@@ -574,7 +484,7 @@ export interface UnsafeDrops {
 }
 
 /**
- * Safety pass for either merge result (see `skillSafety.ts`). Drops unsafe
+ * Safety pass for either merge result (see `engine/memory/skills/safety.ts`). Drops unsafe
  * instructions, superseded pairs with an unsafe side, and every skill whose
  * name, description or any step is unsafe. Runs after the cache, so cached
  * merges are filtered too.

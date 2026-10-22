@@ -84,6 +84,12 @@ export default function SynthesisProposalCard({
         </>
       }
     >
+      {proposal.skill !== null && (
+        <ProposalMutedTextBlock label="When to use">
+          {proposal.skill.description}
+        </ProposalMutedTextBlock>
+      )}
+
       <ProposalTextBlock
         label={contentLabel}
         className="bg-surface-secondary/60"

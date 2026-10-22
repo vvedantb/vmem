@@ -135,7 +135,8 @@ function EmptyState() {
         </h3>
         <p className="max-w-sm text-sm text-muted text-balance">
           Proposals appear when vmem spots a fact conflict, or when Dream Mode
-          surfaces insights, connections, and anomalies across your memories.
+          surfaces insights, connections, and anomalies across your memories or
+          drafts a skill from what worked.
         </p>
       </CardContent>
     </Card>

@@ -3,7 +3,7 @@ import {
   dedupeSkills,
   isNearDuplicateSkill,
   isNearDuplicateStep,
-} from "../../eval/frontiermemory/skillDedupe";
+} from "../../../engine/memory/skills/dedupe";
 
 // Synthetic: one git identity skill per group, as a real run wrote them.
 const gitSkills = [

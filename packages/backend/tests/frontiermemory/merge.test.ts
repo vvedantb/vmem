@@ -7,8 +7,8 @@ import {
   dropUnsafe,
   mergeDeterministic,
   mergeWithLlm,
-  triggerDescription,
 } from "../../eval/frontiermemory/merge";
+import { triggerDescription } from "../../engine/memory/skills/draft";
 import type {
   Lesson,
   RunLessons,

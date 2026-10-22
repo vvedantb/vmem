@@ -2,7 +2,10 @@
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import { internal } from "./_generated/api";
-import { insertProposedUpdate } from "./proposedUpdateStore";
+import {
+  hasOverlappingPendingProposal,
+  insertProposedUpdate,
+} from "./proposedUpdateStore";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
@@ -129,6 +132,45 @@ describe("proposed updates: dream merge proposals", () => {
     expect(listed.memories.map((memory) => memory.id).sort()).toEqual([
       "dup_a",
       "dup_b",
+    ]);
+  });
+
+  it("a pending skill proposal does not block a change to its sources", async () => {
+    const t = convexTest(schema, modules);
+    await seedNearDup(t);
+    const overlaps = await t.run(async (ctx) => {
+      await insertProposedUpdate(ctx, {
+        userId: USER,
+        profileId: PROFILE,
+        memoryId: "dup_a",
+        proposedTitle: "use-pnpm",
+        proposedContent: "1. Run pnpm install.",
+        reason: "Drafted from 2 memories",
+        kind: "skill",
+        skill: {
+          name: "use-pnpm",
+          description: "Use when a task names vmem",
+          instructions: "1. Run pnpm install.",
+        },
+        sourceMemoryIds: ["dup_a", "dup_b"],
+        source: "dream-mode",
+        sourceMemorySnapshots: [],
+      });
+      return await hasOverlappingPendingProposal(ctx, {
+        userId: USER,
+        profileId: PROFILE,
+        sourceMemoryIds: ["dup_a"],
+      });
+    });
+    expect(overlaps).toBe(false);
+    await seedMergeProposal(t);
+    const kinds = await t.query(
+      internal.proposedUpdateApi.listPendingInternal,
+      { userId: USER, profileId: PROFILE },
+    );
+    expect(kinds.map((proposal) => proposal.kind).sort()).toEqual([
+      "merge",
+      "skill",
     ]);
   });
 });

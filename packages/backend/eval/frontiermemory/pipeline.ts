@@ -22,7 +22,7 @@ import {
   type UnsafeDrops,
 } from "./merge.ts";
 import { normalizeRuns, parseTrajectory } from "./normalize.ts";
-import { dedupeSkills } from "./skillDedupe.ts";
+import { dedupeSkills } from "../../engine/memory/skills/dedupe.ts";
 import { parseJsonString } from "../../engine/llm/extractJsonString.ts";
 import {
   taskSpecSchema,
