@@ -29,6 +29,7 @@ import { loggedJevEvaluate, resolveSystemOneApiKey } from "../lib/systemOneKey";
 import {
   retrieveMemoriesForClerk,
   retrieveMemoriesForTeamProfile,
+  type RetrieveTiming,
 } from "../memoryRuntime";
 import { enqueueMemoryAccess } from "../memoryUsefulness";
 import { toSkillIndexEntry } from "../skills";
@@ -213,6 +214,13 @@ async function recallProfile(h: ToolHandlerContext): Promise<string | null> {
   }
 }
 
+// the result and how long it took, for the recall_context timing line
+async function measured<T>(run: () => Promise<T>): Promise<[T, number]> {
+  const startedAt = Date.now();
+  const result = await run();
+  return [result, Date.now() - startedAt];
+}
+
 export const contextToolSpecs = {
   recall_context: toolSpec({
     name: "recall_context",
@@ -221,33 +229,47 @@ export const contextToolSpecs = {
       "Call at the start of every turn with the user's message. Returns a compact text block (default 1500 tokens, ~4 chars a token) with the most relevant memories (hybrid search, no LLM rerank; browsing-history page visits rank last), the 'Use when' lines of skills that match on their name or 2+ meaningful words, and a few profile facts (personal connector only), filled in that order until maxTokens. Prior versions of changed facts are left out. counts has memories, skills, facts and approxTokens; memoryIds / skillNames list what was included and truncated flags a cut. Use context_pack for a larger pack at task start.",
     errorLabel: "Recall context failed",
     async run(h, params): Promise<unknown> {
+      const startedAt = Date.now();
       return withMcpMemoryScope(
         h.ctx,
         { ...scopedMemory(h), profileId: params.profileId },
         async (scope) => {
+          const timing: RetrieveTiming = {};
           // judge "off": no Jev gate (an LLM call) on a per-turn tool
-          const retrieve: { query: string; limit: number; judge: "off" } = {
+          const retrieve: {
+            query: string;
+            limit: number;
+            judge: "off";
+            timing: RetrieveTiming;
+          } = {
             query: params.message,
             limit: RECALL_RETRIEVE_LIMIT,
             judge: "off",
+            timing,
           };
-          const [memories, skills, profile] = await Promise.all([
-            runForMcpScope(scope, {
-              team: (profileId) =>
-                retrieveMemoriesForTeamProfile(h.ctx, {
-                  clerkId: scope.clerkId,
-                  profileId,
-                  ...retrieve,
-                }),
-              personal: ({ clerkId, profileId }) =>
-                retrieveMemoriesForClerk(h.ctx, {
-                  clerkId,
-                  profileId,
-                  ...retrieve,
-                }),
-            }),
-            recallSkills(h, params.message),
-            recallProfile(h),
+          const [
+            [memories, retrieveMs],
+            [skills, skillsMs],
+            [profile, profileMs],
+          ] = await Promise.all([
+            measured(() =>
+              runForMcpScope(scope, {
+                team: (profileId) =>
+                  retrieveMemoriesForTeamProfile(h.ctx, {
+                    clerkId: scope.clerkId,
+                    profileId,
+                    ...retrieve,
+                  }),
+                personal: ({ clerkId, profileId }) =>
+                  retrieveMemoriesForClerk(h.ctx, {
+                    clerkId,
+                    profileId,
+                    ...retrieve,
+                  }),
+              }),
+            ),
+            measured(() => recallSkills(h, params.message)),
+            measured(() => recallProfile(h)),
           ]);
           const recall = buildRecallContext({
             message: params.message,
@@ -257,6 +279,17 @@ export const contextToolSpecs = {
             maxTokens: clampRecallTokens(params.maxTokens),
           });
           await enqueueMemoryAccess(h.ctx, recall.memoryIds, "contextPack");
+          // durations only: no query text, ids or memory content
+          console.log(
+            "[MCP][recall_context][timing]",
+            JSON.stringify({
+              ...timing,
+              retrieveMs,
+              skillsMs,
+              profileMs,
+              totalMs: Date.now() - startedAt,
+            }),
+          );
           return recall;
         },
       );

@@ -1429,12 +1429,10 @@ export async function getMemoriesByMemoryIds(
   ctx: QueryCtx,
   ids: readonly string[],
 ): Promise<Array<MemoryWithTags | null>> {
-  const out: Array<MemoryWithTags | null> = [];
-  for (const memoryId of ids) {
-    const doc = await findByMemoryId(ctx, memoryId);
-    out.push(doc ? toMemoryWithTags(doc) : null);
-  }
-  return out;
+  const docs = await Promise.all(
+    ids.map((memoryId) => findByMemoryId(ctx, memoryId)),
+  );
+  return docs.map((doc) => (doc ? toMemoryWithTags(doc) : null));
 }
 
 export async function patchMemoryEmbedding(
@@ -1574,6 +1572,9 @@ export const LINK_EXPANSION_PER_NODE = 16;
 export const LINK_EXPANSION_MAX_EDGES = 1_000;
 export const LINK_EXPANSION_MAX_SEEDS = 400;
 export const LINK_EXPANSION_MAX_HOPS = 3;
+// frontier nodes whose incident links are read together; the edge cap is
+// still applied node by node, so the output matches a one-at-a-time walk
+const LINK_EXPANSION_READ_BATCH = 64;
 
 type LinkEdgeRow = Pick<Doc<"memoryLinks">, "sourceId" | "targetId" | "reason">;
 
@@ -1624,27 +1625,35 @@ export async function listMemoryLinksAround(
   let frontier = [...visited];
   for (let hop = 0; hop < hops && frontier.length > 0; hop += 1) {
     const next: string[] = [];
-    for (const memoryId of frontier) {
+    for (
+      let start = 0;
+      start < frontier.length;
+      start += LINK_EXPANSION_READ_BATCH
+    ) {
       if (edges.size >= maxEdges) return [...edges.values()];
-      const rows = await listIncidentLinks(
-        ctx,
-        params.userId,
-        memoryId,
-        perNode,
+      const batch = await Promise.all(
+        frontier
+          .slice(start, start + LINK_EXPANSION_READ_BATCH)
+          .map((memoryId) =>
+            listIncidentLinks(ctx, params.userId, memoryId, perNode),
+          ),
       );
-      for (const row of rows) {
-        const key = `${row.sourceId}|${row.targetId}`;
-        if (edges.has(key)) continue;
-        if (edges.size >= maxEdges) break;
-        edges.set(key, {
-          sourceId: row.sourceId,
-          targetId: row.targetId,
-          reason: row.reason,
-        });
-        for (const neighbor of [row.sourceId, row.targetId]) {
-          if (visited.has(neighbor)) continue;
-          visited.add(neighbor);
-          next.push(neighbor);
+      for (const rows of batch) {
+        if (edges.size >= maxEdges) return [...edges.values()];
+        for (const row of rows) {
+          const key = `${row.sourceId}|${row.targetId}`;
+          if (edges.has(key)) continue;
+          if (edges.size >= maxEdges) break;
+          edges.set(key, {
+            sourceId: row.sourceId,
+            targetId: row.targetId,
+            reason: row.reason,
+          });
+          for (const neighbor of [row.sourceId, row.targetId]) {
+            if (visited.has(neighbor)) continue;
+            visited.add(neighbor);
+            next.push(neighbor);
+          }
         }
       }
     }

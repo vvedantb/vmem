@@ -584,14 +584,15 @@ export const searchMemoriesPageInternal = internalQuery({
 export const getMemoriesByEmbeddingIdsInternal = internalQuery({
   args: { ids: v.array(v.id("memoryEmbeddings")) },
   returns: v.array(v.union(memoryWithTagsValidator, v.null())),
+  // point reads by _id, issued together (one at a time cost ~1s for 256 hits)
   handler: async (ctx, args) => {
-    const out: Array<ReturnType<typeof toMemoryWithTags> | null> = [];
-    for (const id of args.ids) {
-      const row = await ctx.db.get(id);
-      const doc = row ? await ctx.db.get(row.memoryDocId) : null;
-      out.push(doc ? toMemoryWithTags(doc) : null);
-    }
-    return out;
+    const rows = await Promise.all(args.ids.map((id) => ctx.db.get(id)));
+    const docs = await Promise.all(
+      rows.map((row) =>
+        row ? ctx.db.get(row.memoryDocId) : Promise.resolve(null),
+      ),
+    );
+    return docs.map((doc) => (doc ? toMemoryWithTags(doc) : null));
   },
 });
 

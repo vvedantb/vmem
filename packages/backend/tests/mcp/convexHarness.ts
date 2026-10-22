@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { convexTest } from "convex-test";
+import { convexTest, type TestConvex } from "convex-test";
 import { afterEach, vi } from "vitest";
 import { z } from "zod";
 import { register as registerAuditLog } from "convex-audit-log/test";
@@ -12,6 +12,7 @@ import type {
 } from "convex/server";
 import { api, internal } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import type { ActionCtx } from "../../convex/_generated/server";
 import schema from "../../convex/schema";
 import { toolSpecs } from "../../convex/mcp/toolCatalog";
 import {
@@ -40,7 +41,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-export type ConvexTestBackend = ReturnType<typeof convexTest>;
+export type ConvexTestBackend = TestConvex<typeof schema>;
 
 export function createConvexBackend(): ConvexTestBackend {
   vi.useFakeTimers({ toFake: ["setTimeout"] });
@@ -58,7 +59,14 @@ export function createConvexBackend(): ConvexTestBackend {
   return t;
 }
 
-function convexActionCtx(t: ConvexTestBackend) {
+// convex-test has no vector index: tests that need vector hits pass their own
+type VectorSearch = ActionCtx["vectorSearch"];
+const noVectorHits: VectorSearch = async () => [];
+
+export function convexActionCtx(
+  t: ConvexTestBackend,
+  vectorSearch: VectorSearch = noVectorHits,
+) {
   return requireActionCtx({
     runQuery: <Query extends FunctionReference<"query", "public" | "internal">>(
       query: Query,
@@ -98,7 +106,7 @@ function convexActionCtx(t: ConvexTestBackend) {
       getUrl: (id: Id<"_storage">) => t.run((ctx) => ctx.storage.getUrl(id)),
       delete: (id: Id<"_storage">) => t.run((ctx) => ctx.storage.delete(id)),
     },
-    vectorSearch: async () => [],
+    vectorSearch,
     auth: { getUserIdentity: async () => null },
   });
 }
@@ -112,9 +120,10 @@ export function mcpCaller(
   t: ConvexTestBackend,
   clerkId: string,
   scope: McpScope = "personal",
+  vectorSearch?: VectorSearch,
 ): McpCaller {
   const h: ToolHandlerContext = {
-    ctx: convexActionCtx(t),
+    ctx: convexActionCtx(t, vectorSearch),
     clerkUserId: clerkId,
     scope,
   };

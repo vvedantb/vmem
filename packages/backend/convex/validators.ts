@@ -453,6 +453,20 @@ export const contextPromptCacheContentFields = omit(contextPromptCacheFields, [
   "userId",
 ]);
 
+// verified MCP bearer tokens; keyed by SHA-256 of the token, never the token
+export const mcpTokenCacheFields = {
+  tokenHash: v.string(),
+  clerkUserId: v.string(),
+  expiresAt: v.number(),
+};
+
+// recent query embeddings; keyed by SHA-256 of clerk id + model + text
+export const queryEmbeddingCacheFields = {
+  key: v.string(),
+  embedding: v.array(v.float64()),
+  expiresAt: v.number(),
+};
+
 export const teamFields = {
   name: v.string(),
   createdBy: v.id("users"),
