@@ -1,4 +1,9 @@
-import { embedMany, generateText, type ProviderMetadata } from "ai";
+import {
+  embedMany,
+  generateText,
+  type JSONValue,
+  type ProviderMetadata,
+} from "ai";
 
 export const AI_GATEWAY_CHAT_MODEL = "alibaba/qwen3.7-flash";
 export const AI_GATEWAY_EMBEDDING_MODEL = "openai/text-embedding-3-small";
@@ -8,6 +13,18 @@ export const FLEX_GATEWAY_PROVIDER_OPTIONS = {
   gateway: {
     serviceTier: "flex" as const,
   },
+};
+
+/** Per-provider options passed through to the AI SDK call. */
+export type GatewayProviderOptions = Record<string, Record<string, JSONValue>>;
+
+/**
+ * Turns Qwen thinking off. The AI SDK Alibaba provider maps `enableThinking`
+ * to `enable_thinking: false`; through the Gateway the provider key is
+ * `alibaba`.
+ */
+export const THINKING_OFF: GatewayProviderOptions = {
+  alibaba: { enableThinking: false },
 };
 
 const CHAT_MAX_RETRIES = 0;
@@ -41,6 +58,7 @@ export interface GatewayTextCall {
   model: string;
   messages: GatewayChatMessage[];
   temperature?: number;
+  providerOptions?: GatewayProviderOptions;
 }
 
 export async function generateGatewayText(
@@ -53,7 +71,15 @@ export async function generateGatewayText(
     model: args.model,
     messages: args.messages,
     temperature: args.temperature ?? 0.1,
+    ...(args.providerOptions ? { providerOptions: args.providerOptions } : {}),
   });
+}
+
+/** Flex tier always; caller options (e.g. THINKING_OFF) are added on top. */
+export function buildChatProviderOptions(
+  extra: GatewayProviderOptions | undefined,
+): GatewayProviderOptions {
+  return { ...FLEX_GATEWAY_PROVIDER_OPTIONS, ...extra };
 }
 
 async function generateWithSdk(
@@ -65,9 +91,7 @@ async function generateWithSdk(
     temperature: call.temperature,
     maxRetries: CHAT_MAX_RETRIES,
     allowSystemInMessages: true,
-    providerOptions: {
-      ...FLEX_GATEWAY_PROVIDER_OPTIONS,
-    },
+    providerOptions: buildChatProviderOptions(call.providerOptions),
   });
   return {
     text: result.text,

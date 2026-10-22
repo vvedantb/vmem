@@ -1,6 +1,7 @@
 import type { MemoryType, MemoryWithTags } from "@vmem/sdk";
 import { internal } from "../_generated/api";
 import { buildSearchableText } from "../../engine/memory/searchableText";
+import { isLowPriorSource } from "../../engine/memory/usefulness";
 import {
   runAssertMemoryMutablePermissionInternal,
   runAssertProfileAccessInternal,
@@ -80,16 +81,7 @@ async function scheduleCreatedMemoryJobs(
     profileId: created.profileId ?? undefined,
     text: buildSearchableText(created.title, created.content, created.tags),
   });
-  await ctx.scheduler.runAfter(
-    0,
-    internal.memoryExtract.extractMemoryEntitiesInternal,
-    {
-      clerkId,
-      memoryId: created.id,
-      profileId: created.profileId ?? undefined,
-      updatedAt: created.updatedAt,
-    },
-  );
+  await scheduleEntityExtraction(ctx, clerkId, created);
 }
 
 async function scheduleUpdatedMemoryJobs(
@@ -105,14 +97,23 @@ async function scheduleUpdatedMemoryJobs(
     profileId: updated.profileId ?? undefined,
     text: buildSearchableText(updated.title, updated.content, updated.tags),
   });
+  await scheduleEntityExtraction(ctx, clerkId, updated);
+}
+
+async function scheduleEntityExtraction(
+  ctx: AuthMutationCtx,
+  clerkId: string,
+  memory: MemoryWithTags,
+): Promise<void> {
+  if (isLowPriorSource(memory.source, memory.sourceType)) return;
   await ctx.scheduler.runAfter(
     0,
     internal.memoryExtract.extractMemoryEntitiesInternal,
     {
       clerkId,
-      memoryId: updated.id,
-      profileId: updated.profileId ?? undefined,
-      updatedAt: updated.updatedAt,
+      memoryId: memory.id,
+      profileId: memory.profileId ?? undefined,
+      updatedAt: memory.updatedAt,
     },
   );
 }

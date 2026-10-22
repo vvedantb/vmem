@@ -15,6 +15,8 @@ export const FEATURES = [
   "dream-materialize",
   "proposal-accept",
   "embedding-backfill",
+  "rollup",
+  "dream",
 ] as const;
 
 export type Feature = (typeof FEATURES)[number];
@@ -32,6 +34,8 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   "dream-materialize": "Dream Materialize",
   "proposal-accept": "Proposal Accept",
   "embedding-backfill": "Embedding Backfill",
+  rollup: "Rollups",
+  dream: "Dreaming",
 };
 
 const scopes = ["personal", "team"] as const;

@@ -25,11 +25,13 @@ import {
   IconListDetails,
   IconMessage,
   IconMoon,
+  IconMoonStars,
   IconPlug,
   IconRefresh,
   IconSearch,
   IconSparkles,
   IconSun,
+  IconTimeline,
   IconUser,
   IconUsers,
   IconUsersGroup,
@@ -77,6 +79,8 @@ const FEATURE_ICONS: Record<Feature, typeof IconSparkles> = {
   "dream-materialize": IconWand,
   "proposal-accept": IconCheck,
   "embedding-backfill": IconVectorBezier,
+  rollup: IconTimeline,
+  dream: IconMoonStars,
 };
 
 interface LogsFiltersDropdownProps {

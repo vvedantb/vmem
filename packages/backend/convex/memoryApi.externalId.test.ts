@@ -57,13 +57,14 @@ describe("memoryApi.createMemory with externalId", () => {
       profileId,
     };
 
+    // browsing-history is low-prior: embed only, no entity extraction
     const first = await user.action(api.memoryApi.createMemory, args);
-    expect(await followUpCount(t)).toBe(2);
+    expect(await followUpCount(t)).toBe(1);
 
     const repeat = await user.action(api.memoryApi.createMemory, args);
     expect(repeat.id).toBe(first.id);
     expect(repeat.updatedAt).toBe(first.updatedAt);
-    expect(await followUpCount(t)).toBe(2);
+    expect(await followUpCount(t)).toBe(1);
 
     const changed = await user.action(api.memoryApi.createMemory, {
       ...args,
@@ -71,7 +72,7 @@ describe("memoryApi.createMemory with externalId", () => {
     });
     expect(changed.id).toBe(first.id);
     expect(changed.title).toBe("vhub — connectors");
-    expect(await followUpCount(t)).toBe(4);
+    expect(await followUpCount(t)).toBe(2);
 
     const listed = await user.action(api.memoryApi.listMemories, {
       profileId,

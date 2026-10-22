@@ -45,6 +45,7 @@ export const extractMemoryEntitiesInternal = internalAction({
       userId: openRouter.userId,
       profileId: args.profileId ?? memory.profileId ?? undefined,
       feature: "enrichment",
+      thinking: "off",
       prompt: buildEntityExtractionPrompt(
         memory.title,
         memory.content,

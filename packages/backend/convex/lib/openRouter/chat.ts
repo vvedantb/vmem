@@ -1,6 +1,9 @@
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { generateGatewayText } from "../../../engine/llm/aiGateway";
+import {
+  generateGatewayText,
+  THINKING_OFF,
+} from "../../../engine/llm/aiGateway";
 import {
   COMPLETION_PREVIEW_BYTES,
   PROMPT_PREVIEW_BYTES,
@@ -23,6 +26,22 @@ interface ChatArgs {
   model: string;
   messages: ChatMessage[];
   temperature?: number;
+  thinking?: ChatThinking;
+}
+
+export type ChatThinking = "on" | "off";
+
+// new cheap batch features run with thinking off unless a caller opts back in
+const THINKING_OFF_FEATURES: ReadonlySet<OpenRouterFeature> = new Set([
+  "rollup",
+  "dream",
+]);
+
+export function resolveThinking(
+  feature: OpenRouterFeature,
+  thinking: ChatThinking | undefined,
+): ChatThinking {
+  return thinking ?? (THINKING_OFF_FEATURES.has(feature) ? "off" : "on");
 }
 
 export async function callOpenRouterChat(
@@ -54,6 +73,10 @@ export async function callOpenRouterChat(
       model: args.model,
       messages: args.messages,
       temperature: args.temperature ?? 0.1,
+      providerOptions:
+        resolveThinking(args.feature, args.thinking) === "off"
+          ? THINKING_OFF
+          : undefined,
     });
 
     content = json.text.length > 0 ? json.text : null;
