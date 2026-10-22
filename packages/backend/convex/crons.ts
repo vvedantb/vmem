@@ -37,4 +37,12 @@ crons.interval(
   {},
 );
 
+// drops mcp tool traces and their details older than 7 days, 500 rows a batch
+crons.interval(
+  "purge expired traces",
+  { hours: 1 },
+  internal.mcpTraces.purgeExpired,
+  {},
+);
+
 export default crons;

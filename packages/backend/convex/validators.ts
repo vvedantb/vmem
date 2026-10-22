@@ -501,6 +501,33 @@ export const openRouterLogFields = {
   aggregatePending: v.optional(v.boolean()),
 };
 
+// one row per MCP tool call or resource read, kept 7 days (mcpTraces.purgeExpired)
+export const mcpTraceFields = {
+  userId: v.id("users"),
+  profileId: v.optional(v.id("profiles")),
+  teamId: v.optional(v.id("teams")),
+  scope: v.union(v.literal("personal"), v.literal("team")),
+  // tool name, or resource:<uri> for resource reads
+  tool: v.string(),
+  ok: v.boolean(),
+  durationMs: v.number(),
+  summary: v.string(),
+  resultCount: v.optional(v.number()),
+  createdAt: v.number(),
+};
+
+// the heavy half of a trace, read only when one trace is opened
+export const mcpTraceDetailFields = {
+  traceId: v.id("mcpTraces"),
+  userId: v.id("users"),
+  // sanitised JSON text, capped (see mcp/traceSummary.ts)
+  args: v.string(),
+  resultIds: v.array(v.string()),
+  resultPreview: v.optional(v.string()),
+  error: v.optional(v.string()),
+  createdAt: v.number(),
+};
+
 export const fileNodeFields = {
   userId: v.id("users"),
   teamId: v.optional(v.id("teams")),

@@ -11,6 +11,8 @@ import {
   teamFields,
   teamMemberFields,
   openRouterLogFields,
+  mcpTraceFields,
+  mcpTraceDetailFields,
   dreamTriggerStateFields,
   notificationFields,
   apiKeyFields,
@@ -126,6 +128,15 @@ const schema = defineSchema({
     .index("by_profile_createdAt", ["profileId", "createdAt"])
     .index("by_team_createdAt", ["teamId", "createdAt"])
     .index("by_aggregate_pending", ["aggregatePending", "createdAt"]),
+
+  // mcp tool call traces; details split out so list reads stay small
+  mcpTraces: defineTable(mcpTraceFields)
+    .index("by_user_created", ["userId", "createdAt"])
+    .index("by_profile_created", ["profileId", "createdAt"])
+    .index("by_created", ["createdAt"]),
+  mcpTraceDetails: defineTable(mcpTraceDetailFields)
+    .index("by_trace", ["traceId"])
+    .index("by_created", ["createdAt"]),
 
   // cached "user profile" prose for the mcp vmem,//context_prompt resource
   contextPromptCache: defineTable(contextPromptCacheFields).index("by_user", [
