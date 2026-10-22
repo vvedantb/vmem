@@ -687,6 +687,20 @@ export const dreamPlanGroupFields = {
   createdAt: v.number(),
 };
 
+// write-time near-dup / conflict pair for nightly dreaming. userId and
+// profileId match the memory rows. `pairKey` is the same for either order.
+export const dreamCandidateFields = {
+  userId: v.string(),
+  profileId: v.optional(v.string()),
+  memoryId: v.id("memories"),
+  neighborId: v.id("memories"),
+  pairKey: v.string(),
+  score: v.number(),
+  kind: v.union(v.literal("near_dup"), v.literal("maybe_conflict")),
+  status: v.union(v.literal("open"), v.literal("judged"), v.literal("dropped")),
+  createdAt: v.number(),
+};
+
 // the memory fields a dream action may change, as they were before it.
 // Undo writes every field back; an absent optional field is cleared.
 export const dreamSnapshotValidator = v.object({

@@ -75,4 +75,13 @@ crons.interval(
   {},
 );
 
+// drops write-time dream candidates older than 30 days or whose memories are
+// no longer visible; pages through the table, 200 rows a batch
+crons.interval(
+  "purge dream candidates",
+  { hours: 1 },
+  internal.dreamCandidates.purgeInternal,
+  {},
+);
+
 export default crons;

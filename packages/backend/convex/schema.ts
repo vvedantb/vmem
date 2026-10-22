@@ -33,6 +33,7 @@ import {
   dreamRunFields,
   dreamActionFields,
   dreamPlanGroupFields,
+  dreamCandidateFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -159,6 +160,15 @@ const schema = defineSchema({
   // one-off cleanup plan; dropped 30 days after the dry run
   dreamPlanGroups: defineTable(dreamPlanGroupFields)
     .index("by_run_tier_seq", ["runId", "tier", "seq"])
+    .index("by_created", ["createdAt"]),
+
+  // write-time near-dup / conflict pairs (memoryEmbed); dropped after 30 days
+  // or once a row is no longer visible
+  dreamCandidates: defineTable(dreamCandidateFields)
+    .index("by_user_status_created", ["userId", "status", "createdAt"])
+    .index("by_memory", ["memoryId"])
+    .index("by_pair_key", ["pairKey"])
+    // retention sweep (dreamCandidates.purgeInternal)
     .index("by_created", ["createdAt"]),
 
   // cached "user profile" prose for the mcp vmem,//context_prompt resource
