@@ -19,7 +19,7 @@ import {
   mergeDeterministic,
   mergeWithLlm,
 } from "./merge.ts";
-import { normalizeTrajectory } from "./normalize.ts";
+import { normalizeRuns, parseTrajectory } from "./normalize.ts";
 import { parseJsonString } from "../../engine/llm/extractJsonString.ts";
 import {
   taskSpecSchema,
@@ -123,15 +123,17 @@ export async function runPipeline(
     );
   }
 
-  const runs: NormalizedRun[] = listInputs(
-    options.inputDir,
-    options.maxRuns,
-  ).map((name) =>
-    normalizeTrajectory(
-      name,
-      readFileSync(path.join(options.inputDir, name), "utf8"),
-      { maxTokens: options.maxTokensPerRun, finalAssistantTurns: 4 },
+  const keywords = [...new Set(tasks.flatMap((task) => task.keywords))];
+  // Boilerplate is learnt across the whole corpus, so parse every run first.
+  const runs: NormalizedRun[] = normalizeRuns(
+    listInputs(options.inputDir, options.maxRuns).map((name) =>
+      parseTrajectory(
+        name,
+        readFileSync(path.join(options.inputDir, name), "utf8"),
+        keywords,
+      ),
     ),
+    options.maxTokensPerRun,
   );
   const runByFile = new Map(runs.map((run) => [run.file, run]));
   const wanted = options.taskIds === null ? null : new Set(options.taskIds);

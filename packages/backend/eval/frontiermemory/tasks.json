@@ -3,18 +3,21 @@
     "id": "build-word2vec-pipeline",
     "source": "BigCodeBench",
     "title": "BigCodeBench Word2Vec Pipeline",
-    "description": "Build a Word2Vec training pipeline component. Files listed in the omit file must be skipped when building the corpus."
+    "description": "Build a Word2Vec training pipeline component (Python, gensim, text cleaning and tokenising). Files listed in the omit file must be skipped when building the corpus.",
+    "keywords": ["word2vec"]
   },
   {
     "id": "cattrs-compositional-changelog",
     "source": "unspecified",
     "title": "cattrs compositional changelog",
-    "description": "Write changelog entries for the cattrs library in the format the user prefers: one-line entries, newest first."
+    "description": "Make a change in the cattrs library (structuring and unstructuring of attrs classes) and write changelog entries in the format the user prefers: one-line entries, newest first.",
+    "keywords": ["cattrs"]
   },
   {
     "id": "apex-eurogrid-curtailment",
     "source": "unspecified",
     "title": "APEX EuroGrid curtailment",
-    "description": "Compute grid curtailment. Find the grid limits in the hidden config file and apply the domain rules for curtailment."
+    "description": "Answer a quantitative question about the EuroGrid power utility (grid limits, renewables, load, outages, curtailment) from documents and spreadsheets in a simulated workplace, and apply its domain rules.",
+    "keywords": ["eurogrid", "curtailment"]
   }
 ]

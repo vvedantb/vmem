@@ -15,13 +15,17 @@ export interface NormalizedRun {
   /** sha256 prefix of the raw file. Cache key for LLM stages. */
   hash: string;
   format: TrajectoryFormat;
+  /** The actual task text, harness boilerplate removed. */
   taskPrompt: string;
   userFeedback: string[];
-  finalAssistant: string[];
+  /** Assistant text, reasoning, tool calls and results, oldest first. Middle steps may be omitted. */
+  trajectory: string[];
   outcome: Outcome;
   /** Epoch ms of the earliest timestamp in the run, else null. */
   orderHint: number | null;
   approxTokens: number;
+  /** Case-insensitive count of each task keyword in the whole raw run. */
+  mentions: Record<string, number>;
 }
 
 export const taskSpecSchema = z.object({
@@ -29,6 +33,8 @@ export const taskSpecSchema = z.object({
   source: z.string(),
   title: z.string().min(1),
   description: z.string(),
+  /** Distinctive terms. A run matches only if its prompt names one, or its body names one often. */
+  keywords: z.array(z.string().trim().toLowerCase().min(3)).min(1),
 });
 export type TaskSpec = z.infer<typeof taskSpecSchema>;
 

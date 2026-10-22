@@ -2,7 +2,11 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { groupRuns, matchTask } from "../../eval/frontiermemory/group";
-import { normalizeTrajectory } from "../../eval/frontiermemory/normalize";
+import {
+  normalizeRuns,
+  normalizeTrajectory,
+  parseTrajectory,
+} from "../../eval/frontiermemory/normalize";
 import { DEFAULT_TASKS_PATH } from "../../eval/frontiermemory/pipeline";
 import { taskSpecSchema } from "../../eval/frontiermemory/types";
 import type { NormalizedRun } from "../../eval/frontiermemory/types";
@@ -19,10 +23,11 @@ function run(file: string, taskPrompt: string): NormalizedRun {
     format: "generic",
     taskPrompt,
     userFeedback: [],
-    finalAssistant: [],
+    trajectory: [],
     outcome: "UNKNOWN",
     orderHint: null,
     approxTokens: 0,
+    mentions: {},
   };
 }
 
@@ -36,6 +41,48 @@ describe("matchTask", () => {
       matchTask("Compute EuroGrid curtailment from grid limits", tasks)?.taskId,
     ).toBe("apex-eurogrid-curtailment");
     expect(matchTask("Refactor the login form CSS", tasks)).toBeNull();
+  });
+
+  it("needs a task keyword, not just shared generic words", () => {
+    expect(
+      matchTask(
+        "Build a data pipeline that skips omitted files when building the corpus",
+        tasks,
+      ),
+    ).toBeNull();
+    expect(
+      matchTask("Write a one-line changelog entry, newest first", tasks),
+    ).toBeNull();
+  });
+
+  it("matches a run set in a task's world by its body mentions", () => {
+    expect(
+      matchTask("Which region had the longest outages?", tasks, {
+        eurogrid: 120,
+        curtailment: 3,
+      }),
+    ).toEqual({
+      taskId: "apex-eurogrid-curtailment",
+      via: "body",
+      score: 120,
+    });
+  });
+
+  it("ignores a passing mention in the run body", () => {
+    // A pinned dependency or a directory listing names a task once or twice.
+    expect(
+      matchTask("Add a timeout option to the HTTP client", tasks, {
+        cattrs: 2,
+      }),
+    ).toBeNull();
+  });
+
+  it("prefers a prompt match over body mentions of another task", () => {
+    expect(
+      matchTask("Train a gensim Word2Vec model on the sentences", tasks, {
+        eurogrid: 300,
+      })?.taskId,
+    ).toBe("build-word2vec-pipeline");
   });
 });
 
@@ -54,6 +101,7 @@ describe("groupRuns", () => {
     expect(byId.get("build-word2vec-pipeline")).toEqual([
       "t0001.json",
       "t0005.json",
+      "t0008.json",
     ]);
     expect(byId.get("cattrs-compositional-changelog")).toEqual([
       "t0002.jsonl",
@@ -61,7 +109,10 @@ describe("groupRuns", () => {
     ]);
     expect(byId.get("apex-eurogrid-curtailment")).toEqual(["t0003.jsonl"]);
     const unmatched = groups.filter((group) => group.taskId === null);
-    expect(unmatched.map((group) => group.files)).toEqual([["t0004.json"]]);
+    expect(unmatched.map((group) => group.files)).toEqual([
+      ["t0004.json"],
+      ["t0007.jsonl"],
+    ]);
     expect(unmatched[0]?.id).toMatch(/^cluster-1-/);
   });
 
@@ -83,6 +134,38 @@ describe("groupRuns", () => {
     expect(groups.every((group) => group.taskId === null)).toBe(true);
   });
 
+  it("splits runs that share a harness preamble by their real task", () => {
+    const preamble =
+      "You are a shell agent. You get a task and the screen output of earlier commands, and you reply with commands as JSON with a plan and a list of keystrokes.";
+    const tasksText = [
+      "Compile the C project in /src with make and fix every warning.",
+      "Find the largest prime below one million and write it to answer.txt.",
+    ];
+    const raws = [0, 1, 0, 1, 0, 1].map((i) =>
+      JSON.stringify({
+        messages: [
+          {
+            role: "user",
+            content: `${preamble}\n\nTask Description:\n${tasksText[i]}\n\nCurrent terminal state:\nroot@box:/#`,
+          },
+          { role: "assistant", content: "Done." },
+          { role: "user", content: "# Verifier result\n\nPASS" },
+        ],
+      }),
+    );
+    const groups = groupRuns(
+      normalizeRuns(
+        raws.map((raw, i) => parseTrajectory(`p${i}.json`, raw)),
+        6000,
+      ),
+      tasks,
+    );
+    expect(groups.map((group) => group.files)).toEqual([
+      ["p0.json", "p2.json", "p4.json"],
+      ["p1.json", "p3.json", "p5.json"],
+    ]);
+  });
+
   it("lets an unmatched run join its cluster's public task", () => {
     const base =
       "Build the word2vec pipeline for the corpus in data and skip files listed in omit.txt before training";
@@ -96,7 +179,7 @@ describe("groupRuns", () => {
         ),
       ],
       [...tasks],
-      { minTaskScore: 0.35, clusterThreshold: 0.3 },
+      { minBodyMentions: 20, clusterThreshold: 0.3 },
     );
     expect(groups).toHaveLength(1);
     expect(groups[0]?.taskId).toBe("build-word2vec-pipeline");

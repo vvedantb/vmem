@@ -22,7 +22,7 @@ function episodeText(run: NormalizedRun): string {
           .map((text, i) => `[${i + 1}] ${text}`)
           .join("\n\n")}`
       : "## Later user messages\n(none)",
-    `## Final assistant turns (oldest first)\n${run.finalAssistant.join("\n\n---\n\n") || "(none)"}`,
+    `## Trajectory (oldest first; assistant text, thinking, tool calls, results and errors)\n${run.trajectory.join("\n") || "(none)"}`,
     `## Verifier result\n${run.outcome}`,
   ];
   return redactSecrets(sections.join("\n\n"));
