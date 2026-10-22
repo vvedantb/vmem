@@ -8,6 +8,7 @@ import {
   type Budget,
   type LlmClient,
 } from "./llm.ts";
+import { isUnsafeSkill, isUnsafeText } from "./skillSafety.ts";
 import {
   approxTokens,
   jaccard,
@@ -563,5 +564,41 @@ export async function mergeWithLlm(
     instructions,
     skills: finalSkills(response.skills, title, deterministic),
     source: "llm",
+  };
+}
+
+export interface UnsafeDrops {
+  /** Instructions and superseded pairs. */
+  instructions: number;
+  skills: number;
+}
+
+/**
+ * Safety pass for either merge result (see `skillSafety.ts`). Drops unsafe
+ * instructions, superseded pairs with an unsafe side, and every skill whose
+ * name, description or any step is unsafe. Runs after the cache, so cached
+ * merges are filtered too.
+ */
+export function dropUnsafe(group: MergedGroup): {
+  group: MergedGroup;
+  dropped: UnsafeDrops;
+} {
+  const instructions = group.instructions.filter(
+    (item) => !isUnsafeText(item.text),
+  );
+  const superseded = group.superseded.filter(
+    (item) => !isUnsafeText(item.text) && !isUnsafeText(item.supersededBy),
+  );
+  const skills = group.skills.filter((skill) => !isUnsafeSkill(skill));
+  return {
+    group: { ...group, instructions, superseded, skills },
+    dropped: {
+      instructions:
+        group.instructions.length -
+        instructions.length +
+        group.superseded.length -
+        superseded.length,
+      skills: group.skills.length - skills.length,
+    },
   };
 }
