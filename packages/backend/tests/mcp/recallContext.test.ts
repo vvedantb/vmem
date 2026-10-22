@@ -206,6 +206,30 @@ describe("matchRecallSkills", () => {
     ).toEqual(["deploy-docs", "deploy-app"]);
     expect(matchRecallSkills("the and of", [plain])).toEqual([]);
   });
+
+  it("needs every word of a spaced name, not one word of a persona", () => {
+    const steveJobs = {
+      name: "Steve Jobs",
+      description:
+        "Co-founder of Apple. Think differently with the mind that revolutionized tech - product vision, passion, and bold ideas.",
+    };
+    const searchFirst = {
+      name: "search-skills-first",
+      description: "Look up existing skills before writing a new one",
+    };
+    expect(
+      matchRecallSkills(
+        "Which job applications did I submit recently and what's my CV positioning?",
+        [steveJobs],
+      ),
+    ).toEqual([]);
+    expect(
+      matchRecallSkills("what would Steve Jobs do here", [steveJobs]),
+    ).toEqual([steveJobs]);
+    expect(
+      matchRecallSkills("search before you write code", [searchFirst]),
+    ).toEqual([searchFirst]);
+  });
 });
 
 describe("rankRecallMemories", () => {

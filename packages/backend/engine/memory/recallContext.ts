@@ -66,7 +66,7 @@ const GENERIC_SKILL_WORDS = new Set(
     "using work task next new need want way thing good better best effectively"
   ).split(" "),
 );
-// a skill needs this many distinct meaningful words, or one in its name
+// a skill needs this many distinct meaningful words, or a name match
 const SKILL_MIN_TERMS = 2;
 
 function meaningfulTerms(text: string): Set<string> {
@@ -77,10 +77,20 @@ function meaningfulTerms(text: string): Set<string> {
   );
 }
 
+// a slug name ("deploy-app") matches on any of its words; a spaced name
+// ("Steve Jobs") needs all of them, so "job" alone does not match
+function nameMatches(name: string, terms: Set<string>): boolean {
+  const nameTerms = [...meaningfulTerms(name)];
+  if (nameTerms.length === 0) return false;
+  return /\s/u.test(name.trim())
+    ? nameTerms.every((term) => terms.has(term))
+    : nameTerms.some((term) => terms.has(term));
+}
+
 /**
  * Lexical skill match for recall_context, no LLM. Stopwords and generic
- * skill words are ignored; a skill is kept with a name match or at least
- * SKILL_MIN_TERMS distinct matched words. Ties prefer a description that
+ * skill words are ignored; a skill is kept with a name match (see
+ * nameMatches) or at least SKILL_MIN_TERMS distinct matched words. Ties prefer a description that
  * starts with "Use when".
  */
 export function matchRecallSkills(
@@ -91,17 +101,13 @@ export function matchRecallSkills(
   if (terms.size === 0) return [];
   const scored: { skill: SkillIndexSlice; score: number }[] = [];
   for (const skill of skills) {
-    const nameTerms = meaningfulTerms(skill.name);
     const bodyTerms = meaningfulTerms(`${skill.name} ${skill.description}`);
     let hits = 0;
-    let nameHits = 0;
-    for (const term of terms) {
-      if (bodyTerms.has(term)) hits += 1;
-      if (nameTerms.has(term)) nameHits += 1;
-    }
-    if (nameHits === 0 && hits < SKILL_MIN_TERMS) continue;
+    for (const term of terms) if (bodyTerms.has(term)) hits += 1;
+    const nameMatch = nameMatches(skill.name, terms);
+    if (!nameMatch && hits < SKILL_MIN_TERMS) continue;
     const useWhen = /^\s*use when/iu.test(skill.description) ? 0.25 : 0;
-    scored.push({ skill, score: hits + 0.5 * nameHits + useWhen });
+    scored.push({ skill, score: hits + (nameMatch ? 0.5 : 0) + useWhen });
   }
   return scored
     .sort(
