@@ -68,6 +68,7 @@ import {
   type FactDecision,
 } from "../engine/memory/supersede";
 import { enqueueMemoryAccess } from "./memoryUsefulness";
+import { isLowPriorSource } from "../engine/memory/usefulness";
 import { scheduleDreamTriggerCheck } from "./lib/dreamTriggerInvalidate";
 import type { MemoryReadScope } from "../engine/memory/scope";
 import { collectScopedMemoriesPaged } from "./memoryStore/walk";
@@ -184,6 +185,8 @@ export async function createMemoryForClerk(
     memoryId: created.id,
     profileId: created.profileId ?? args.profileId,
     updatedAt: created.updatedAt,
+    source: created.source,
+    sourceType: created.sourceType,
   });
   return created;
 }
@@ -377,6 +380,8 @@ export async function updateMemoryForClerk(
         memoryId: updated.id,
         profileId: updated.profileId ?? undefined,
         updatedAt: updated.updatedAt,
+        source: updated.source,
+        sourceType: updated.sourceType,
       });
     }
   }
@@ -424,8 +429,11 @@ async function scheduleMemoryEntityExtraction(
     memoryId: string;
     profileId?: string | null;
     updatedAt: string;
+    source: string;
+    sourceType?: string | null;
   },
 ): Promise<void> {
+  if (isLowPriorSource(args.source, args.sourceType)) return;
   await ctx.scheduler.runAfter(
     0,
     internal.memoryExtract.extractMemoryEntitiesInternal,

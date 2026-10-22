@@ -2,11 +2,15 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { resolveThinking } from "../../convex/lib/openRouter/chat";
+import { openRouterFeatureSchema } from "../../convex/lib/openRouter/schemas";
 import {
   AI_GATEWAY_CHAT_MODEL,
   AI_GATEWAY_EMBEDDING_MODEL,
+  buildChatProviderOptions,
   FLEX_GATEWAY_PROVIDER_OPTIONS,
   generateGatewayText,
+  THINKING_OFF,
   type GatewayTextCall,
   type GatewayTextResult,
 } from "../../engine/llm/aiGateway";
@@ -72,5 +76,61 @@ describe("AI Gateway SDK client", () => {
     expect(result.text).toBe('{"ok":true}');
     expect(result.costUsd).toBe(0.00021);
     expect(result.promptTokens).toBe(11);
+  });
+
+  it("forwards providerOptions only when the caller sets them", async () => {
+    const calls: GatewayTextCall[] = [];
+    const generate = (call: GatewayTextCall): Promise<GatewayTextResult> => {
+      calls.push(call);
+      return Promise.resolve({ text: "ok" });
+    };
+    const base = {
+      model: AI_GATEWAY_CHAT_MODEL,
+      messages: [{ role: "user" as const, content: "hi" }],
+    };
+
+    await generateGatewayText(base, generate);
+    await generateGatewayText(
+      { ...base, providerOptions: THINKING_OFF },
+      generate,
+    );
+
+    expect(calls[0]).not.toHaveProperty("providerOptions");
+    expect(calls[1]?.providerOptions).toEqual({
+      alibaba: { enableThinking: false },
+    });
+  });
+
+  it("keeps flex on and adds thinking off to the SDK provider options", () => {
+    expect(buildChatProviderOptions(undefined)).toEqual({
+      gateway: { serviceTier: "flex" },
+    });
+    expect(buildChatProviderOptions(THINKING_OFF)).toEqual({
+      gateway: { serviceTier: "flex" },
+      alibaba: { enableThinking: false },
+    });
+  });
+});
+
+describe("chat thinking defaults", () => {
+  it("turns thinking off by default for rollup and dream only", () => {
+    expect(resolveThinking("rollup", undefined)).toBe("off");
+    expect(resolveThinking("dream", undefined)).toBe("off");
+    expect(resolveThinking("enrichment", undefined)).toBe("on");
+    expect(resolveThinking("chat", undefined)).toBe("on");
+    expect(resolveThinking("dream-synthesis", undefined)).toBe("on");
+  });
+
+  it("lets the caller override the feature default", () => {
+    expect(resolveThinking("enrichment", "off")).toBe("off");
+    expect(resolveThinking("rollup", "on")).toBe("on");
+  });
+});
+
+describe("openRouterFeatureSchema", () => {
+  it("accepts the rollup and dream features", () => {
+    expect(openRouterFeatureSchema.parse("rollup")).toBe("rollup");
+    expect(openRouterFeatureSchema.parse("dream")).toBe("dream");
+    expect(openRouterFeatureSchema.safeParse("rollups").success).toBe(false);
   });
 });

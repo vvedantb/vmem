@@ -58,6 +58,7 @@ const defaults: {
   dreamModeScheduleTime: string | null;
   dreamModeAutomatic: boolean;
   lastDreamRunAt: number | null;
+  rollupsEnabled: boolean;
 } = {
   theme: "system",
   language: "en",
@@ -80,6 +81,7 @@ const defaults: {
   // dynamic dreaming is on by default, soft-fails without an api key
   dreamModeAutomatic: true,
   lastDreamRunAt: null,
+  rollupsEnabled: false,
 };
 
 async function getSettingsDoc(
@@ -128,6 +130,7 @@ function resolveSettings(userId: Id<"users">, doc: Doc<"userSettings"> | null) {
       doc?.dreamModeScheduleTime ?? defaults.dreamModeScheduleTime,
     dreamModeAutomatic: doc?.dreamModeAutomatic ?? defaults.dreamModeAutomatic,
     lastDreamRunAt: doc?.lastDreamRunAt ?? defaults.lastDreamRunAt,
+    rollupsEnabled: doc?.rollupsEnabled ?? defaults.rollupsEnabled,
   };
 }
 
@@ -339,6 +342,34 @@ export const getDreamConfigInternal = internalQuery({
       dreamModeAutoAccept: doc?.dreamModeAutoAccept ?? false,
       lastDreamRunAt: doc?.lastDreamRunAt ?? null,
     };
+  },
+});
+
+export const getRollupsEnabledInternal = internalQuery({
+  args: { userId: v.id("users") },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const doc = await getSettingsDoc(ctx, args.userId);
+    return doc?.rollupsEnabled ?? defaults.rollupsEnabled;
+  },
+});
+
+// rollups opt-in for one user (CLI only until the timeline UI toggle lands)
+export const setRollupsEnabledByClerkIdInternal = internalMutation({
+  args: { clerkId: v.string(), enabled: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await getUserIdByClerkId(ctx, args.clerkId);
+    const existing = await getSettingsDoc(ctx, userId);
+    if (existing) {
+      await ctx.db.patch(existing._id, { rollupsEnabled: args.enabled });
+      return null;
+    }
+    await ctx.db.insert("userSettings", {
+      userId,
+      rollupsEnabled: args.enabled,
+    });
+    return null;
   },
 });
 

@@ -1,6 +1,6 @@
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { callOpenRouterChat } from "./chat";
+import { callOpenRouterChat, type ChatThinking } from "./chat";
 import { LLM_MODEL, type OpenRouterFeature } from "./shared";
 
 const JSON_SYSTEM_INSTRUCTION =
@@ -17,6 +17,7 @@ export async function callJsonChat(
     role?: string;
     model?: string;
     temperature?: number;
+    thinking?: ChatThinking;
   },
 ): Promise<string | null> {
   const system = args.role
@@ -34,6 +35,7 @@ export async function callJsonChat(
       { role: "user", content: args.prompt },
     ],
     temperature: args.temperature ?? 0.1,
+    thinking: args.thinking,
   });
 
   return content;

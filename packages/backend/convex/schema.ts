@@ -147,6 +147,8 @@ const schema = defineSchema({
   memories: defineTable(memoryFields)
     .index("by_memory_id", ["memoryId"])
     .index("by_user_created", ["userId", "createdAt"])
+    // nightly rollups and dreaming find rows changed since the last run
+    .index("by_user_updated", ["userId", "updatedAt"])
     .index("by_profile_created", ["profileId", "createdAt"])
     // connector upserts look a memory up by its external source id
     .index("by_user_source", ["userId", "sourceType", "sourceId"])

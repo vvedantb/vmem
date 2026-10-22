@@ -97,6 +97,17 @@ export function classifySource(
   return "medium";
 }
 
+/**
+ * Low-prior sources (browsing history, bookmarks, desktop) skip LLM entity
+ * extraction. They still get embeddings.
+ */
+export function isLowPriorSource(
+  source: string,
+  sourceType?: string | null,
+): boolean {
+  return classifySource(source, sourceType) === "low";
+}
+
 export function sourcePrior(
   source: string,
   sourceType?: string | null,
