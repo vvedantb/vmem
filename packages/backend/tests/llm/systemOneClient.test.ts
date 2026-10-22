@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { GatewayAuthenticationError } from "@ai-sdk/gateway";
+import {
+  GatewayAuthenticationError,
+  GatewayForbiddenError,
+} from "@ai-sdk/gateway";
 import { describe, expect, it } from "vitest";
 import {
   JEV_API_KEY_ENV,
@@ -278,5 +281,78 @@ describe("evaluateSystemOne", () => {
     }
     expect(String(thrown)).not.toContain("secret-key");
     expect(String(thrown)).toContain("[redacted]");
+  });
+
+  it('sends disallowPromptTraining and no ZDR for dataPolicy "no-training"', async () => {
+    const calls: GatewayEvaluateCall[] = [];
+    await evaluateSystemOne(
+      {
+        apiKey: "test-key",
+        state: "x",
+        questions: { ok: { type: "noul", instructions: "yes?" } },
+        tag: "dream-cleanup",
+        dataPolicy: "no-training",
+      },
+      async (call) => {
+        calls.push(call);
+        return {
+          modelId: "typesafe-ai/jev",
+          answers: { ok: { type: "boolean", probability: 0.5 } },
+        };
+      },
+    );
+    expect(calls[0]?.providerOptions).toEqual({
+      gateway: {
+        serviceTier: "flex",
+        disallowPromptTraining: true,
+        tags: ["dream-cleanup"],
+      },
+    });
+  });
+
+  it("returns the gateway cost and tokens from the SDK result", async () => {
+    const result = await evaluateSystemOne(
+      {
+        apiKey: "test-key",
+        state: "x",
+        questions: { ok: { type: "noul", instructions: "yes?" } },
+      },
+      async () => ({
+        modelId: "typesafe-ai/jev",
+        answers: { ok: { type: "boolean", probability: 0.5 } },
+        inputTokens: 200,
+        outputTokens: 9,
+        costUsd: 0.00015,
+      }),
+    );
+    expect(result.usage).toEqual({ input_tokens: 200, output_tokens: 9 });
+    expect(result.costUsd).toBe(0.00015);
+  });
+
+  it("puts a short, redacted gateway error body in the message", async () => {
+    const thrown = await evaluateSystemOne(
+      {
+        apiKey: "secret-key",
+        state: "x",
+        questions: { ok: { type: "noul", instructions: "yes?" } },
+      },
+      async () => {
+        throw new GatewayForbiddenError({
+          message: `Zero data retention is not available on your plan.\nkey secret-key ${"x".repeat(400)}`,
+          statusCode: 403,
+        });
+      },
+    ).catch((error: unknown) => error);
+    expect(thrown).toBeInstanceOf(SystemOneHttpError);
+    expect(thrown).toMatchObject({ status: 403 });
+    const message = String(thrown instanceof Error ? thrown.message : thrown);
+    expect(message).toMatch(
+      /^systemone http 403: Zero data retention is not available on your plan\. key \[redacted\]/,
+    );
+    expect(message).not.toContain("secret-key");
+    expect(message).not.toContain("\n");
+    expect(message.length).toBeLessThanOrEqual(
+      "systemone http 403: ".length + 200,
+    );
   });
 });

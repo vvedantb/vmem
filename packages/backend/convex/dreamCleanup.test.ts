@@ -25,6 +25,7 @@ const VHUB_PATHS = [
 
 type EvaluateCall = {
   state: { memories: { key: string; title: string }[] };
+  providerOptions: { gateway: Record<string, string | boolean | string[]> };
 };
 
 // no network: the AI SDK evaluate call (Jev) is a spy
@@ -417,6 +418,30 @@ describe("dreamCleanup Jev pass", () => {
       ["dream", undefined],
       ["dream", undefined],
     ]);
+    expect(logs[0]).toMatchObject({
+      promptTokens: 300,
+      completionTokens: 12,
+      costUsd: 0.0002,
+    });
+  });
+
+  it("asks the gateway for no-training routing, not ZDR", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_policy");
+    await seedJev(t, owner);
+    await dryRun(t, owner);
+
+    const gateways = evaluate.mock.calls.map(
+      ([call]) => call.providerOptions.gateway,
+    );
+    expect(gateways.length).toBeGreaterThan(0);
+    for (const gateway of gateways) {
+      expect(gateway).toMatchObject({
+        disallowPromptTraining: true,
+        tags: ["dream-cleanup"],
+      });
+      expect(gateway).not.toHaveProperty("zeroDataRetention");
+    }
   });
 
   it("respects jevMaxCalls", async () => {

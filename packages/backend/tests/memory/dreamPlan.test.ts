@@ -288,6 +288,9 @@ describe("judgeDuplicateGroup", () => {
     });
     const state = JSON.stringify(evaluate.mock.calls);
     expect(state.length).toBeLessThan(3_000);
+    expect(evaluate.mock.calls[0]).toEqual([
+      expect.objectContaining({ dataPolicy: "no-training" }),
+    ]);
   });
 
   it("turns a failed call into an error verdict", async () => {
