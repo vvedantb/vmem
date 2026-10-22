@@ -9,6 +9,7 @@ import {
   sha256Hex,
   utcDayKey,
   utf8ByteLength,
+  validateArtifactStateMap,
   type ArtifactFormat,
   type ArtifactListRow,
   type ArtifactOrigin,
@@ -20,6 +21,7 @@ import {
   type QuizBodyV1,
 } from "@vvedantb/server";
 import type { PaginationOptions, PaginationResult } from "convex/server";
+import { ConvexError } from "convex/values";
 import { z } from "zod";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -31,7 +33,7 @@ import {
 } from "../teams/auth";
 
 // artifact store helpers, shared by artifacts/api.ts, artifacts/mcp.ts (the
-// mcp tools) and later the vibot import. Bodies are immutable rows; versions point at them.
+// mcp tools) and the vibot import (artifacts/internal.ts). Bodies are immutable rows; versions point at them.
 
 export const artifactSchemas = createArtifactSchemas(z);
 
@@ -49,7 +51,7 @@ const REF_TARGET_MAX_CHARS = 512;
 // prune runs on every new version, so the excess is 1 row in practice
 const PRUNE_BATCH = 50;
 // purge reads bodies (≤ 400 KB each, ≤ 11 per artifact), so few per batch
-const PURGE_ARTIFACTS_BATCH = 2;
+export const PURGE_ARTIFACTS_BATCH = 2;
 const PURGE_CHILD_BATCH = 100;
 const PURGE_BODY_BATCH = ARTIFACT_VERSION_KEEP + 2;
 
@@ -925,7 +927,299 @@ export async function listArtifactRefs(
   }));
 }
 
+// ---- import (vibot migration; see artifacts/internal.ts) ----
+
+export interface ImportVersionInput {
+  version: number;
+  title: string;
+  body: string;
+  stateSpec?: ArtifactStateSpec;
+  createdAt: number;
+}
+
+// one already-transformed artifact from another app's export
+export interface ImportArtifactInput {
+  title: string;
+  description?: string;
+  type: ArtifactType;
+  format: ArtifactFormat;
+  language?: string;
+  schemaVersion: number;
+  stateSpec?: ArtifactStateSpec;
+  body: string;
+  createdAt: number;
+  updatedAt: number;
+  origin: { client: string; externalId: string };
+  refs: Array<{ kind: ArtifactRefKind; target: string }>;
+  // older versions; the current body is `body`
+  versions?: ImportVersionInput[];
+  state?: { data: ArtifactStateMap; updatedAt: number };
+}
+
+interface CheckedImportVersion {
+  version: number;
+  title: string;
+  body: string;
+  stateSpec: ArtifactStateSpec | undefined;
+  createdAt: number;
+}
+
+export interface CheckedImport {
+  input: ImportArtifactInput;
+  title: string;
+  description: string | undefined;
+  stateSpec: ArtifactStateSpec | undefined;
+  origin: { client: string; externalId: string };
+  plainText: string;
+  // ascending; the last row is the current version
+  versions: CheckedImportVersion[];
+  refs: Array<{ kind: ArtifactRefKind; target: string; refKey: string }>;
+  // utf-8 bytes of the distinct bodies
+  bytes: number;
+}
+
+function checkTimestamp(value: number, label: string): number {
+  if (!Number.isFinite(value) || value < 0) userFacingError(`Invalid ${label}`);
+  return value;
+}
+
+function checkImportVersion(
+  input: ImportArtifactInput,
+  row: ImportVersionInput,
+): CheckedImportVersion {
+  if (!Number.isInteger(row.version) || row.version < 1) {
+    userFacingError("Invalid version number");
+  }
+  const label = `version ${String(row.version)}`;
+  try {
+    checkBody(input.type, input.format, row.body, input.schemaVersion);
+    return {
+      version: row.version,
+      title: checkTitle(row.title),
+      body: row.body,
+      stateSpec: checkStateSpec(row.stateSpec),
+      createdAt: checkTimestamp(row.createdAt, "createdAt"),
+    };
+  } catch (error) {
+    if (error instanceof ConvexError && typeof error.data === "string") {
+      userFacingError(`${label}: ${error.data}`);
+    }
+    throw error;
+  }
+}
+
+function checkImportUnsafe(input: ImportArtifactInput): CheckedImport {
+  const checkedOrigin = checkOrigin(input.origin);
+  if (checkedOrigin.externalId === undefined) {
+    userFacingError("Invalid origin externalId");
+  }
+  const origin = {
+    client: checkedOrigin.client,
+    externalId: checkedOrigin.externalId,
+  };
+  const title = checkTitle(input.title);
+  const description = checkDescription(input.description);
+  const stateSpec = checkStateSpec(input.stateSpec);
+  const plainText = checkBody(
+    input.type,
+    input.format,
+    input.body,
+    input.schemaVersion,
+  );
+  const createdAt = checkTimestamp(input.createdAt, "createdAt");
+  const updatedAt = checkTimestamp(input.updatedAt, "updatedAt");
+
+  const history = (input.versions ?? [])
+    .map((row) => checkImportVersion(input, row))
+    .sort((a, b) => a.version - b.version);
+  if (history.length > ARTIFACT_VERSION_KEEP) {
+    userFacingError(`Over ${String(ARTIFACT_VERSION_KEEP)} versions`);
+  }
+  if (new Set(history.map((row) => row.version)).size !== history.length) {
+    userFacingError("Duplicate version numbers");
+  }
+  // the newest history row is the current version when it matches it;
+  // else the current version comes after it
+  const top = history.at(-1);
+  const topIsCurrent =
+    top !== undefined &&
+    top.body === input.body &&
+    top.title === title &&
+    sameStateSpec(top.stateSpec, stateSpec);
+  const versions = topIsCurrent
+    ? history
+    : [
+        ...history,
+        {
+          version: (top?.version ?? 0) + 1,
+          title,
+          body: input.body,
+          stateSpec,
+          createdAt: updatedAt,
+        },
+      ];
+
+  if (input.refs.length > ARTIFACT_REFS_MAX) userFacingError("Too many links");
+  const refs = new Map<
+    string,
+    { kind: ArtifactRefKind; target: string; refKey: string }
+  >();
+  for (const ref of input.refs) {
+    const target = checkRefTarget(ref.target);
+    const refKey = `${ref.kind}:${target}`;
+    refs.set(refKey, { kind: ref.kind, target, refKey });
+  }
+
+  if (input.state !== undefined) {
+    const stateError = validateArtifactStateMap(input.state.data);
+    if (stateError !== undefined) userFacingError(`state: ${stateError}`);
+    checkTimestamp(input.state.updatedAt, "state updatedAt");
+  }
+
+  const bodies = new Set(versions.map((row) => row.body));
+  let bytes = 0;
+  for (const body of bodies) bytes += utf8ByteLength(body);
+
+  return {
+    input: { ...input, createdAt, updatedAt },
+    title,
+    description,
+    stateSpec,
+    origin,
+    plainText,
+    versions,
+    refs: [...refs.values()],
+    bytes,
+  };
+}
+
+// the same checks as create; a failed check comes back as `error` (writes nothing)
+export function checkImport(
+  input: ImportArtifactInput,
+): { ok: true; value: CheckedImport } | { ok: false; error: string } {
+  try {
+    return { ok: true, value: checkImportUnsafe(input) };
+  } catch (error) {
+    if (error instanceof ConvexError && typeof error.data === "string") {
+      return { ok: false, error: error.data };
+    }
+    throw error;
+  }
+}
+
+// writes a checked import with its own timestamps. The caller checks
+// idempotency (findByOrigin) first.
+export async function insertImportedArtifact(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  checked: CheckedImport,
+): Promise<Id<"artifacts">> {
+  const { input, title, description, stateSpec, origin, versions } = checked;
+  const current = versions.at(-1);
+  if (current === undefined) throw new Error("Import has no version");
+  const currentBodyId = await putBody(
+    ctx,
+    undefined,
+    userId,
+    input.body,
+    current.createdAt,
+  );
+  const id = await ctx.db.insert("artifacts", {
+    userId,
+    title,
+    description,
+    type: input.type,
+    format: input.format,
+    language: input.language,
+    schemaVersion: input.schemaVersion,
+    stateSpec,
+    currentVersion: current.version,
+    currentBodyId,
+    size: utf8ByteLength(input.body),
+    searchText: buildSearchText(title, description, checked.plainText),
+    origin,
+    createdAt: input.createdAt,
+    updatedAt: input.updatedAt,
+  });
+  await ctx.db.patch(currentBodyId, { artifactId: id });
+  for (const row of versions) {
+    await ctx.db.insert("artifactVersions", {
+      artifactId: id,
+      userId,
+      version: row.version,
+      bodyId: await putBody(ctx, id, userId, row.body, row.createdAt),
+      title: row.title,
+      stateSpec: row.stateSpec,
+      createdAt: row.createdAt,
+      createdBy: origin.client,
+    });
+  }
+  await pruneVersions(ctx, id, currentBodyId);
+  for (const ref of checked.refs) {
+    await ctx.db.insert("artifactRefs", {
+      artifactId: id,
+      userId,
+      ...ref,
+      createdAt: input.createdAt,
+    });
+  }
+  if (input.state !== undefined) {
+    const { data, updatedAt } = input.state;
+    await ctx.db.insert("artifactState", {
+      artifactId: id,
+      userId,
+      data,
+      stateVersion: stateSpec?.stateVersion ?? 1,
+      updatedAt,
+      lastWriteAt: updatedAt,
+      // imported state does not count against today's cap
+      dailyWriteCount: 0,
+      dailyWriteDay: utcDayKey(updatedAt),
+    });
+  }
+  return id;
+}
+
 // ---- trash purge ----
+
+// hard-deletes one artifact with its bodies, versions, state and refs, in
+// bounded batches. Returns true once the artifact row itself is gone.
+export async function deleteArtifactTree(
+  ctx: MutationCtx,
+  artifactId: Id<"artifacts">,
+): Promise<boolean> {
+  const batches = [
+    await ctx.db
+      .query("artifactVersions")
+      .withIndex("by_artifact_version", (q) => q.eq("artifactId", artifactId))
+      .take(PURGE_CHILD_BATCH),
+    await ctx.db
+      .query("artifactBodies")
+      .withIndex("by_artifact", (q) => q.eq("artifactId", artifactId))
+      .take(PURGE_BODY_BATCH),
+    await ctx.db
+      .query("artifactState")
+      .withIndex("by_artifact_user", (q) => q.eq("artifactId", artifactId))
+      .take(PURGE_CHILD_BATCH),
+    await ctx.db
+      .query("artifactRefs")
+      .withIndex("by_artifact", (q) => q.eq("artifactId", artifactId))
+      .take(PURGE_CHILD_BATCH),
+  ];
+  const limits = [
+    PURGE_CHILD_BATCH,
+    PURGE_BODY_BATCH,
+    PURGE_CHILD_BATCH,
+    PURGE_CHILD_BATCH,
+  ];
+  for (const batch of batches) {
+    for (const child of batch) await ctx.db.delete(child._id);
+  }
+  // children may be left; the next batch deletes the artifact row
+  if (batches.some((batch, i) => batch.length === limits[i])) return false;
+  await ctx.db.delete(artifactId);
+  return true;
+}
 
 // one batched step: hard-deletes artifacts trashed more than 30 days ago with
 // their bodies, versions, state and refs. Returns true while work is left.
@@ -942,40 +1236,7 @@ export async function purgeDeletedArtifactsBatch(
     .take(PURGE_ARTIFACTS_BATCH);
   let more = due.length === PURGE_ARTIFACTS_BATCH;
   for (const doc of due) {
-    const artifactId = doc._id;
-    const batches = [
-      await ctx.db
-        .query("artifactVersions")
-        .withIndex("by_artifact_version", (q) => q.eq("artifactId", artifactId))
-        .take(PURGE_CHILD_BATCH),
-      await ctx.db
-        .query("artifactBodies")
-        .withIndex("by_artifact", (q) => q.eq("artifactId", artifactId))
-        .take(PURGE_BODY_BATCH),
-      await ctx.db
-        .query("artifactState")
-        .withIndex("by_artifact_user", (q) => q.eq("artifactId", artifactId))
-        .take(PURGE_CHILD_BATCH),
-      await ctx.db
-        .query("artifactRefs")
-        .withIndex("by_artifact", (q) => q.eq("artifactId", artifactId))
-        .take(PURGE_CHILD_BATCH),
-    ];
-    const limits = [
-      PURGE_CHILD_BATCH,
-      PURGE_BODY_BATCH,
-      PURGE_CHILD_BATCH,
-      PURGE_CHILD_BATCH,
-    ];
-    for (const batch of batches) {
-      for (const child of batch) await ctx.db.delete(child._id);
-    }
-    if (batches.some((batch, i) => batch.length === limits[i])) {
-      // children may be left; the next batch deletes the artifact row
-      more = true;
-    } else {
-      await ctx.db.delete(artifactId);
-    }
+    if (!(await deleteArtifactTree(ctx, doc._id))) more = true;
   }
   return more;
 }
