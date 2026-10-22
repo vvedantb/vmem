@@ -123,7 +123,7 @@ const config: KnipConfig = {
       entry: [
         "src/main.ts!",
         "src/preload.ts!",
-        "renderer/settings.ts!",
+        "renderer/main.tsx!",
         "scripts/*.mjs!",
         // Swapped in for get-windows native loaders by scripts/build.mjs.
         "src/native/get-windows-*.ts!",
@@ -131,14 +131,20 @@ const config: KnipConfig = {
       ],
       project: [
         "src/**/*.ts",
-        "renderer/**/*.ts",
+        "renderer/**/*.{ts,tsx}",
         "scripts/**/*.mjs",
         "tests/**/*.ts",
       ],
       // electron: launched via the `dev`/`start` scripts and electron-builder.
       // electron-builder: runs from the `package*` scripts and CI. The build
-      // script bundles @vmem/sdk, zod and get-windows JS.
-      ignoreDependencies: ["electron", "electron-builder", "get-windows"],
+      // script bundles @vmem/sdk, zod and get-windows JS. tailwindcss: used by
+      // renderer/globals.css `@import`; knip does not trace stylesheet imports.
+      ignoreDependencies: [
+        "electron",
+        "electron-builder",
+        "get-windows",
+        "tailwindcss",
+      ],
       // Linux window manager and terminal that scripts/packaged-test.mjs spawns.
       ignoreBinaries: ["openbox", "xterm"],
     },

@@ -144,11 +144,44 @@ describe("dream run rows", () => {
 });
 
 describe("dreaming surfaces", () => {
-  it("serves /dreaming in the shared page container", () => {
+  it("serves /dreaming with Proposals (default) and History tabs", () => {
     const route = read("../../routes/_main/$profileId/dreaming.tsx");
     expect(route).toContain('createFileRoute("/_main/$profileId/dreaming")');
     expect(route).toContain("PageContainer");
-    expect(route).toContain("DreamingPanel");
+    expect(route).toContain("useQueryStates(dreamingSearchParams)");
+    expect(route).toContain("<ProposalsPanel />");
+    expect(route).toContain("<DreamingPanel />");
+    expect(route).toContain("<DreamCleanupCard />");
+    expect(route).toContain("pendingCount");
+    expect(route).toContain("rightSection={<DreamingActions />}");
+    expect(read("../../lib/url-state/dreaming.ts")).toContain(
+      '.withDefault("proposals")',
+    );
+    expect(() =>
+      read("../../routes/_main/$profileId/inbox/dreaming.tsx"),
+    ).toThrow();
+  });
+
+  it("puts scan and run in one header group, only on the Dreaming page", () => {
+    const panel = read("DreamingPanel.tsx");
+    const header = panel.slice(
+      panel.indexOf("function DreamingActions"),
+      panel.indexOf("function ScanForDuplicatesButton"),
+    );
+    expect(header).toContain("<ButtonGroup>");
+    expect(header).toContain("<ScanForDuplicatesButton />");
+    expect(header).toContain("<RunDreamModeButton />");
+    expect(panel.match(/<ScanForDuplicatesButton \/>/g)).toHaveLength(1);
+    expect(panel.match(/<RunDreamModeButton \/>/g)).toHaveLength(1);
+    expect(panel).not.toContain("<DreamCleanupCard />");
+    for (const file of [
+      "../proposals/ProposalsPanel.tsx",
+      "DreamCleanupCard.tsx",
+      "../../routes/_main/$profileId/inbox/route.tsx",
+    ]) {
+      expect(read(file)).not.toContain("RunDreamModeButton");
+      expect(read(file)).not.toContain("ScanForDuplicatesButton");
+    }
   });
 
   it("confirms before applying the cleanup and uses the auth-checked wrapper", () => {
@@ -156,8 +189,8 @@ describe("dreaming surfaces", () => {
     expect(card).toContain("api.dreamCleanup.applyCleanup");
     expect(card).toContain("ConfirmDialog.Root");
     expect(card).toContain("AI suggests — needs your approval");
-    expect(read("../dashboard/Dashboard.tsx")).toContain(
-      "<DreamCleanupCard />",
+    expect(read("../dashboard/Dashboard.tsx")).not.toContain(
+      "DreamCleanupCard",
     );
   });
 

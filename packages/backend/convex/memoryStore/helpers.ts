@@ -711,6 +711,7 @@ async function applyMemoryUpdates(
           mergedInto: undefined,
           suppressedBy: undefined,
           suppressedRunId: undefined,
+          suppressedAt: undefined,
         };
   const editCount =
     (doc.usefulnessEditCount ?? 0) + (updates.skipEditCount === true ? 0 : 1);
@@ -786,7 +787,7 @@ async function applyMemoryUpdates(
 
   const updated = await findByMemoryId(ctx, doc.memoryId);
   if (!updated) return null;
-  if (!sameTags(doc.tags, updated.tags)) {
+  if (!sameTags(doc.tags, updated.tags) || doc.status !== updated.status) {
     await trackMemoryChange(ctx, doc, updated);
   }
   if (contentChanged) {

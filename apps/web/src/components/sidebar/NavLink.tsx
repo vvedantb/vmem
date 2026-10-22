@@ -11,7 +11,7 @@ import {
 } from "@vvedantb/ui";
 import { IconChevronRight } from "@tabler/icons-react";
 import type { NavItem } from "./types";
-import { navHrefToPath } from "./nav-config";
+import { navHrefToPath, navItemBadgeCount } from "./nav-config";
 
 // sidebar nav link
 export function NavLink({
@@ -42,11 +42,10 @@ export function NavLink({
     pathname === resolvedPath || pathname.startsWith(resolvedPath + "/");
   const Icon = item.icon;
 
-  // resolve the badge count for this route. Adding a new badge route =
-  // new branch here + corresponding prop on this component
-  const badgeCount = item.href.endsWith("/inbox")
-    ? proposalsCount + unreadCount
-    : 0;
+  const badgeCount = navItemBadgeCount(item.href, {
+    unreadCount,
+    proposalsCount,
+  });
   const showBadge = badgeCount > 0;
 
   return (

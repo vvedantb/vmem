@@ -2,7 +2,7 @@ import {
   paginationOptsValidator,
   paginationResultValidator,
 } from "convex/server";
-import { v, type Infer, type ObjectType } from "convex/values";
+import { ConvexError, v, type Infer, type ObjectType } from "convex/values";
 import {
   DREAM_UNDO_WINDOW_MS,
   mergeKeeperPatch,
@@ -29,7 +29,7 @@ import {
   type QueryCtx,
 } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
-import { linkMemories, sameTags } from "./memoryStore/helpers";
+import { deleteMemory, linkMemories, sameTags } from "./memoryStore/helpers";
 import {
   hasOverlappingPendingProposal,
   insertProposedUpdate,
@@ -38,10 +38,12 @@ import { trackMemoryChange } from "./memoryStore/stats";
 import { dreamActionFields, dreamRunFields } from "./validators";
 
 // dreaming log: merge with a before-snapshot, undo inside 30 days, purge the
-// log 90 days after that. Memories are never hard-deleted here.
+// log 90 days after that. Duplicates a merge hid ("dream") are deleted once
+// their undo window has passed.
 
 const RETENTION_AFTER_UNDO_MS = 90 * 24 * 60 * 60 * 1000;
 const PURGE_BATCH = 500;
+const SWEEP_BATCH = 100;
 const UNDO_RUN_BATCH = 50;
 const LIST_RUNS_TAKE = 20;
 const HISTORY_TAKE = 10;
@@ -168,21 +170,24 @@ async function copyMentions(
   return created;
 }
 
-// patches a row and keeps searchableText and the tag counters in step
-async function patchDreamFields(
+// patches a row and keeps searchableText and the stat counters (tags and
+// visibility) in step
+export async function patchDreamFields(
   ctx: MutationCtx,
   doc: Doc<"memories">,
   patch: Partial<WithoutSystemFields<Doc<"memories">>>,
 ): Promise<void> {
   const tags = patch.tags;
   const tagsChanged = tags !== undefined && !sameTags(doc.tags, tags);
+  const statusChanged =
+    patch.status !== undefined && patch.status !== doc.status;
   await ctx.db.patch(doc._id, {
     ...patch,
     ...(tagsChanged
       ? { searchableText: buildSearchableText(doc.title, doc.content, tags) }
       : {}),
   });
-  if (!tagsChanged) return;
+  if (!tagsChanged && !statusChanged) return;
   const updated = await ctx.db.get(doc._id);
   await trackMemoryChange(ctx, doc, updated);
 }
@@ -232,12 +237,14 @@ export async function mergeGroup(
   );
   const linkIds: Id<"memoryLinks">[] = [];
   for (const loser of groupLosers) {
-    await ctx.db.patch(
-      loser._id,
+    await patchDreamFields(
+      ctx,
+      loser,
       mergeLoserPatch(
         keeper._id,
         run._id,
         args.ai === undefined ? "dream" : "dream-ai",
+        now,
       ),
     );
     const linkId = await addUpdatesLink(ctx, loser, keeper);
@@ -290,9 +297,10 @@ export async function supersedeRow(
   }
   const now = Date.now();
   const before = [snapshotRow(older)];
-  await ctx.db.patch(
-    older._id,
-    mergeLoserPatch(keeper._id, run._id, "dream-ai"),
+  await patchDreamFields(
+    ctx,
+    older,
+    mergeLoserPatch(keeper._id, run._id, "dream-ai", now),
   );
   const linkId = await addUpdatesLink(ctx, older, keeper);
   return await ctx.db.insert("dreamActions", {
@@ -387,6 +395,20 @@ export const applyMerge = internalMutation({
   handler: async (ctx, args) => await mergeGroup(ctx, args),
 });
 
+const UNDO_ROWS_GONE =
+  "This merge can no longer be undone: the hidden copies were permanently deleted after the 30-day undo window.";
+
+// undo writes the hidden rows back, so it refuses (and changes nothing) once
+// one of them was deleted
+async function assertHiddenRowsExist(
+  ctx: MutationCtx,
+  action: Doc<"dreamActions">,
+): Promise<void> {
+  for (const id of action.memoryIds) {
+    if ((await ctx.db.get(id)) === null) throw new ConvexError(UNDO_ROWS_GONE);
+  }
+}
+
 // writes every snapshot back and removes the link and mention rows the action
 // added. Throws once undone or after the window.
 async function undoOne(
@@ -415,30 +437,43 @@ async function undoActionById(
   if (!action || (userId !== undefined && action.userId !== userId)) {
     throw new Error("Dream action not found");
   }
+  await assertHiddenRowsExist(ctx, action);
   await undoOne(ctx, action, Date.now());
 }
 
-// newest first, so a row changed by two actions ends on the oldest snapshot.
-// Undoes one batch and schedules the rest.
-async function undoRunBatch(
-  ctx: MutationCtx,
-  runId: Id<"dreamRuns">,
-  userId?: Id<"users">,
-): Promise<number> {
-  const run = await ctx.db.get(runId);
-  if (!run || (userId !== undefined && run.userId !== userId)) {
-    throw new Error("Dream run not found");
-  }
-  const actions = await ctx.db
+function openActionsOfRun(ctx: MutationCtx, runId: Id<"dreamRuns">) {
+  return ctx.db
     .query("dreamActions")
     .withIndex("by_run", (q) => q.eq("runId", runId))
     .order("desc")
-    .filter((q) => q.eq(q.field("undoneAt"), undefined))
-    .take(UNDO_RUN_BATCH);
+    .filter((q) => q.eq(q.field("undoneAt"), undefined));
+}
+
+// newest first, so a row changed by two actions ends on the oldest snapshot.
+// The first call checks every open action of the run before it changes
+// anything; it undoes one batch and schedules the rest.
+async function undoRunBatch(
+  ctx: MutationCtx,
+  runId: Id<"dreamRuns">,
+  options: { userId?: Id<"users">; checked?: boolean },
+): Promise<number> {
+  const run = await ctx.db.get(runId);
+  if (!run || (options.userId !== undefined && run.userId !== options.userId)) {
+    throw new Error("Dream run not found");
+  }
+  if (options.checked !== true) {
+    for await (const action of openActionsOfRun(ctx, runId)) {
+      await assertHiddenRowsExist(ctx, action);
+    }
+  }
+  const actions = await openActionsOfRun(ctx, runId).take(UNDO_RUN_BATCH);
   const now = Date.now();
   for (const action of actions) await undoOne(ctx, action, now);
   if (actions.length === UNDO_RUN_BATCH) {
-    await ctx.scheduler.runAfter(0, internal.dream.undoRunInternal, { runId });
+    await ctx.scheduler.runAfter(0, internal.dream.undoRunInternal, {
+      runId,
+      checked: true,
+    });
   }
   return actions.length;
 }
@@ -465,10 +500,12 @@ export const undoActionInternal = internalMutation({
   },
 });
 
+// checked: the first batch already checked the whole run
 export const undoRunInternal = internalMutation({
-  args: { runId: v.id("dreamRuns") },
+  args: { runId: v.id("dreamRuns"), checked: v.optional(v.boolean()) },
   returns: v.number(),
-  handler: async (ctx, args) => await undoRunBatch(ctx, args.runId),
+  handler: async (ctx, args) =>
+    await undoRunBatch(ctx, args.runId, { checked: args.checked }),
 });
 
 export const undoAction = authMutation({
@@ -484,7 +521,8 @@ export const undoAction = authMutation({
 export const undoRun = authMutation({
   args: { runId: v.id("dreamRuns") },
   returns: v.number(),
-  handler: async (ctx, args) => await undoRunBatch(ctx, args.runId, ctx.userId),
+  handler: async (ctx, args) =>
+    await undoRunBatch(ctx, args.runId, { userId: ctx.userId }),
 });
 
 export const listRuns = authQuery({
@@ -668,5 +706,48 @@ export const purgeExpiredActions = internalMutation({
       await ctx.scheduler.runAfter(0, internal.dream.purgeExpiredActions, {});
     }
     return rows.length;
+  },
+});
+
+// rows hidden before suppressedAt existed use their run's finish time, which
+// is never earlier than the merge
+async function hiddenBefore(
+  ctx: MutationCtx,
+  doc: Doc<"memories">,
+  cutoff: number,
+): Promise<boolean> {
+  if (doc.suppressedAt !== undefined) return doc.suppressedAt < cutoff;
+  const run = doc.suppressedRunId
+    ? await ctx.db.get(doc.suppressedRunId)
+    : null;
+  return run?.finishedAt !== undefined && run.finishedAt < cutoff;
+}
+
+// hourly: permanently deletes duplicates a dream merge hid ("dream") once the
+// 30-day undo window has passed, with their links, mentions, embedding, usage
+// and counters. 100 rows a batch, then the next page.
+export const sweepExpiredDuplicates = internalMutation({
+  args: { cursor: v.optional(v.string()) },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const cutoff = Date.now() - DREAM_UNDO_WINDOW_MS;
+    const page = await ctx.db
+      .query("memories")
+      .withIndex("by_suppressed_by_at", (q) =>
+        q.eq("suppressedBy", "dream").lt("suppressedAt", cutoff),
+      )
+      .paginate({ cursor: args.cursor ?? null, numItems: SWEEP_BATCH });
+    let deleted = 0;
+    for (const doc of page.page) {
+      if (doc.status !== "suppressed") continue;
+      if (!(await hiddenBefore(ctx, doc, cutoff))) continue;
+      if (await deleteMemory(ctx, doc.userId, doc.memoryId)) deleted += 1;
+    }
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.dream.sweepExpiredDuplicates, {
+        cursor: page.continueCursor,
+      });
+    }
+    return deleted;
   },
 });

@@ -106,15 +106,21 @@ describe("snapshot and restore", () => {
       mergedInto: _mergedInto,
       suppressedBy: _suppressedBy,
       suppressedRunId: _suppressedRunId,
+      suppressedAt: _suppressedAt,
       ...stored
     } = snapshot;
     const patch = restorePatch(stored);
     expect(Object.keys(patch)).toEqual(
-      expect.arrayContaining(["mergedInto", "suppressedBy", "suppressedRunId"]),
+      expect.arrayContaining([
+        "mergedInto",
+        "suppressedBy",
+        "suppressedRunId",
+        "suppressedAt",
+      ]),
     );
     const merged = {
       ...original,
-      ...mergeLoserPatch("k", "run", "dream"),
+      ...mergeLoserPatch("k", "run", "dream", 1),
     };
     const restored = { ...merged, ...patch };
     expect(snapshotRow(restored)).toEqual(snapshot);

@@ -3,12 +3,12 @@ title: "Dream Mode"
 description: "Nightly cleanup of duplicates, outdated facts and stale browsing history"
 ---
 
-Dream Mode cleans your memory while you sleep. It merges duplicates, expires old rows, archives stale browsing history and asks an AI judge about rows that look alike or disagree. Every change it makes can be undone for 30 days. Memories are never hard-deleted.
+Dream Mode cleans your memory while you sleep. It merges duplicates, expires old rows, archives stale browsing history and asks an AI judge about rows that look alike or disagree. Every change it makes can be undone for 30 days. After that, duplicate copies hidden by a merge are permanently deleted; other hidden rows are kept.
 
 ## When it runs
 
 - **Nightly.** One cron, `nightly maintenance`, runs at **02:30 UTC** for every user (`convex/crons.ts`, `convex/nightly.ts`). For each user it runs the dream step first, then [rollups](#rollups), so the day summary reads cleaned data. A failed dream step is logged and does not stop the rollups. There is no per-user schedule time.
-- **Now.** **Start Dreaming** in the inbox and the MCP [`dream_run`](/mcp/tools) tool run the same pass. Manual runs are limited to one per hour and send no notification.
+- **Now.** **Run dream mode** on the Dreaming page and the MCP [`dream_run`](/mcp/tools) tool run the same pass. Manual runs are limited to one per hour and send no notification.
 
 A run covers your personal profiles and the team profiles where you are the team owner (the owner's settings apply). Decay runs on personal profiles only.
 
@@ -44,9 +44,9 @@ Candidates older than 30 days, or whose rows are gone or hidden, are purged hour
 
 | Verdict         | Result                                                                                                                                                                                                |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `duplicate`     | Merge. Applied at once only with `dreamModeAutoAccept` and confidence ≥ 0.9, else a `merge` inbox proposal.                                                                                           |
+| `duplicate`     | Merge. Applied at once only with `dreamModeAutoAccept` and confidence ≥ 0.9, else a `merge` proposal.                                                                                                 |
 | `update`        | The newer row replaces the older one. Applied at once only with auto-accept, confidence ≥ 0.9 and the same source family (so a browsing row never replaces an agent fact), else an `update` proposal. |
-| `contradiction` | Always a `contradiction` inbox proposal. You pick the row to keep.                                                                                                                                    |
+| `contradiction` | Always a `contradiction` proposal. You pick the row to keep.                                                                                                                                          |
 | `unrelated`     | The candidate is dropped.                                                                                                                                                                             |
 
 A failed call changes nothing. A new proposal is not created when a pending proposal already covers one of the rows. Approving a dream `merge` or `update` proposal runs under the same dream run, with undo. See [Proposed Updates](/concepts/proposed-updates).
@@ -79,9 +79,11 @@ Archived rows get status `suppressed` with `suppressedBy: "dream-decay"`. At mos
 
 Decay runs only after the profile has a previous successful run (`ok` or `partial`) or an applied one-off cleanup. So a new profile is never decayed on its first night. Decay is off for team profiles, because shared rows are not one person's history.
 
-## Undo and the Dreaming page
+## The Dreaming page and undo
 
-The **Dreaming** page lists the runs with their counts. You can undo one action or a whole run for **30 days**. Undo restores the before-snapshot of each row. The log rows are purged 90 days after the undo window closes. MCP [`dream_history`](/mcp/tools) reads the last 10 runs (counts only).
+The **Dreaming** page (`/{profileId}/dreaming`) has two tabs. **Proposals** is the default and lists pending [proposals](/concepts/proposed-updates) to approve or reject; its label shows the pending count. **History** lists the runs with their counts. The page header has **Scan for duplicates** and **Run dream mode**. You can undo one action or a whole run for **30 days**. Undo restores the before-snapshot of each row.
+
+After the 30 days, an hourly sweep permanently deletes the duplicate copies a deterministic merge hid (`suppressedBy: "dream"`). AI-judged merges, archived and expired rows are kept hidden. Once a hidden copy is gone, undo refuses the whole action or run and changes nothing. The log rows are purged 90 days after the undo window closes. Hidden rows never count in the dashboard stats. MCP [`dream_history`](/mcp/tools) reads the last 10 runs (counts only).
 
 Merged rows show where they came from ("merged from") on the memory.
 
@@ -90,7 +92,7 @@ Merged rows show where they came from ("merged from") on the memory.
 Nightly runs never read the full history. Duplicates that existed before Dream Mode are handled by a one-off cleanup in two steps:
 
 1. **Dry run.** **Scan for duplicates** on the Dreaming page (your personal profile only), or an operator runs `npx convex run dreamCleanup:dryRunForUser '{"clerkUserId":"user_…"}'`. It pages the profile, groups exact-hash and same-page rows, and asks Jev about a capped number of near-duplicate groups (20 calls by default, at most 200). The web scan skips Jev when `dreamModeUseAi` is off. Nothing changes. The plan is stored in `dreamPlanGroups` for 30 days. A new scan is refused while one runs and within an hour of the last one.
-2. **Apply.** The plan shows as a card on the Dreaming page. Nothing is applied until the owner reviews it and chooses **Clean up**. Deterministic groups merge with undo. Jev-flagged groups go to the inbox as proposals.
+2. **Apply.** The plan shows as a card above the Dreaming page tabs. Nothing is applied until the owner reviews it and chooses **Clean up**. Deterministic groups merge with undo. Jev-flagged groups go to the Proposals tab.
 
 ## Settings
 
@@ -101,7 +103,7 @@ Settings → Preferences → Dream Mode. MCP `settings_update` takes the same fi
 | `dreamModeAutomatic`  | on                                              | Nightly dreaming. Off: only manual runs.                                                                            |
 | `dreamModeDecay`      | on                                              | Archive stale browsing history, bookmarks and desktop rows.                                                         |
 | `dreamModeUseAi`      | on when the deployment has `AI_GATEWAY_API_KEY` | Ask the AI judge about candidates. Off: only exact and same-page merges.                                            |
-| `dreamModeAutoAccept` | off                                             | Apply AI merges and updates with confidence ≥ 0.9 at once. Off: they wait in the inbox. Contradictions always wait. |
+| `dreamModeAutoAccept` | off                                             | Apply AI merges and updates with confidence ≥ 0.9 at once. Off: they wait as proposals. Contradictions always wait. |
 
 ## Operator switches
 

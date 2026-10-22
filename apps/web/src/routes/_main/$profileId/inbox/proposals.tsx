@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ProposalsPanel } from "./-components/ProposalsPanel";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+// legacy `/inbox/proposals` route preserved as a redirect after the move to
+// the Dreaming page (its default tab is Proposals)
 export const Route = createFileRoute("/_main/$profileId/inbox/proposals")({
-  component: ProposalsRoute,
+  beforeLoad: ({ params }) => {
+    throw redirect({ to: "/$profileId/dreaming", params });
+  },
+  component: () => null,
 });
-
-function ProposalsRoute() {
-  return <ProposalsPanel />;
-}

@@ -6,7 +6,6 @@ import { api } from "@vmem/backend";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { DashboardLoadingSkeleton } from "./DashboardLoadingSkeleton";
 import { DashboardStatCards } from "./DashboardStatCards";
-import { DreamCleanupCard } from "@/components/dreaming/DreamCleanupCard";
 import { DreamPortraitCard } from "./DreamPortraitCard";
 import { MemoryGrowthChart } from "./MemoryGrowthChart";
 
@@ -59,8 +58,6 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-8">
       <DashboardStatCards stats={stats} />
-
-      <DreamCleanupCard />
 
       <DreamPortraitCard />
 

@@ -16,6 +16,7 @@ import {
   inboxRailItem,
   isRailItemActive,
   navHrefToPath,
+  navItemBadgeCount,
   railLibraryItems,
   railSectionFromPathname,
   settingsRailItem,
@@ -49,9 +50,10 @@ function RailNavItem({
       : item.href === inboxRailItem.href
         ? section === "inbox"
         : isRailItemActive(item.href, pathname, profileId);
-  const badgeCount = item.href.endsWith("/inbox")
-    ? proposalsCount + unreadCount
-    : 0;
+  const badgeCount = navItemBadgeCount(item.href, {
+    unreadCount,
+    proposalsCount,
+  });
 
   return (
     <RailTile

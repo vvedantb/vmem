@@ -180,7 +180,7 @@ export function PreferencesPage() {
         <SettingsToggleRow
           htmlFor="dream-auto-accept"
           title="Auto-apply AI-judged merges"
-          description="Apply merges and updates the AI judge is sure about at once, with undo for 30 days. Off: they wait in your inbox. Contradictions always wait in your inbox."
+          description="Apply merges and updates the AI judge is sure about at once, with undo for 30 days. Off: they wait in Dreaming > Proposals. Contradictions always wait there."
           action={
             <Switch
               id="dream-auto-accept"

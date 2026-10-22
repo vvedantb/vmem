@@ -14,6 +14,9 @@ export interface DreamSnapshot<M extends string, R extends string> {
   mergedInto?: M;
   suppressedBy?: DreamSuppressedBy;
   suppressedRunId?: R;
+  // when dream hid the row; hidden duplicates are deleted once the undo
+  // window from here has passed
+  suppressedAt?: number;
   visitCount: number;
   firstVisitAt: number;
   lastVisitAt: number;
@@ -42,6 +45,7 @@ export function snapshotRow<M extends string, R extends string>(
     mergedInto: row.mergedInto,
     suppressedBy: row.suppressedBy,
     suppressedRunId: row.suppressedRunId,
+    suppressedAt: row.suppressedAt,
     visitCount: row.visitCount,
     firstVisitAt: row.firstVisitAt,
     lastVisitAt: row.lastVisitAt,
@@ -62,6 +66,7 @@ export function restorePatch<M extends string, R extends string>(
     mergedInto: snapshot.mergedInto,
     suppressedBy: snapshot.suppressedBy,
     suppressedRunId: snapshot.suppressedRunId,
+    suppressedAt: snapshot.suppressedAt,
     visitCount: snapshot.visitCount,
     firstVisitAt: snapshot.firstVisitAt,
     lastVisitAt: snapshot.lastVisitAt,
@@ -171,14 +176,16 @@ export function mergeLoserPatch<M extends string, R extends string>(
   keeperId: M,
   runId: R,
   suppressedBy: DreamSuppressedBy,
+  suppressedAt: number,
 ): Pick<
   DreamSnapshot<M, R>,
-  "status" | "mergedInto" | "suppressedBy" | "suppressedRunId"
+  "status" | "mergedInto" | "suppressedBy" | "suppressedRunId" | "suppressedAt"
 > {
   return {
     status: "suppressed",
     mergedInto: keeperId,
     suppressedBy,
     suppressedRunId: runId,
+    suppressedAt,
   };
 }

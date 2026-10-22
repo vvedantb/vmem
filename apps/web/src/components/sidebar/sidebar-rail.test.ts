@@ -8,6 +8,7 @@ import {
   isRailItemActive,
   navGroups,
   navHrefToPath,
+  navItemBadgeCount,
   railLibraryItems,
   railSectionFromPathname,
   settingsRailItem,
@@ -36,6 +37,7 @@ describe("railSectionFromPathname", () => {
     expect(railSectionFromPathname("/p1/usage")).toBe("usage");
     expect(railSectionFromPathname("/p1/traces")).toBe("traces");
     expect(railSectionFromPathname("/p1/dreaming")).toBe("dreaming");
+    expect(railSectionFromPathname("/p1/proposals")).toBe("dreaming");
     expect(railSectionFromPathname("/p1/team/settings")).toBe("team");
     expect(railSectionFromPathname("/settings/preferences")).toBe("settings");
   });
@@ -44,7 +46,6 @@ describe("railSectionFromPathname", () => {
     expect(railSectionFromPathname("/p1/inbox")).toBe("inbox");
     expect(railSectionFromPathname("/p1/inbox/proposals")).toBe("inbox");
     expect(railSectionFromPathname("/p1/inbox/notifications")).toBe("inbox");
-    expect(railSectionFromPathname("/p1/proposals")).toBe("inbox");
     expect(railSectionFromPathname("/p1/notifications")).toBe("inbox");
     expect(railSectionFromPathname("/p1/sources")).toBe("sources");
     expect(railSectionFromPathname("/p1/sources/connectors")).toBe("sources");
@@ -150,6 +151,15 @@ describe("isRailItemActive", () => {
   });
 });
 
+describe("navItemBadgeCount", () => {
+  it("counts unread notifications on Inbox and pending proposals on Dreaming", () => {
+    const counts = { unreadCount: 2, proposalsCount: 5 };
+    expect(navItemBadgeCount(inboxRailItem.href, counts)).toBe(2);
+    expect(navItemBadgeCount("/$profileId/dreaming", counts)).toBe(5);
+    expect(navItemBadgeCount("/$profileId/memories", counts)).toBe(0);
+  });
+});
+
 describe("shell uses a rail + panel + drawer", () => {
   it("composes SidebarRail in both desktop and drawer layouts", () => {
     const sidebar = read("../shell/Sidebar.tsx");
@@ -248,7 +258,8 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(dividerIdx).toBeGreaterThan(inboxIdx);
     expect(libraryIdx).toBeGreaterThan(dividerIdx);
     expect(railNav).toContain("railBadgeClass");
-    expect(railNav).toContain("proposalsCount + unreadCount");
+    expect(railNav).toContain("navItemBadgeCount(item.href");
+    expect(read("NavLink.tsx")).toContain("navItemBadgeCount(item.href");
     expect(read("../shell/Sidebar.tsx")).toContain("unreadCount={unreadCount}");
     expect(railNav).not.toContain("railAccountItems");
     expect(railNav).not.toContain("IconActivity");
@@ -303,8 +314,8 @@ describe("nested sidebar chrome", () => {
     expect(read("../../routes/_main/$profileId/inbox/route.tsx")).not.toContain(
       "leftSection",
     );
-    expect(read("../../routes/_main/$profileId/inbox/route.tsx")).toContain(
-      "InboxTabs",
+    expect(read("../../routes/_main/$profileId/inbox/route.tsx")).not.toContain(
+      "tabs=",
     );
   });
 

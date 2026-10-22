@@ -1,7 +1,6 @@
 import { Badge, Card, CardContent, Skeleton } from "@vvedantb/ui";
 import { IconSparkles } from "@tabler/icons-react";
 import { toast } from "sonner";
-import RunDreamModeButton from "@/components/proposals/RunDreamModeButton";
 import SynthesisProposalCard from "@/components/proposals/SynthesisProposalCard";
 import { UpdateProposalCard } from "@/components/proposals/UpdateProposalCard";
 import {
@@ -11,6 +10,7 @@ import {
   type ProposedUpdate,
 } from "@/hooks/useProposals";
 
+// Dreaming page Proposals tab: pending proposals with approve / reject
 export function ProposalsPanel() {
   const {
     proposals,
@@ -99,20 +99,6 @@ export function ProposalsPanel() {
   );
 }
 
-export function ProposalsRightSection() {
-  const { pendingCount } = useProposals();
-  return (
-    <div className="flex items-center gap-2">
-      {pendingCount > 0 && (
-        <Badge variant="outline" className="text-xs tabular-nums">
-          {pendingCount} pending
-        </Badge>
-      )}
-      <RunDreamModeButton />
-    </div>
-  );
-}
-
 function LoadingSkeleton() {
   return (
     <div className="flex flex-col gap-4">
@@ -147,11 +133,10 @@ function EmptyState() {
         <h3 className="mb-1 text-base font-medium text-foreground text-balance">
           No pending proposals
         </h3>
-        <p className="mb-6 max-w-sm text-sm text-muted text-balance">
+        <p className="max-w-sm text-sm text-muted text-balance">
           Proposals appear when vmem spots a fact conflict, or when Dream Mode
           surfaces insights, connections, and anomalies across your memories.
         </p>
-        <RunDreamModeButton />
       </CardContent>
     </Card>
   );

@@ -17,20 +17,20 @@ When vmem detected that new information conflicted with an existing memory, it c
 New memory extracted: "User prefers TypeScript"
   → vmem detects conflict with: "User prefers Python"
   → Creates a proposed update (pending)
-  → User reviews and approves/rejects via Inbox or API
+  → User reviews and approves/rejects via Dreaming → Proposals or API
 ```
 
 Instruction **update** (`PATCH { instruction }` / SDK `update()`) extracts facts, retrieves related rows, and **supersedes** the prior memory (status `suppressed`, `updates` link) instead of inserting a duplicate. Retrieve therefore sees the latest fact even when stale and current share a timestamp.
 
-[Dream Mode](/concepts/dream-mode) also writes proposals, in `source: "dream-mode"`. Exact and same-page duplicates merge at once each night, with 30-day undo, and make no proposal. The AI judge sends what it is not sure about to the inbox:
+[Dream Mode](/concepts/dream-mode) also writes proposals, in `source: "dream-mode"`. Exact and same-page duplicates merge at once each night, with 30-day undo, and make no proposal. The AI judge sends what it is not sure about to the Proposals tab:
 
 - `merge`: Jev says two rows are duplicates. It applies at once only with `dreamModeAutoAccept` and confidence ≥ 0.9.
 - `update`: the conflict judge says the newer row replaces the older one. It applies at once only with auto-accept, confidence ≥ 0.9 and the same source family.
 - `contradiction`: the rows disagree. It always waits for you. On approve, pass `winnerMemoryId`; the other rows are superseded by it.
 
-Approving a dream `merge` or `update` runs under the dream run that proposed it, so you can undo it on the Dreaming page for 30 days. Dream Mode does not create a proposal when a pending proposal already covers one of the rows. The one-off cleanup also sends its Jev-flagged groups here as `merge` proposals. `listProposedUpdates` / `resolveProposal` persist in the `proposedUpdates` table.
+Approving a dream `merge` or `update` runs under the dream run that proposed it, so you can undo it on the Dreaming page History tab for 30 days. Dream Mode does not create a proposal when a pending proposal already covers one of the rows. The one-off cleanup also sends its Jev-flagged groups here as `merge` proposals. `listProposedUpdates` / `resolveProposal` persist in the `proposedUpdates` table.
 
-The types below describe the inbox proposal shape.
+The types below describe the proposal shape.
 
 ## Proposal Kinds
 
@@ -50,7 +50,7 @@ On `main`, only Dream Mode creates proposals (`merge`, `update` and `contradicti
 
 ### Via Dashboard
 
-Go to **Inbox → Proposals** (`/{profileId}/inbox/proposals`).
+Go to **Dreaming → Proposals** (`/{profileId}/dreaming`; Proposals is the default tab). The old `/{profileId}/inbox/proposals` and `/{profileId}/proposals` URLs redirect there. The Inbox holds notifications only.
 
 ### Via API
 
