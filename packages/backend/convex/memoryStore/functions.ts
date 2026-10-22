@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { isVisibleStatus } from "../../engine/memory/scope";
 import { internalMutation, internalQuery } from "../_generated/server";
 import {
   memoryEntityTypeValidator,
@@ -315,8 +316,11 @@ export const paginateScopedMemoryStatsInternal = internalQuery({
       numItems: args.numItems,
       cursor: args.cursor,
     });
+    // counts visible rows only, like the counters; the cursor still walks all
     return {
-      rows: page.page.map(toMemoryStatRow),
+      rows: page.page
+        .filter((doc) => isVisibleStatus(doc.status))
+        .map(toMemoryStatRow),
       isDone: page.isDone,
       continueCursor: page.continueCursor,
       splitCursor: page.splitCursor,

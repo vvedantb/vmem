@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  inboxTabFromPathname,
-  sourcesTabFromPathname,
-} from "./HomeSectionTabs";
+import { sourcesTabFromPathname } from "./HomeSectionTabs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -15,18 +12,7 @@ function read(rel: string): string {
 
 const routes = "../../routes/_main/$profileId";
 
-describe("nested inbox and sources tabs", () => {
-  it("selects proposals unless on notifications", () => {
-    expect(inboxTabFromPathname("/p1/inbox/proposals")).toBe("proposals");
-    expect(inboxTabFromPathname("/p1/inbox")).toBe("proposals");
-    expect(inboxTabFromPathname("/p1/inbox/notifications")).toBe(
-      "notifications",
-    );
-    expect(inboxTabFromPathname("/p1/inbox/notifications/")).toBe(
-      "notifications",
-    );
-  });
-
+describe("nested sources tabs", () => {
   it("selects connectors unless on import", () => {
     expect(sourcesTabFromPathname("/p1/sources/connectors")).toBe("connectors");
     expect(sourcesTabFromPathname("/p1/sources")).toBe("connectors");
@@ -34,34 +20,31 @@ describe("nested inbox and sources tabs", () => {
   });
 });
 
-describe("page tabs replace the inbox and sources sidebars", () => {
+describe("page tabs replace the sources sidebar", () => {
   it("labels only the nested tabs", () => {
     const tabs = read("HomeSectionTabs.tsx");
-    for (const label of [
-      'label: "Proposals"',
-      'label: "Notifications"',
-      'label: "Connectors"',
-      'label: "Import"',
-    ]) {
+    for (const label of ['label: "Connectors"', 'label: "Import"']) {
       expect(tabs).toContain(label);
     }
     for (const label of [
       'label: "Dashboard"',
       'label: "Inbox"',
       'label: "Sources"',
+      'label: "Proposals"',
+      'label: "Notifications"',
     ]) {
       expect(tabs).not.toContain(label);
     }
     expect(tabs).not.toContain("HomeSectionTabRows");
     expect(tabs).toContain("RouteTabs");
     expect(tabs).not.toContain('"/$profileId/home"');
-    expect(tabs).toContain('"/$profileId/inbox/proposals"');
-    expect(tabs).toContain('"/$profileId/inbox/notifications"');
+    expect(tabs).not.toContain("InboxTabs");
+    expect(tabs).not.toContain('"/$profileId/inbox/');
     expect(tabs).toContain('"/$profileId/sources/connectors"');
     expect(tabs).toContain('"/$profileId/sources/import"');
   });
 
-  it("renders nested tabs on inbox and sources, and none on home", () => {
+  it("renders nested tabs on sources, and none on home or inbox", () => {
     const home = read(`${routes}/home.tsx`);
     expect(home).toContain('title="Dashboard"');
     expect(home).not.toContain("tabs=");
@@ -69,7 +52,12 @@ describe("page tabs replace the inbox and sources sidebars", () => {
 
     const inbox = read(`${routes}/inbox/route.tsx`);
     expect(inbox).toContain('title="Inbox"');
-    expect(inbox).toContain("tabs={<InboxTabs />}");
+    expect(inbox).not.toContain("tabs=");
+    expect(inbox).toContain("<NotificationsRightSection />");
+    expect(inbox).not.toContain("ProposalsRightSection");
+    expect(() =>
+      read(`${routes}/inbox/-components/ProposalsPanel.tsx`),
+    ).toThrow();
 
     const connectors = read(`${routes}/sources/connectors.tsx`);
     expect(connectors).toContain("tabs={<SourcesTabs />}");
@@ -79,10 +67,15 @@ describe("page tabs replace the inbox and sources sidebars", () => {
     expect(read("../settings/ConnectorsClient.tsx")).toContain("tabs={tabs}");
   });
 
-  it("keeps the index redirects for inbox and sources", () => {
+  it("lands the inbox index on notifications and sends proposals to dreaming", () => {
     expect(read(`${routes}/inbox/index.tsx`)).toContain(
-      '"/$profileId/inbox/proposals"',
+      '"/$profileId/inbox/notifications"',
     );
+    for (const legacy of ["inbox/proposals.tsx", "proposals.tsx"]) {
+      const route = read(`${routes}/${legacy}`);
+      expect(route).toContain("throw redirect(");
+      expect(route).toContain('to: "/$profileId/dreaming"');
+    }
     expect(read(`${routes}/sources/index.tsx`)).toContain(
       '"/$profileId/sources/connectors"',
     );

@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { ActionCtx } from "../../convex/_generated/server";
 import type { EffectiveSkill } from "../../convex/skills";
 import { memoryMatchesListFilter } from "../../engine/memory/list";
+import { isVisibleStatus } from "../../engine/memory/scope";
 
 export const MOCK_CLERK_ID = "clerk_mcp_harness";
 export const MOCK_USER_ID = "users_mcp_harness";
@@ -532,10 +533,12 @@ async function dispatch(
     case "memoryStore/functions:paginateScopedMemoryStatsInternal": {
       const parsed = paginateScopedArgsSchema.parse(args);
       return {
-        rows: scopedMemories(store, parsed, parsed.kind).map((memory) => ({
-          createdAt: Date.parse(memory.createdAt),
-          tags: memory.tags,
-        })),
+        rows: scopedMemories(store, parsed, parsed.kind)
+          .filter((memory) => isVisibleStatus(memory.status))
+          .map((memory) => ({
+            createdAt: Date.parse(memory.createdAt),
+            tags: memory.tags,
+          })),
         isDone: true,
         continueCursor: "",
       };

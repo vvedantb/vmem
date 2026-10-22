@@ -2,7 +2,7 @@ import { VMemory, type StructuredCreateMemoryInput } from "@vmem/sdk";
 import type { Settings } from "./settings-schema";
 import type { MemoryDraft } from "./summarise";
 
-export const DEFAULT_BASE_URL = "https://clear-bear-690.eu-west-1.convex.site";
+const DEFAULT_BASE_URL = "https://clear-bear-690.eu-west-1.convex.site";
 
 export interface ClientConfig {
   /** A `vmem_sk_...` API key or a Clerk OAuth access token. Both go out as a Bearer token. */

@@ -163,6 +163,61 @@ describe("memory stat counters", () => {
     expect(check.memories).toBe(130);
   });
 
+  it("counts only visible memories, in the backfill, the row walk and on status changes", async () => {
+    const t = convexTest(schema, modules);
+    await create(t, "m1", { tags: ["a"] });
+    await create(t, "m2", { tags: ["b"] });
+    await create(t, "m3", { tags: ["hidden"] });
+    await t.run(async (ctx) => {
+      const doc = await ctx.db
+        .query("memories")
+        .withIndex("by_memory_id", (q) => q.eq("memoryId", "m3"))
+        .first();
+      if (doc) await ctx.db.patch(doc._id, { status: "suppressed" });
+    });
+    await backfill(t);
+    expect((await personalStats(t, P1))?.totalMemories).toBe(2);
+    expect((await personalStats(t, P1))?.totalTags).toBe(2);
+    const check = await verify(t);
+    expect(check.mismatches).toBe(0);
+    expect(check.memories).toBe(3);
+
+    const statRows = await t.query(
+      internal.memoryStore.functions.paginateScopedMemoryStatsInternal,
+      {
+        kind: "personal",
+        userId: USER,
+        profileId: P1,
+        cursor: null,
+        numItems: 10,
+      },
+    );
+    expect(statRows.rows.map((row) => row.tags)).toEqual(
+      expect.arrayContaining([["a"], ["b"]]),
+    );
+    expect(statRows.rows).toHaveLength(2);
+
+    const setStatus = async (
+      memoryId: string,
+      status: "active" | "suppressed",
+    ) => {
+      tick();
+      await t.mutation(internal.memoryStore.functions.updateMemoryInternal, {
+        userId: USER,
+        memoryId,
+        status,
+      });
+    };
+    await setStatus("m1", "suppressed");
+    expect((await personalStats(t, P1))?.totalMemories).toBe(1);
+    expect((await personalStats(t, P1))?.totalTags).toBe(1);
+    await setStatus("m3", "active");
+    await setStatus("m1", "active");
+    expect((await personalStats(t, P1))?.totalMemories).toBe(3);
+    expect((await personalStats(t, P1))?.totalTags).toBe(3);
+    expect((await verify(t)).mismatches).toBe(0);
+  });
+
   it("tracks creates, tag edits, deletes and scope changes after the backfill", async () => {
     const t = convexTest(schema, modules);
     await create(t, "old", { tags: ["x"] });

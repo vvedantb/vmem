@@ -12,6 +12,7 @@ import {
   statDeltasForDocs,
 } from "./memoryStore/stats";
 import { memoryReadScopeFromArgs } from "./memoryStore/helpers";
+import { memoryStatusValidator } from "./validators";
 
 const BACKFILL_BATCH = 50;
 const RESET_BATCH = 200;
@@ -154,6 +155,7 @@ export const statsAuditPageInternal = internalQuery({
       profileId: v.optional(v.string()),
       createdAt: v.number(),
       tags: v.array(v.string()),
+      status: memoryStatusValidator,
     }),
   ),
   handler: async (ctx, args) => {
@@ -168,6 +170,7 @@ export const statsAuditPageInternal = internalQuery({
       profileId: doc.profileId,
       createdAt: doc.createdAt,
       tags: doc.tags,
+      status: doc.status,
     }));
   },
 });

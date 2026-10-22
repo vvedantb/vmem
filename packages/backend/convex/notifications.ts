@@ -232,7 +232,7 @@ export const sendTest = authMutation({
       {
         title: "Dream Mode finished",
         description:
-          "3 proposals to review and 1 new memory. Open the Inbox to review.",
+          "3 proposals to review and 1 new memory. Open Dreaming to review.",
         type: "info",
       },
     ];

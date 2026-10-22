@@ -78,6 +78,8 @@ export const memoryFields = {
   mergedInto: v.optional(v.id("memories")),
   suppressedBy: v.optional(dreamSuppressedByValidator),
   suppressedRunId: v.optional(v.id("dreamRuns")),
+  // when dream suppressed the row (unset on rows hidden before this field)
+  suppressedAt: v.optional(v.number()),
 };
 
 // "search" means a result open (get / palette select), not a typeahead query.
@@ -712,6 +714,7 @@ export const dreamSnapshotValidator = v.object({
   mergedInto: v.optional(v.id("memories")),
   suppressedBy: v.optional(dreamSuppressedByValidator),
   suppressedRunId: v.optional(v.id("dreamRuns")),
+  suppressedAt: v.optional(v.number()),
   visitCount: v.number(),
   firstVisitAt: v.number(),
   lastVisitAt: v.number(),

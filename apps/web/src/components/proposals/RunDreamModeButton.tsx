@@ -6,7 +6,7 @@ import { IconSparkles } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
-// inbox "start dreaming" button: runs the nightly dream pass now
+// Dreaming page "Run dream mode" button: runs the nightly dream pass now
 export default function RunDreamModeButton() {
   const runDreamNow = useAction(api.dreaming.runNow);
   const queryClient = useQueryClient();
@@ -53,7 +53,7 @@ export default function RunDreamModeButton() {
     <Button
       type="button"
       size="sm"
-      variant="secondary"
+      variant="outline"
       onClick={() => {
         void handleClick();
       }}
@@ -69,7 +69,7 @@ function DreamModeButtonIdle() {
   return (
     <>
       <IconSparkles size={14} />
-      Start Dreaming
+      Run dream mode
     </>
   );
 }

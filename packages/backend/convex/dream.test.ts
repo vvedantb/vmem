@@ -406,6 +406,161 @@ describe("dream.undoRun", () => {
   });
 });
 
+async function totalMemories(t: T, owner: Owner): Promise<number> {
+  const stats = await t.query(internal.memoryStats.getMemoryStatsInternal, {
+    kind: "personal",
+    userId: owner.clerkId,
+    profileId: owner.profileId,
+    now: Date.now(),
+  });
+  if (!stats) throw new Error("stats not ready");
+  return stats.totalMemories;
+}
+
+// the backfill counts rows created before it starts
+async function startStats(t: T): Promise<void> {
+  vi.setSystemTime(Date.now() + 5);
+  await t.mutation(internal.memoryStats.startMemoryStatsBackfillInternal, {});
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+}
+
+describe("dream stat counters", () => {
+  it("a merge that hides a loser lowers the total and undo raises it again", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_dream");
+    const runId = await addRun(t, owner);
+    const keeperId = await addMemory(t, owner, "mem_keep", { tags: ["a"] });
+    const loserId = await addMemory(t, owner, "mem_lose", { tags: ["b"] });
+    await addMemory(t, owner, "mem_other");
+    await startStats(t);
+    expect(await totalMemories(t, owner)).toBe(3);
+
+    const actionId = await t.mutation(internal.dream.applyMerge, {
+      runId,
+      keeperId,
+      loserIds: [loserId],
+      reason: "dup",
+    });
+    if (!actionId) throw new Error("no action");
+    expect(await totalMemories(t, owner)).toBe(2);
+
+    await owner.user.mutation(api.dream.undoAction, { actionId });
+    expect(await totalMemories(t, owner)).toBe(3);
+    const check = await t.action(
+      internal.memoryStats.verifyMemoryStatsInternal,
+      {},
+    );
+    expect(check.mismatches).toBe(0);
+  });
+});
+
+describe("dream.sweepExpiredDuplicates", () => {
+  it("deletes dream-hidden duplicates after the undo window, with their rows", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_dream");
+    const runId = await addRun(t, owner);
+    const keeperId = await addMemory(t, owner, "mem_keep");
+    const oldLoser = await addMemory(t, owner, "mem_old", { tags: ["x"] });
+    await addMention(t, owner, "mem_old", "convex");
+    await t.mutation(internal.dream.applyMerge, {
+      runId,
+      keeperId,
+      loserIds: [oldLoser],
+      reason: "dup",
+    });
+    // hidden before suppressedAt existed: the run's finish time counts
+    const legacyRunId = await addRun(t, owner);
+    await t.run(async (ctx) =>
+      ctx.db.patch(legacyRunId, { status: "ok", finishedAt: NOW }),
+    );
+    const legacy = await addMemory(t, owner, "mem_legacy", {
+      status: "suppressed",
+      suppressedBy: "dream",
+      suppressedRunId: legacyRunId,
+      mergedInto: keeperId,
+    });
+    // hidden by the AI or by the user: kept
+    const aiHidden = await addMemory(t, owner, "mem_ai", {
+      status: "suppressed",
+      suppressedBy: "dream-ai",
+      suppressedAt: NOW,
+    });
+    const manual = await addMemory(t, owner, "mem_manual", {
+      status: "suppressed",
+    });
+
+    vi.setSystemTime(NOW + 10 * DAY_MS);
+    const recentLoser = await addMemory(t, owner, "mem_recent");
+    await t.mutation(internal.dream.applyMerge, {
+      runId,
+      keeperId,
+      loserIds: [recentLoser],
+      reason: "dup",
+    });
+    await startStats(t);
+    const totalBefore = await totalMemories(t, owner);
+
+    vi.setSystemTime(NOW + 29 * DAY_MS);
+    expect(await t.mutation(internal.dream.sweepExpiredDuplicates, {})).toBe(0);
+
+    vi.setSystemTime(NOW + 31 * DAY_MS);
+    expect(await t.mutation(internal.dream.sweepExpiredDuplicates, {})).toBe(2);
+    const gone = await t.run(async (ctx) => [
+      await ctx.db.get(oldLoser),
+      await ctx.db.get(legacy),
+    ]);
+    expect(gone).toEqual([null, null]);
+    expect(await mentionNames(t, "mem_old")).toEqual([]);
+    expect(await linkCount(t, "mem_old", "mem_keep")).toBe(0);
+    expect((await getDoc(t, recentLoser)).status).toBe("suppressed");
+    expect((await getDoc(t, aiHidden)).status).toBe("suppressed");
+    expect((await getDoc(t, manual)).status).toBe("suppressed");
+    expect((await getDoc(t, keeperId)).status).toBe("active");
+    // hidden rows were never counted, so the totals stay exact
+    expect(await totalMemories(t, owner)).toBe(totalBefore);
+    const check = await t.action(
+      internal.memoryStats.verifyMemoryStatsInternal,
+      {},
+    );
+    expect(check.mismatches).toBe(0);
+  });
+
+  it("undo refuses and changes nothing once a hidden copy was deleted", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_dream");
+    const runId = await addRun(t, owner);
+    const keeperId = await addMemory(t, owner, "mem_keep");
+    const loserA = await addMemory(t, owner, "mem_a", { visitCount: 2 });
+    const loserB = await addMemory(t, owner, "mem_b", { visitCount: 4 });
+    const actionIds = [];
+    for (const loserId of [loserA, loserB]) {
+      actionIds.push(
+        await t.mutation(internal.dream.applyMerge, {
+          runId,
+          keeperId,
+          loserIds: [loserId],
+          reason: "dup",
+        }),
+      );
+    }
+    const [firstAction] = actionIds;
+    if (!firstAction) throw new Error("no action");
+    await t.run(async (ctx) => ctx.db.delete(loserA));
+    const message =
+      "This merge can no longer be undone: the hidden copies were permanently deleted after the 30-day undo window.";
+
+    await expect(
+      owner.user.mutation(api.dream.undoAction, { actionId: firstAction }),
+    ).rejects.toThrow(message);
+    await expect(
+      owner.user.mutation(api.dream.undoRun, { runId }),
+    ).rejects.toThrow(message);
+    // the newer action (loser B) was not undone either
+    expect((await getDoc(t, loserB)).status).toBe("suppressed");
+    expect((await getDoc(t, keeperId)).visitCount).toBe(7);
+  });
+});
+
 describe("dream ownership", () => {
   it("lists and undoes only the caller's runs", async () => {
     const t = setupT();

@@ -25,8 +25,8 @@ type PendingCleanup = Extract<CleanupCardState, { kind: "pending" }>;
 
 const COLLAPSED_GROUPS = 3;
 
-// one-off duplicate cleanup: shown on the Dreaming page and the dashboard
-// while the profile's latest dry run is not yet applied
+// one-off duplicate cleanup: shown above the Dreaming page tabs while the
+// profile's latest dry run is not yet applied
 export function DreamCleanupCard() {
   const profile = useActiveProfile();
   const latest = useQuery(api.dreamCleanup.latestForProfile, {
@@ -71,8 +71,8 @@ function PendingCleanupBody({ state }: { state: PendingCleanup }) {
 
   const doneMessage =
     state.ai.length > 0
-      ? "Cleaning up. AI suggestions are in your inbox."
-      : "Cleaning up. You can undo each group on the Dreaming page.";
+      ? "Cleaning up. AI suggestions are on the Proposals tab."
+      : "Cleaning up. You can undo each group on the History tab.";
 
   const handleApply = async () => {
     try {
@@ -143,9 +143,10 @@ function PendingCleanupBody({ state }: { state: PendingCleanup }) {
             <ConfirmDialog.Description>
               Hides {plural(state.rows, "duplicate row")} in{" "}
               {plural(state.groups, "group")} and keeps one memory per group.
-              You can undo each group for 30 days on the Dreaming page.
+              You can undo each group for 30 days on the History tab. After
+              that, the hidden copies are deleted.
               {state.ai.length > 0
-                ? ` ${plural(state.ai.length, "AI suggestion")} go to your inbox for approval.`
+                ? ` ${plural(state.ai.length, "AI suggestion")} go to the Proposals tab for approval.`
                 : ""}
             </ConfirmDialog.Description>
           </ConfirmDialog.Header>

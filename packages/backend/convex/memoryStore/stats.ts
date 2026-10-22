@@ -5,6 +5,7 @@ import {
   type DashboardStatsResult,
 } from "../../engine/memory/dashboardStats";
 import {
+  isVisibleStatus,
   memoryMatchesScope,
   type MemoryReadScope,
 } from "../../engine/memory/scope";
@@ -17,7 +18,13 @@ type StatKind = Doc<"memoryStatCounters">["kind"];
 
 export type StatDoc = Pick<
   Doc<"memories">,
-  "_creationTime" | "memoryId" | "userId" | "profileId" | "createdAt" | "tags"
+  | "_creationTime"
+  | "memoryId"
+  | "userId"
+  | "profileId"
+  | "createdAt"
+  | "tags"
+  | "status"
 >;
 
 type StatRef = {
@@ -55,7 +62,10 @@ function addDelta(map: DeltaMap, ref: StatRef, delta: number): void {
   else map.set(key, { ref, delta });
 }
 
+// hidden rows (suppressed, archived, expired) are not counted, so a status
+// change in or out of the visible set moves the counters
 function addDocDeltas(map: DeltaMap, doc: StatDoc, sign: 1 | -1): void {
+  if (!isVisibleStatus(doc.status)) return;
   const base = {
     userId: doc.userId,
     profileId: doc.profileId,

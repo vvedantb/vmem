@@ -1,41 +1,22 @@
-import type { ReactNode } from "react";
-import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import PageContainer from "@/components/shell/PageContainer";
-import { InboxTabs } from "@/components/dashboard/HomeSectionTabs";
 import { NotificationsRightSection } from "./-components/NotificationsPanel";
-import { ProposalsRightSection } from "./-components/ProposalsPanel";
 
+// `/inbox` is notifications only. Proposals live on the Dreaming page.
 export const Route = createFileRoute("/_main/$profileId/inbox")({
   component: InboxLayout,
 });
 
-function InboxShell({ rightSection }: { rightSection: ReactNode }) {
+function InboxLayout() {
   return (
     <PageContainer
       title="Inbox"
       showTitle
       centeredMaxWidth
       insetHeader
-      rightSection={rightSection}
-      tabs={<InboxTabs />}
+      rightSection={<NotificationsRightSection />}
     >
       <Outlet />
     </PageContainer>
   );
-}
-
-function InboxNotificationsLayout() {
-  return <InboxShell rightSection={<NotificationsRightSection />} />;
-}
-
-function InboxProposalsLayout() {
-  return <InboxShell rightSection={<ProposalsRightSection />} />;
-}
-
-function InboxLayout() {
-  const matchRoute = useMatchRoute();
-  if (matchRoute({ to: "/$profileId/inbox/notifications" })) {
-    return <InboxNotificationsLayout />;
-  }
-  return <InboxProposalsLayout />;
 }

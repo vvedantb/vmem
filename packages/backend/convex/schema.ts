@@ -205,6 +205,8 @@ const schema = defineSchema({
       "lastVisitAt",
     ])
     .index("by_profile_created", ["profileId", "createdAt"])
+    // sweep of dream-hidden duplicates past the undo window
+    .index("by_suppressed_by_at", ["suppressedBy", "suppressedAt"])
     // connector upserts look a memory up by its external source id
     .index("by_user_source", ["userId", "sourceType", "sourceId"])
     // exact-content write dedupe within one user + profile

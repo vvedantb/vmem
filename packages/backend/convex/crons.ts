@@ -60,11 +60,20 @@ crons.interval(
 );
 
 // drops dreamActions log rows 90 days after their 30-day undo window closed,
-// 500 rows a batch; memories are never deleted
+// 500 rows a batch (memories are kept; see the sweep below)
 crons.interval(
   "purge expired dream actions",
   { hours: 1 },
   internal.dream.purgeExpiredActions,
+  {},
+);
+
+// permanently deletes duplicates a dream merge hid once their 30-day undo
+// window has passed (suppressedBy "dream" only), 100 rows a batch
+crons.interval(
+  "sweep expired dream duplicates",
+  { hours: 1 },
+  internal.dream.sweepExpiredDuplicates,
   {},
 );
 

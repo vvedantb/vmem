@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import {
   Badge,
   Button,
+  ButtonGroup,
   Card,
   CardContent,
   cn,
@@ -19,8 +20,8 @@ import { api } from "@vmem/backend";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import { convexErrorMessage } from "@/lib/convex-error";
+import RunDreamModeButton from "@/components/proposals/RunDreamModeButton";
 import { formatCostUsd, formatLogTime } from "../activity/_aiLogsUtils";
-import { DreamCleanupCard } from "./DreamCleanupCard";
 import {
   canUndoDreamAction,
   dreamActionKindLabel,
@@ -34,7 +35,7 @@ import {
 
 const ACTIONS_PAGE_SIZE = 50;
 
-// `/dreaming`: the dreaming log (runs, their changes, undo) and the cleanup card
+// Dreaming page History tab: the dreaming log (runs, their changes, undo)
 export function DreamingPanel() {
   const runs = useQuery(api.dream.listRuns);
   // UI-only: one run open at a time
@@ -42,11 +43,7 @@ export function DreamingPanel() {
 
   return (
     <section className="flex flex-col gap-4">
-      <DreamCleanupCard />
-      <div className="flex items-center justify-between gap-3 px-0.5">
-        <h2 className="text-sm font-medium text-foreground">Dream runs</h2>
-        <ScanForDuplicatesButton />
-      </div>
+      <h2 className="px-0.5 text-sm font-medium text-foreground">Dream runs</h2>
       {runs === undefined ? (
         <RunsLoadingSkeleton />
       ) : runs.length === 0 ? (
@@ -68,6 +65,16 @@ export function DreamingPanel() {
         </Card>
       )}
     </section>
+  );
+}
+
+// Dreaming page header: the only scan / run controls in the app
+export function DreamingActions() {
+  return (
+    <ButtonGroup>
+      <ScanForDuplicatesButton />
+      <RunDreamModeButton />
+    </ButtonGroup>
   );
 }
 

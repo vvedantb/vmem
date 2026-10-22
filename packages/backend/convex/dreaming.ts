@@ -54,6 +54,7 @@ import { authAction } from "./auth";
 import {
   dreamSpentTodayUsd,
   mergeGroup,
+  patchDreamFields,
   proposeDreamChange,
   runScope,
   supersedeRow,
@@ -843,7 +844,7 @@ export const expireBatchInternal = internalMutation({
       .take(args.numItems);
     const expired = rows.filter((doc) => memoryMatchesScope(doc, scope));
     for (const doc of expired) {
-      await ctx.db.patch(doc._id, { status: "expired" });
+      await patchDreamFields(ctx, doc, { status: "expired" });
     }
     if (expired.length > 0) {
       await logStatusAction(ctx, run, "expire", expired, "Expired");
@@ -909,10 +910,11 @@ export const decayBatchInternal = internalMutation({
       if (!isDecayCandidate(doc, await usageHits(ctx, doc.memoryId), now)) {
         continue;
       }
-      await ctx.db.patch(doc._id, {
+      await patchDreamFields(ctx, doc, {
         status: "suppressed",
         suppressedBy: "dream-decay",
         suppressedRunId: run._id,
+        suppressedAt: now,
       });
       archived.push(doc);
     }
@@ -1111,7 +1113,7 @@ function describeCounts(counts: DreamCounts): string {
   }
   if (counts.proposals > 0) {
     parts.push(
-      `queued ${String(counts.proposals)} proposal${counts.proposals === 1 ? "" : "s"} in your inbox`,
+      `queued ${String(counts.proposals)} proposal${counts.proposals === 1 ? "" : "s"} for review in Dreaming`,
     );
   }
   if (counts.expired > 0) parts.push(`expired ${String(counts.expired)}`);
@@ -1188,7 +1190,7 @@ export async function runDreamForUser(
   return result("ok", { runIds, counts, failed });
 }
 
-// "Run Dream Mode now": the inbox button and the MCP dream_run tool. Rate
+// "Run Dream Mode now": the Dreaming page button and the MCP dream_run tool. Rate
 // limited, no notification, audited.
 export async function runManualDream(
   ctx: ActionCtx,

@@ -39,6 +39,8 @@ export type RailSection =
 
 export type SidebarLayout = "desktop" | "drawer";
 
+const dreamingRailHref = "/$profileId/dreaming" satisfies NavHref;
+
 export const railLibraryItems: NavItem[] = [
   { href: "/$profileId/memories", label: "Memories", icon: MemoryIcon },
   { href: "/$profileId/skills", label: "Skills", icon: BoltIcon },
@@ -46,7 +48,7 @@ export const railLibraryItems: NavItem[] = [
   { href: "/$profileId/artifacts", label: "Artifacts", icon: BoardIcon },
   { href: "/$profileId/usage", label: "Usage", icon: IconReceipt2 },
   { href: "/$profileId/traces", label: "Traces", icon: IconTimelineEvent },
-  { href: "/$profileId/dreaming", label: "Dreaming", icon: IconMoon },
+  { href: dreamingRailHref, label: "Dreaming", icon: IconMoon },
   { href: "/$profileId/sources", label: "Sources", icon: IconPlugConnected },
 ];
 
@@ -63,8 +65,8 @@ export const sourcesNavItems: NavItem[] = [
   },
 ];
 
-// Inbox and Sources are rail tiles with no sidebar panel content: their
-// Proposals / Notifications and Connectors / Import views are page tabs.
+// Inbox (notifications only) and Sources are rail tiles with no sidebar panel
+// content. Sources has Connectors / Import page tabs.
 export const inboxRailItem: NavItem = {
   href: "/$profileId/inbox",
   label: "Inbox",
@@ -141,13 +143,11 @@ export function railSectionFromPathname(pathname: string): RailSection {
   if (sub.startsWith("/artifacts")) return "artifacts";
   if (sub.startsWith("/usage")) return "usage";
   if (sub.startsWith("/traces")) return "traces";
-  if (sub.startsWith("/dreaming")) return "dreaming";
+  if (sub.startsWith("/dreaming") || sub.startsWith("/proposals")) {
+    return "dreaming";
+  }
   if (sub.startsWith("/sources")) return "sources";
-  if (
-    sub.startsWith("/inbox") ||
-    sub.startsWith("/notifications") ||
-    sub.startsWith("/proposals")
-  ) {
+  if (sub.startsWith("/inbox") || sub.startsWith("/notifications")) {
     return "inbox";
   }
   if (sub.startsWith("/team")) return "team";
@@ -167,6 +167,16 @@ export function navViewFromPathname(pathname: string): SidebarNavView {
     return section;
   }
   return "main";
+}
+
+// nav badge: unread notifications on Inbox, pending proposals on Dreaming
+export function navItemBadgeCount(
+  href: NavHref,
+  counts: { unreadCount: number; proposalsCount: number },
+): number {
+  if (href === inboxRailItem.href) return counts.unreadCount;
+  if (href === dreamingRailHref) return counts.proposalsCount;
+  return 0;
 }
 
 export function isRailItemActive(
