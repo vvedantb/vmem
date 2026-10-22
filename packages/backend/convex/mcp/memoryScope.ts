@@ -24,10 +24,16 @@ export async function withMcpMemoryScope<T>(
     args.mcpScope,
     args.profileId,
   );
-  if (args.mcpScope === "team") {
-    return run({ clerkId: args.clerkId, mcpScope: "team", profileId });
-  }
-  return run({ clerkId: args.clerkId, mcpScope: "personal", profileId });
+  return run(toMcpResolvedScope(args.clerkId, args.mcpScope, profileId));
+}
+
+export function toMcpResolvedScope(
+  clerkId: string,
+  mcpScope: McpScope,
+  profileId: string,
+): McpResolvedScope {
+  if (mcpScope === "team") return { clerkId, mcpScope: "team", profileId };
+  return { clerkId, mcpScope: "personal", profileId };
 }
 
 export async function runForMcpScope<T>(

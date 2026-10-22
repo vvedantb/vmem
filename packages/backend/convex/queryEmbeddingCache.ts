@@ -1,12 +1,16 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalMutation, internalQuery } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  type QueryCtx,
+} from "./_generated/server";
 
 // Query embeddings from retrieve, kept briefly so a repeated message (an
 // agent calling recall_context each turn) skips the embedding network call.
 // Keyed per user (see queryEmbeddingCacheKey), pruned by cron.
 
-export const QUERY_EMBEDDING_CACHE_TTL_MS = 10 * 60 * 1000;
+export const QUERY_EMBEDDING_CACHE_TTL_MS = 60 * 60 * 1000;
 const PURGE_BATCH = 200;
 
 export const getInternal = internalQuery({
@@ -16,16 +20,21 @@ export const getInternal = internalQuery({
     v.null(),
   ),
   // expiry is checked by the caller, so this query stays cacheable
-  handler: async (ctx, { key }) => {
-    const row = await ctx.db
-      .query("queryEmbeddingCache")
-      .withIndex("by_key", (q) => q.eq("key", key))
-      .first();
-    return row === null
-      ? null
-      : { embedding: row.embedding, expiresAt: row.expiresAt };
-  },
+  handler: async (ctx, { key }) => readQueryEmbeddingCache(ctx, key),
 });
+
+export async function readQueryEmbeddingCache(
+  ctx: QueryCtx,
+  key: string,
+): Promise<{ embedding: number[]; expiresAt: number } | null> {
+  const row = await ctx.db
+    .query("queryEmbeddingCache")
+    .withIndex("by_key", (q) => q.eq("key", key))
+    .first();
+  return row === null
+    ? null
+    : { embedding: row.embedding, expiresAt: row.expiresAt };
+}
 
 export const putInternal = internalMutation({
   args: {

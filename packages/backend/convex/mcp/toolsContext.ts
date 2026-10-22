@@ -8,7 +8,6 @@ import {
 } from "../../engine/memory/contextPack";
 import {
   recommendSkills,
-  type SkillIndexSlice,
   type SkillRecommendResult,
 } from "../../engine/memory/jevSkillRecommend";
 import {
@@ -25,8 +24,11 @@ import {
   classifyQueryTemporal,
   parseReferenceMs,
 } from "../../engine/memory/temporal";
+import type { QueryEmbeddingLookup } from "../lib/openRouter/bestEffortEmbed";
+import { readOpenRouterApiKey } from "../lib/openRouterKey";
 import { loggedJevEvaluate, resolveSystemOneApiKey } from "../lib/systemOneKey";
 import {
+  retrieveEmbeddingCacheKey,
   retrieveMemoriesForClerk,
   retrieveMemoriesForTeamProfile,
   type RetrieveTiming,
@@ -35,6 +37,7 @@ import { enqueueMemoryAccess } from "../memoryUsefulness";
 import { toSkillIndexEntry } from "../skills";
 import {
   runForMcpScope,
+  toMcpResolvedScope,
   withMcpMemoryScope,
   type McpResolvedScope,
 } from "./memoryScope";
@@ -179,41 +182,6 @@ const recallContextSchema = z.object({
     ),
 });
 
-// lexical match with a relevance floor: no Jev call on every turn
-async function recallSkills(
-  h: ToolHandlerContext,
-  message: string,
-): Promise<SkillIndexSlice[]> {
-  try {
-    const rows = await h.ctx.runQuery(
-      internal.skills.listEffectiveByClerkIdInternal,
-      scopedClerk(h),
-    );
-    return matchRecallSkills(message, rows.map(toSkillIndexEntry));
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "unknown error";
-    console.warn("[MCP][recall_context] skills failed:", message);
-    return [];
-  }
-}
-
-// cached context prompt only: unlike context_pack, never schedules a
-// regeneration, so a per-turn call adds no LLM work
-async function recallProfile(h: ToolHandlerContext): Promise<string | null> {
-  if (h.scope === "team") return null;
-  try {
-    const cache = await h.ctx.runQuery(
-      internal.contextPromptCache.getByClerkIdInternal,
-      { clerkId: h.clerkUserId },
-    );
-    return cache === null || cache.generatedAt === 0 ? null : cache.content;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "unknown error";
-    console.warn("[MCP][recall_context] profile failed:", message);
-    return null;
-  }
-}
-
 // the result and how long it took, for the recall_context timing line
 async function measured<T>(run: () => Promise<T>): Promise<[T, number]> {
   const startedAt = Date.now();
@@ -231,67 +199,97 @@ export const contextToolSpecs = {
     async run(h, params): Promise<unknown> {
       const startedAt = Date.now();
       const timing: RetrieveTiming = {};
-      let scopeMs = 0;
-      // judge "off": no Jev gate (an LLM call) on a per-turn tool
+      const embeddingKey = await retrieveEmbeddingCacheKey(
+        h.clerkUserId,
+        params.message,
+      );
+      // scope, skills, profile and the embedding cache row in one query
+      const [prelude, preludeMs] = await measured(() =>
+        h.ctx.runQuery(internal.mcp.recallPrelude.getInternal, {
+          ...scopedClerk(h),
+          profileId: params.profileId,
+          embeddingKey,
+        }),
+      );
+      const scope = toMcpResolvedScope(
+        h.clerkUserId,
+        h.scope,
+        prelude.profileId,
+      );
+      const apiKey = readOpenRouterApiKey();
+      // judge "off": no Jev gate (an LLM call) on a per-turn tool. Access is
+      // enqueued below, with the recall's own, so neither waits on the other
       const retrieve: {
         query: string;
         limit: number;
         judge: "off";
         timing: RetrieveTiming;
+        track: false;
+        embeddingLookup?: QueryEmbeddingLookup;
       } = {
         query: params.message,
         limit: RECALL_RETRIEVE_LIMIT,
         judge: "off",
         timing,
-      };
-      // skills and profile do not need the resolved profile, so they start
-      // with the scope read instead of after it
-      const [[memories, retrieveMs], [skills, skillsMs], [profile, profileMs]] =
-        await Promise.all([
-          measured(() =>
-            withMcpMemoryScope(
-              h.ctx,
-              { ...scopedMemory(h), profileId: params.profileId },
-              (scope) => {
-                scopeMs = Date.now() - startedAt;
-                return runForMcpScope(scope, {
-                  team: (profileId) =>
-                    retrieveMemoriesForTeamProfile(h.ctx, {
-                      clerkId: scope.clerkId,
-                      profileId,
-                      ...retrieve,
-                    }),
-                  personal: ({ clerkId, profileId }) =>
-                    retrieveMemoriesForClerk(h.ctx, {
-                      clerkId,
-                      profileId,
-                      ...retrieve,
-                    }),
-                });
+        track: false,
+        embeddingLookup:
+          embeddingKey === undefined
+            ? undefined
+            : {
+                key: embeddingKey,
+                hit: prelude.embeddingHit,
+                auth:
+                  apiKey === undefined || prelude.userId === null
+                    ? null
+                    : { apiKey, userId: prelude.userId },
               },
-            ),
+      };
+      const [memories, retrieveMs] = await measured(() =>
+        runForMcpScope(scope, {
+          team: (profileId) =>
+            retrieveMemoriesForTeamProfile(h.ctx, {
+              clerkId: scope.clerkId,
+              profileId,
+              ...retrieve,
+            }),
+          personal: ({ clerkId, profileId }) =>
+            retrieveMemoriesForClerk(h.ctx, {
+              clerkId,
+              profileId,
+              ...retrieve,
+            }),
+        }),
+      );
+      const [recall, buildMs] = await measured(async () =>
+        buildRecallContext({
+          message: params.message,
+          memories: rankRecallMemories(memories),
+          skills: matchRecallSkills(params.message, prelude.skills),
+          facts: profileFacts(prelude.profile),
+          maxTokens: clampRecallTokens(params.maxTokens),
+        }),
+      );
+      const [, trackMs] = await measured(() =>
+        Promise.all([
+          enqueueMemoryAccess(
+            h.ctx,
+            memories.map((hit) => hit.id),
+            "retrieve",
           ),
-          measured(() => recallSkills(h, params.message)),
-          measured(() => recallProfile(h)),
-        ]);
-      const recall = buildRecallContext({
-        message: params.message,
-        memories: rankRecallMemories(memories),
-        skills,
-        facts: profileFacts(profile),
-        maxTokens: clampRecallTokens(params.maxTokens),
-      });
-      await enqueueMemoryAccess(h.ctx, recall.memoryIds, "contextPack");
-      // durations only: no query text, ids or memory content. Stages overlap:
-      // retrieveMs includes scopeMs; totalMs is the wall-clock of the call
+          enqueueMemoryAccess(h.ctx, recall.memoryIds, "contextPack"),
+        ]),
+      );
+      // durations only: no query text, ids or memory content. Stages run in
+      // order (inside retrieve, search stages overlap; see RetrieveTiming);
+      // totalMs is the wall-clock of the call
       console.log(
         "[MCP][recall_context][timing]",
         JSON.stringify({
-          scopeMs,
+          preludeMs,
           ...timing,
           retrieveMs,
-          skillsMs,
-          profileMs,
+          buildMs,
+          trackMs,
           totalMs: Date.now() - startedAt,
         }),
       );

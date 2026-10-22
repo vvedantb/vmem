@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { graphNeighborIdsOutsideSeeds } from "../../engine/memory/links";
 import { isVisibleStatus } from "../../engine/memory/scope";
 import { internalMutation, internalQuery } from "../_generated/server";
 import {
@@ -702,6 +703,44 @@ export const listMemoryLinksAroundInternal = internalQuery({
   },
   returns: v.array(memoryLinkEdgeValidator),
   handler: async (ctx, args) => listMemoryLinksAround(ctx, args),
+});
+
+// Links around the seeds plus the neighbour memories outside them (at most
+// neighborCap, in expandGraphNeighbors order, missing ones dropped): one
+// round trip for retrieve instead of a links read, then a memory read.
+export const listMemoryGraphAroundInternal = internalQuery({
+  args: {
+    userId: v.string(),
+    seedIds: v.array(v.string()),
+    hops: v.number(),
+    neighborLimit: v.number(),
+    neighborMaxHops: v.number(),
+    neighborCap: v.number(),
+  },
+  returns: v.object({
+    links: v.array(memoryLinkEdgeValidator),
+    neighbors: v.array(memoryWithTagsValidator),
+  }),
+  handler: async (ctx, args) => {
+    const links = await listMemoryLinksAround(ctx, {
+      userId: args.userId,
+      seedIds: args.seedIds,
+      hops: args.hops,
+    });
+    const missing = graphNeighborIdsOutsideSeeds(
+      args.seedIds,
+      links,
+      args.neighborLimit,
+      args.neighborMaxHops,
+      args.neighborCap,
+    );
+    const docs =
+      missing.length === 0 ? [] : await getMemoriesByMemoryIds(ctx, missing);
+    return {
+      links,
+      neighbors: docs.flatMap((doc) => (doc === null ? [] : [doc])),
+    };
+  },
 });
 
 const extractedEntityValidator = v.object({

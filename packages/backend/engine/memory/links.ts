@@ -96,3 +96,22 @@ export function expandGraphNeighbors(
   }
   return hits;
 }
+
+/**
+ * Ids of the memories expandGraphNeighbors reaches from the seeds that are
+ * not seeds, in its order, at most `cap`. Retrieve reads these into its pool.
+ */
+export function graphNeighborIdsOutsideSeeds(
+  seedIds: readonly string[],
+  links: readonly MemoryLinkEdge[],
+  limit: number,
+  maxHops: number,
+  cap: number,
+): string[] {
+  if (links.length === 0 || cap <= 0) return [];
+  const seeds = new Set(seedIds);
+  return expandGraphNeighbors(seedIds, new Map(), links, limit, maxHops)
+    .map((neighbor) => neighbor.id)
+    .filter((id) => !seeds.has(id))
+    .slice(0, cap);
+}

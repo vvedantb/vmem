@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { internal } from "../../convex/_generated/api";
 import type { ActionCtx } from "../../convex/_generated/server";
+import { QUERY_EMBEDDING_CACHE_TTL_MS } from "../../convex/queryEmbeddingCache";
 import { MEMORY_EMBEDDING_DIMENSIONS } from "../../engine/memory/searchableText";
 import {
   createConvexBackend,
@@ -327,6 +328,39 @@ describe("query embedding cache", () => {
     );
     expect(rows).toHaveLength(1);
     expect(rows[0]?.key).toMatch(/^[0-9a-f]{64}$/u);
+  });
+
+  it("keeps a query embedding for an hour", async () => {
+    const t = createConvexBackend();
+    const { vectorSearch } = await seed(t);
+    const before = Date.now();
+    await recall(t, vectorSearch, "where are the convex secrets");
+    const rows = await t.run((ctx) =>
+      ctx.db.query("queryEmbeddingCache").collect(),
+    );
+    expect(QUERY_EMBEDDING_CACHE_TTL_MS).toBe(60 * 60 * 1000);
+    expect(rows[0]?.expiresAt).toBeGreaterThanOrEqual(
+      before + QUERY_EMBEDDING_CACHE_TTL_MS,
+    );
+  });
+
+  it("reuses a row until it expires, then embeds again", async () => {
+    const t = createConvexBackend();
+    const { vectorSearch } = await seed(t);
+    const setExpiry = (expiresAt: number) =>
+      t.run(async (ctx) => {
+        for (const row of await ctx.db.query("queryEmbeddingCache").collect()) {
+          await ctx.db.patch(row._id, { expiresAt });
+        }
+      });
+    await recall(t, vectorSearch, "where are the convex secrets");
+    // written 59 minutes ago: still a hit
+    await setExpiry(Date.now() + 60_000);
+    await recall(t, vectorSearch, "where are the convex secrets");
+    expect(embedMany).toHaveBeenCalledTimes(1);
+    await setExpiry(Date.now() - 1);
+    await recall(t, vectorSearch, "where are the convex secrets");
+    expect(embedMany).toHaveBeenCalledTimes(2);
   });
 
   it("purges expired rows only", async () => {

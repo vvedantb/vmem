@@ -621,14 +621,23 @@ export const listEffectiveByClerkIdInternal = internalQuery({
     scope: v.optional(mcpScopeValidator),
     includeDisabled: v.optional(v.boolean()),
   },
-  handler: async (ctx, args): Promise<EffectiveSkill[]> => {
-    const grant = await resolveMcpSkillGrant(ctx, args.clerkId, args.scope);
-    if (!grant) return [];
-    return await resolveEffectiveSkills(ctx, grant.userId, grant.teamId, {
+  handler: async (ctx, args): Promise<EffectiveSkill[]> =>
+    listEffectiveSkillsForMcp(ctx, args.clerkId, args.scope, {
       includeDisabled: args.includeDisabled,
-    });
-  },
+    }),
 });
+
+// the skills an MCP connector sees (empty for an unknown user)
+export async function listEffectiveSkillsForMcp(
+  ctx: QueryCtx,
+  clerkId: string,
+  scope: McpScope | undefined,
+  options: { includeDisabled?: boolean } = {},
+): Promise<EffectiveSkill[]> {
+  const grant = await resolveMcpSkillGrant(ctx, clerkId, scope);
+  if (!grant) return [];
+  return await resolveEffectiveSkills(ctx, grant.userId, grant.teamId, options);
+}
 
 // resolve one effective skill by name for clerkId (personal first, then system)
 export const getEffectiveByNameInternal = internalQuery({

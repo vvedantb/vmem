@@ -75,7 +75,34 @@ interface DocTokens {
   content: string[];
   tags: string[];
   all: string[];
+  /** title and tag tokens */
+  titleSet: ReadonlySet<string>;
+  contentSet: ReadonlySet<string>;
   length: number;
+}
+
+const WHITESPACE = /\s+/;
+
+// tokenize splits on whitespace too, so the tokens of a text are the tokens
+// of its whitespace-separated words in order: each distinct word is tokenized
+// once per rank call, not once per doc, chunk and score
+function wordTokenizer(
+  dropStopwords: boolean,
+): (text: string) => readonly string[] {
+  const byWord = new Map<string, readonly string[]>();
+  const ofWord = (word: string): readonly string[] => {
+    let tokens = byWord.get(word);
+    if (tokens === undefined) {
+      tokens = contentTokens(word, dropStopwords);
+      byWord.set(word, tokens);
+    }
+    return tokens;
+  };
+  return (text) => {
+    const tokens: string[] = [];
+    for (const word of text.split(WHITESPACE)) tokens.push(...ofWord(word));
+    return tokens;
+  };
 }
 
 function clamp01(value: number): number {
@@ -88,9 +115,12 @@ function haystack(memory: Pick<MemoryWithTags, "title" | "content">): string {
   return `${memory.title}\n${memory.content}`.toLowerCase();
 }
 
-function tokenizeDoc(memory: MemoryWithTags): DocTokens {
-  const title = contentTokens(memory.title, true);
-  const content = contentTokens(memory.content, true);
+function tokenizeDoc(
+  memory: MemoryWithTags,
+  textTokens: (text: string) => readonly string[],
+): DocTokens {
+  const title = [...textTokens(memory.title)];
+  const content = [...textTokens(memory.content)];
   const tags = contentTokens(memory.tags.join(" "), false);
   const all = [...title, ...content, ...tags];
   return {
@@ -99,6 +129,8 @@ function tokenizeDoc(memory: MemoryWithTags): DocTokens {
     content,
     tags,
     all,
+    titleSet: new Set([...title, ...tags]),
+    contentSet: new Set(content),
     length: Math.max(
       1,
       title.length * TITLE_WEIGHT + content.length + tags.length * TAG_WEIGHT,
@@ -144,11 +176,12 @@ function bm25Score(
 }
 
 function phraseScore(
-  memory: MemoryWithTags,
+  doc: DocTokens,
   query: string,
   coreTerms: readonly string[],
   rareTerms: readonly string[],
 ): number {
+  const { memory, titleSet, contentSet } = doc;
   const needle = query.trim().toLowerCase();
   if (needle.length === 0) return 0;
   const title = memory.title.toLowerCase();
@@ -157,11 +190,6 @@ function phraseScore(
   if (title.includes(needle)) return 1;
   if (content.includes(needle)) return 0.86;
   if (coreTerms.length === 0) return 0;
-  const titleSet = new Set([
-    ...contentTokens(memory.title, true),
-    ...contentTokens(memory.tags.join(" "), false),
-  ]);
-  const contentSet = new Set(contentTokens(memory.content, true));
   let titleHits = 0;
   let contentHits = 0;
   for (const token of coreTerms) {
@@ -180,9 +208,9 @@ function phraseScore(
   let missingRare = 0;
   for (const term of rareTerms) {
     if (
-      !hasWholeWord(hay, term) &&
       !titleSet.has(term) &&
-      !contentSet.has(term)
+      !contentSet.has(term) &&
+      !hasWholeWord(hay, term)
     ) {
       missingRare += 1;
     }
@@ -195,44 +223,72 @@ function phraseScore(
   return score;
 }
 
-function chunkWindows(text: string): string[] {
-  const sentences = text
-    .split(/[.!?\n]+/)
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0);
-  const tokens = text.split(/\s+/).filter((part) => part.length > 0);
-  const windows: string[] = [];
-  const size = 40;
-  const hop = 20;
-  for (let i = 0; i < tokens.length; i += hop) {
-    windows.push(tokens.slice(i, i + size).join(" "));
-    if (i + size >= tokens.length) break;
-  }
-  return [...sentences, ...windows];
+const CHUNK_SIZE = 40;
+const CHUNK_HOP = 20;
+
+// which of the terms each word holds; per-word matches are kept for the rank
+// call (see wordTokenizer), so a chunk costs lookups, not tokenizing
+function wordTermMatcher(
+  queryTerms: readonly string[],
+  textTokens: (text: string) => readonly string[],
+): (word: string) => readonly number[] {
+  const byWord = new Map<string, readonly number[]>();
+  return (word) => {
+    let terms = byWord.get(word);
+    if (terms === undefined) {
+      const tokens = new Set(textTokens(word));
+      terms = queryTerms.flatMap((term, i) => (tokens.has(term) ? [i] : []));
+      byWord.set(word, terms);
+    }
+    return terms;
+  };
 }
 
+// Chunks in order: the title, each sentence, then 40-word windows every 20
+// words. Windows are scored on their words and joined only when best.
 function bestChunk(
-  memory: MemoryWithTags,
+  doc: DocTokens,
   queryTerms: readonly string[],
+  termsOfWord: (word: string) => readonly number[],
 ): { score: number; content: string; position: number } {
   if (queryTerms.length === 0) {
     return { score: 0, content: "", position: 0 };
   }
-  const chunks = [memory.title, ...chunkWindows(memory.content)];
+  const memory = doc.memory;
   let best = { score: 0, content: memory.title, position: 0 };
-  for (let i = 0; i < chunks.length; i += 1) {
-    const chunk = chunks[i];
-    if (chunk === undefined || chunk.length === 0) continue;
-    const tokens = new Set(contentTokens(chunk, true));
-    if (tokens.size === 0) continue;
-    let hits = 0;
-    for (const term of queryTerms) {
-      if (tokens.has(term)) hits += 1;
+  // chunk tokens are title or content tokens, so no term there means no hit
+  if (
+    !queryTerms.some(
+      (term) => doc.contentSet.has(term) || doc.title.includes(term),
+    )
+  ) {
+    return best;
+  }
+  let position = 0;
+  const consider = (words: readonly string[], content: () => string): void => {
+    const matched = new Set<number>();
+    for (const word of words) {
+      for (const i of termsOfWord(word)) matched.add(i);
     }
-    const overlap = hits / queryTerms.length;
+    const overlap = matched.size / queryTerms.length;
     if (overlap > best.score) {
-      best = { score: overlap, content: chunk, position: i };
+      best = { score: overlap, content: content(), position };
     }
+    position += 1;
+  };
+  const text = memory.content;
+  const sentences = text
+    .split(/[.!?\n]+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  for (const chunk of [memory.title, ...sentences]) {
+    consider(chunk.split(WHITESPACE), () => chunk);
+  }
+  const tokens = text.split(WHITESPACE).filter((part) => part.length > 0);
+  for (let i = 0; i < tokens.length; i += CHUNK_HOP) {
+    const window = tokens.slice(i, i + CHUNK_SIZE);
+    consider(window, () => window.join(" "));
+    if (i + CHUNK_SIZE >= tokens.length) break;
   }
   return best;
 }
@@ -251,13 +307,13 @@ function properNames(text: string): string[] {
 }
 
 function entityScore(
-  memory: MemoryWithTags,
-  query: string,
+  doc: DocTokens,
+  rawQuery: ReadonlySet<string>,
   queryTerms: readonly string[],
   rareTerms: readonly string[],
 ): number {
-  const tagSet = new Set(contentTokens(memory.tags.join(" "), false));
-  const rawQuery = new Set(tokenize(query));
+  const memory = doc.memory;
+  const tagSet = new Set(doc.tags);
   let tagHits = 0;
   for (const tag of tagSet) {
     if (queryTerms.includes(tag) || rawQuery.has(tag)) tagHits += 1;
@@ -408,15 +464,11 @@ function rareQueryTerms(
 }
 
 function coreCoverage(
-  memory: MemoryWithTags,
+  doc: DocTokens,
   coreTerms: readonly string[],
 ): { title: number; content: number } {
   if (coreTerms.length === 0) return { title: 0, content: 0 };
-  const titleSet = new Set([
-    ...contentTokens(memory.title, true),
-    ...contentTokens(memory.tags.join(" "), false),
-  ]);
-  const contentSet = new Set(contentTokens(memory.content, true));
+  const { titleSet, contentSet } = doc;
   let titleHits = 0;
   let contentHits = 0;
   for (const term of coreTerms) {
@@ -568,18 +620,23 @@ export function rankMemories(
     legOn(options.legs, "graph") &&
     options.links !== undefined &&
     options.links.length > 0;
-  const docs = memories.map(tokenizeDoc);
+  const textTokens = wordTokenizer(true);
+  const docs = memories.map((memory) => tokenizeDoc(memory, textTokens));
   const byId = new Map(docs.map((doc) => [doc.memory.id, doc]));
   const coreTerms = phraseAwareQueryTokens(trimmed);
   const queryTerms = expandQueryTerms(trimmed);
   const extraTerms = queryTerms.filter((term) => !coreTerms.includes(term));
+  const chunkTerms = coreTerms.length > 0 ? coreTerms : queryTerms;
+  const chunkTermsOfWord = wordTermMatcher(chunkTerms, textTokens);
+  const rawQuery = new Set(tokenize(trimmed));
   const df = new Map<string, number>();
   let lengthSum = 0;
   for (const doc of docs) {
     lengthSum += doc.length;
-    const seen = new Set(doc.all);
     for (const term of queryTerms) {
-      if (seen.has(term)) df.set(term, (df.get(term) ?? 0) + 1);
+      if (doc.titleSet.has(term) || doc.contentSet.has(term)) {
+        df.set(term, (df.get(term) ?? 0) + 1);
+      }
     }
   }
   const avgLength = docs.length === 0 ? 1 : lengthSum / docs.length;
@@ -618,7 +675,7 @@ export function rankMemories(
   >();
 
   for (const doc of docs) {
-    const phrase = phraseScore(doc.memory, trimmed, coreTerms, rareTerms);
+    const phrase = phraseScore(doc, trimmed, coreTerms, rareTerms);
     const bm25Core = bm25Score(doc, coreTerms, df, docs.length, avgLength);
     const bm25Extra =
       extraTerms.length === 0
@@ -637,11 +694,11 @@ export function rankMemories(
     const chunkBest =
       !useChunk || trimmed.length === 0
         ? { score: 0, content: "", position: 0 }
-        : bestChunk(doc.memory, coreTerms.length > 0 ? coreTerms : queryTerms);
+        : bestChunk(doc, chunkTerms, chunkTermsOfWord);
     const entity =
       !useEntity || trimmed.length === 0
         ? 0
-        : entityScore(doc.memory, trimmed, queryTerms, rareTerms);
+        : entityScore(doc, rawQuery, queryTerms, rareTerms);
     const recency = useRecency ? recencyScore(doc.memory, nowMs) : 0;
     const temporal = useTemporal
       ? temporalScore(doc.memory, queryTemporal, nowMs)
@@ -769,7 +826,7 @@ export function rankMemories(
       trimmed.length === 0
         ? parts.recency
         : clamp01(blended * recencyMultiplier + 0.22 * parts.temporal);
-    const cover = coreCoverage(doc.memory, coreTerms);
+    const cover = coreCoverage(doc, coreTerms);
     const titleCover =
       isResidenceQuery(trimmed) && parts.residence === 0
         ? cover.title * 0.15
