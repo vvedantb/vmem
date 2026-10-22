@@ -184,6 +184,15 @@ describe("groupRuns", () => {
       ["c.json"],
     ]);
     expect(groups.every((group) => group.taskId === null)).toBe(true);
+    expect(groups.map((group) => group.label)).toEqual([
+      "Migrate the billing service from callbacks to async await…",
+      "Write a haiku about the ocean at dawn with seagulls",
+    ]);
+  });
+
+  it("labels a cluster with no readable prompt by its keywords", () => {
+    const [group] = groupRuns([run("a.json", "[[7, 7, 0], [1, 2, 7]]")], tasks);
+    expect(group?.label).toMatch(/^Runs about /);
   });
 
   it("splits runs that share a harness preamble by their real task", () => {

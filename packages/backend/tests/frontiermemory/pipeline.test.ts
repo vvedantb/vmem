@@ -12,7 +12,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { parseCliArgs } from "../../eval/frontiermemory/cli";
 import type { LlmClient } from "../../eval/frontiermemory/llm";
-import { runPipeline } from "../../eval/frontiermemory/pipeline";
+import {
+  DEFAULT_TASKS_PATH,
+  runPipeline,
+} from "../../eval/frontiermemory/pipeline";
+import { taskSpecSchema } from "../../eval/frontiermemory/types";
 
 const FIXTURES = path.join(import.meta.dirname, "fixtures");
 
@@ -21,10 +25,16 @@ const failedSummarySchema = z.object({
   output: z.null(),
 });
 
+const tasksSchema = z.array(taskSpecSchema);
+
+// Every prompt sent to the fake client, system and user messages joined.
+let sentPrompts: string[] = [];
+
 // Lesson calls get a per-task reply; merge calls get an LLM rewrite.
 const fakeClient: LlmClient = (call) => {
+  sentPrompts.push(call.messages.map((message) => message.content).join("\n"));
   const prompt = call.messages.at(-1)?.content ?? "";
-  if (prompt.startsWith("# Task:")) {
+  if (prompt.startsWith("# Topic:")) {
     return Promise.resolve({
       text: JSON.stringify({
         instructions: [
@@ -34,7 +44,7 @@ const fakeClient: LlmClient = (call) => {
           {
             name: "omit-aware-corpus",
             description: "the corpus must skip omitted files",
-            steps: ["Read omit.txt", "Drop listed paths", "Train"],
+            steps: ["Read omit.txt", "Drop listed paths", "Train the model"],
           },
         ],
       }),
@@ -66,6 +76,7 @@ const fakeClient: LlmClient = (call) => {
 let tmp: string;
 beforeEach(() => {
   tmp = mkdtempSync(path.join(tmpdir(), "fm-pipeline-"));
+  sentPrompts = [];
 });
 afterEach(() => {
   rmSync(tmp, { recursive: true, force: true });
@@ -125,14 +136,36 @@ describe("runPipeline", () => {
       path.join(tmp, "memory", "skills", "omit-aware-corpus", "SKILL.md"),
       "utf8",
     );
+    // Not a direct trigger: repaired from the known task title.
     expect(skill).toContain(
-      'description: "Use when the corpus must skip omitted files"',
+      'description: "Use when a task names BigCodeBench Word2Vec Pipeline."',
     );
     const episodes = readFileSync(
       path.join(tmp, "memory.work", "episodes.jsonl"),
       "utf8",
     );
     expect(episodes.trim().split("\n")).toHaveLength(5);
+  });
+
+  it("never sends tasks.json titles or descriptions to the LLM", async () => {
+    const tasks = tasksSchema.parse(
+      JSON.parse(readFileSync(DEFAULT_TASKS_PATH, "utf8")),
+    );
+    await runPipeline(options([]), fakeClient);
+    const mergePrompts = sentPrompts.filter((prompt) =>
+      prompt.includes("# Topic:"),
+    );
+    expect(mergePrompts.length).toBeGreaterThan(0);
+    expect(sentPrompts.length).toBeGreaterThan(mergePrompts.length);
+    for (const task of tasks) {
+      for (const prompt of sentPrompts) {
+        expect(prompt).not.toContain(task.description);
+      }
+      // Lesson prompts hold run text, which may name a task on its own.
+      for (const prompt of mergePrompts) {
+        expect(prompt).not.toContain(task.title);
+      }
+    }
   });
 
   it("falls back to the deterministic merge with --no-llm-merge", async () => {
