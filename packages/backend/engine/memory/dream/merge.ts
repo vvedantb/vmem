@@ -72,21 +72,23 @@ export function restorePatch<M extends string, R extends string>(
   };
 }
 
-// the fields keeper choice reads
-interface KeeperCandidate {
+// the fields keeper choice reads; slim plan rows carry only the length
+type KeeperCandidate = {
   _id: string;
   status: MemoryStatus;
   createdAt: number;
-  content: string;
+} & ({ content: string } | { contentLength: number });
+
+function contentLength(row: KeeperCandidate): number {
+  return "contentLength" in row ? row.contentLength : row.content.length;
 }
 
 // oldest first (it keeps the id agents and links point at), then longest
 // content, then id so the choice is stable
-function keeperOrder(a: KeeperCandidate, b: KeeperCandidate): number {
+export function keeperOrder(a: KeeperCandidate, b: KeeperCandidate): number {
   if (a.createdAt !== b.createdAt) return a.createdAt - b.createdAt;
-  if (a.content.length !== b.content.length) {
-    return b.content.length - a.content.length;
-  }
+  const lengthDiff = contentLength(b) - contentLength(a);
+  if (lengthDiff !== 0) return lengthDiff;
   return a._id < b._id ? -1 : a._id > b._id ? 1 : 0;
 }
 

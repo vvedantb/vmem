@@ -164,7 +164,7 @@ function resolveTemporalStore(args: {
   );
 }
 
-async function findByMemoryId(
+export async function findByMemoryId(
   ctx: QueryCtx | MutationCtx,
   memoryId: string,
 ): Promise<Doc<"memories"> | null> {

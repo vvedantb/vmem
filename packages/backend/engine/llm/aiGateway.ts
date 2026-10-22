@@ -127,7 +127,7 @@ export async function embedGatewayTexts(args: {
   };
 }
 
-function readGatewayCost(
+export function readGatewayCost(
   metadata: ProviderMetadata | undefined,
 ): number | undefined {
   const cost = metadata?.gateway?.cost;

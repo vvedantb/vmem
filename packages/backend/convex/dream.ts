@@ -2,7 +2,7 @@ import {
   paginationOptsValidator,
   paginationResultValidator,
 } from "convex/server";
-import { v } from "convex/values";
+import { v, type ObjectType } from "convex/values";
 import {
   DREAM_UNDO_WINDOW_MS,
   mergeKeeperPatch,
@@ -159,76 +159,83 @@ async function patchDreamFields(
   await trackMemoryChange(ctx, doc, updated);
 }
 
+const mergeArgs = {
+  runId: v.id("dreamRuns"),
+  keeperId: v.id("memories"),
+  loserIds: v.array(v.id("memories")),
+  reason: v.string(),
+  // browse key / external id written to the keeper's sourceId
+  sourceKey: v.optional(v.string()),
+  ai: dreamActionFields.ai,
+};
+
 /**
  * Merges losers into the keeper and logs one undoable action. A pinned row is
  * never suppressed: a pinned loser becomes the keeper, two pinned rows skip
  * the group. Rows that are not active or pinned are left out. Returns null
  * when nothing was merged.
  */
-export const applyMerge = internalMutation({
-  args: {
-    runId: v.id("dreamRuns"),
-    keeperId: v.id("memories"),
-    loserIds: v.array(v.id("memories")),
-    reason: v.string(),
-    // browse key / external id written to the keeper's sourceId
-    sourceKey: v.optional(v.string()),
-    ai: dreamActionFields.ai,
-  },
-  returns: v.union(v.id("dreamActions"), v.null()),
-  handler: async (ctx, args) => {
-    const run = await ctx.db.get(args.runId);
-    if (!run) throw new Error("Dream run not found");
-    const scope = await runScope(ctx, run);
-    const chosen = await loadInScope(ctx, scope, args.keeperId);
-    if (!isVisibleStatus(chosen.status)) return null;
-    const losers: Doc<"memories">[] = [];
-    for (const id of new Set(args.loserIds)) {
-      if (id === chosen._id) continue;
-      const doc = await loadInScope(ctx, scope, id);
-      if (isVisibleStatus(doc.status)) losers.push(doc);
-    }
-    if (losers.length === 0) return null;
-    const group = resolvePinnedKeeper(chosen, losers);
-    if (!group) return null;
-    const { keeper, losers: groupLosers } = group;
+export async function mergeGroup(
+  ctx: MutationCtx,
+  args: ObjectType<typeof mergeArgs>,
+): Promise<Id<"dreamActions"> | null> {
+  const run = await ctx.db.get(args.runId);
+  if (!run) throw new Error("Dream run not found");
+  const scope = await runScope(ctx, run);
+  const chosen = await loadInScope(ctx, scope, args.keeperId);
+  if (!isVisibleStatus(chosen.status)) return null;
+  const losers: Doc<"memories">[] = [];
+  for (const id of new Set(args.loserIds)) {
+    if (id === chosen._id) continue;
+    const doc = await loadInScope(ctx, scope, id);
+    if (isVisibleStatus(doc.status)) losers.push(doc);
+  }
+  if (losers.length === 0) return null;
+  const group = resolvePinnedKeeper(chosen, losers);
+  if (!group) return null;
+  const { keeper, losers: groupLosers } = group;
 
-    const now = Date.now();
-    const before = [keeper, ...groupLosers].map((doc) => snapshotRow(doc));
-    await patchDreamFields(
-      ctx,
-      keeper,
-      mergeKeeperPatch(keeper, groupLosers, args.sourceKey),
+  const now = Date.now();
+  const before = [keeper, ...groupLosers].map((doc) => snapshotRow(doc));
+  await patchDreamFields(
+    ctx,
+    keeper,
+    mergeKeeperPatch(keeper, groupLosers, args.sourceKey),
+  );
+  const linkIds: Id<"memoryLinks">[] = [];
+  for (const loser of groupLosers) {
+    await ctx.db.patch(
+      loser._id,
+      mergeLoserPatch(
+        keeper._id,
+        run._id,
+        args.ai === undefined ? "dream" : "dream-ai",
+      ),
     );
-    const linkIds: Id<"memoryLinks">[] = [];
-    for (const loser of groupLosers) {
-      await ctx.db.patch(
-        loser._id,
-        mergeLoserPatch(
-          keeper._id,
-          run._id,
-          args.ai === undefined ? "dream" : "dream-ai",
-        ),
-      );
-      const linkId = await addUpdatesLink(ctx, loser, keeper);
-      if (linkId) linkIds.push(linkId);
-    }
-    const mentionIds = await copyMentions(ctx, keeper, groupLosers, now);
-    return await ctx.db.insert("dreamActions", {
-      runId: run._id,
-      userId: run.userId,
-      ...(run.profileId === undefined ? {} : { profileId: run.profileId }),
-      kind: "merge",
-      keeperId: keeper._id,
-      memoryIds: groupLosers.map((doc) => doc._id),
-      before,
-      created: { linkIds, mentionIds },
-      reason: args.reason,
-      ...(args.ai === undefined ? {} : { ai: args.ai }),
-      undoExpiresAt: now + DREAM_UNDO_WINDOW_MS,
-      createdAt: now,
-    });
-  },
+    const linkId = await addUpdatesLink(ctx, loser, keeper);
+    if (linkId) linkIds.push(linkId);
+  }
+  const mentionIds = await copyMentions(ctx, keeper, groupLosers, now);
+  return await ctx.db.insert("dreamActions", {
+    runId: run._id,
+    userId: run.userId,
+    ...(run.profileId === undefined ? {} : { profileId: run.profileId }),
+    kind: "merge",
+    keeperId: keeper._id,
+    memoryIds: groupLosers.map((doc) => doc._id),
+    before,
+    created: { linkIds, mentionIds },
+    reason: args.reason,
+    ...(args.ai === undefined ? {} : { ai: args.ai }),
+    undoExpiresAt: now + DREAM_UNDO_WINDOW_MS,
+    createdAt: now,
+  });
+}
+
+export const applyMerge = internalMutation({
+  args: mergeArgs,
+  returns: v.union(v.id("dreamActions"), v.null()),
+  handler: async (ctx, args) => await mergeGroup(ctx, args),
 });
 
 // writes every snapshot back and removes the link and mention rows the action

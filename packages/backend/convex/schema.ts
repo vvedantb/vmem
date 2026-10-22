@@ -33,6 +33,7 @@ import {
   rollupFields,
   dreamRunFields,
   dreamActionFields,
+  dreamPlanGroupFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -130,6 +131,8 @@ const schema = defineSchema({
     .index("by_user_feature", ["userId", "feature"])
     .index("by_profile_createdAt", ["profileId", "createdAt"])
     .index("by_team_createdAt", ["teamId", "createdAt"])
+    // daily AI budget guard (dreamCleanup)
+    .index("by_feature_createdAt", ["feature", "createdAt"])
     // drain queue (true) and, once drained (undefined), the retention sweep
     .index("by_aggregate_pending", ["aggregatePending", "createdAt"]),
 
@@ -159,6 +162,10 @@ const schema = defineSchema({
     .index("by_user_created", ["userId", "createdAt"])
     // retention sweep (dream.purgeExpiredActions)
     .index("by_undo_expires", ["undoExpiresAt"]),
+  // one-off cleanup plan; dropped 30 days after the dry run
+  dreamPlanGroups: defineTable(dreamPlanGroupFields)
+    .index("by_run_tier_seq", ["runId", "tier", "seq"])
+    .index("by_created", ["createdAt"]),
 
   // cached "user profile" prose for the mcp vmem,//context_prompt resource
   contextPromptCache: defineTable(contextPromptCacheFields).index("by_user", [

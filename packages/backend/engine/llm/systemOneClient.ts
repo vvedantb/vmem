@@ -16,7 +16,7 @@ import {
   GatewayRateLimitError,
 } from "@ai-sdk/gateway";
 import { z } from "zod";
-import { FLEX_GATEWAY_PROVIDER_OPTIONS } from "./aiGateway";
+import { FLEX_GATEWAY_PROVIDER_OPTIONS, readGatewayCost } from "./aiGateway";
 
 /** Gateway model id. The SDK reads `AI_GATEWAY_API_KEY`. */
 export const SYSTEMONE_DEFAULT_MODEL = "typesafe-ai/jev";
@@ -115,6 +115,8 @@ const systemOneResponseSchema = z.object({
   model: z.string(),
   answers: z.record(systemOneAnswerSchema),
   usage: systemOneUsageSchema,
+  // gateway-reported cost of the call, when the gateway sends one
+  costUsd: z.number().optional(),
 });
 
 export type SystemOneQuestion = z.infer<typeof systemOneQuestionSchema>;
@@ -166,6 +168,7 @@ interface SdkEvaluateResult {
   answers: unknown;
   inputTokens?: number;
   outputTokens?: number;
+  costUsd?: number;
 }
 
 export interface EvaluateSystemOneArgs {
@@ -276,6 +279,7 @@ function mapSdkResult(result: SdkEvaluateResult): SystemOneResponse {
       input_tokens: result.inputTokens,
       output_tokens: result.outputTokens,
     },
+    costUsd: result.costUsd,
   });
   if (!response.success) throw new SystemOneParseError();
   return response.data;
@@ -311,6 +315,7 @@ async function evaluateWithSdk(
       answers: result.answers,
       inputTokens: result.usage.inputTokens,
       outputTokens: result.usage.outputTokens,
+      costUsd: readGatewayCost(result.providerMetadata),
     };
   } finally {
     clearTimeout(timer);

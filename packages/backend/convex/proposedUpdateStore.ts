@@ -1,4 +1,4 @@
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type {
   ProposedUpdateKind,
@@ -82,6 +82,7 @@ export async function insertProposedUpdate(
       title: string;
       content: string;
     }>;
+    dreamRunId?: Id<"dreamRuns">;
   },
 ): Promise<ProposedUpdateNode> {
   const proposalId = crypto.randomUUID();
@@ -108,6 +109,9 @@ export async function insertProposedUpdate(
       ? {}
       : { memorySnapshot: params.memorySnapshot }),
     sourceMemorySnapshots: params.sourceMemorySnapshots,
+    ...(params.dreamRunId === undefined
+      ? {}
+      : { dreamRunId: params.dreamRunId }),
   });
   const created = await findByProposalId(ctx, proposalId);
   if (!created) throw new Error("Failed to create proposed update");
