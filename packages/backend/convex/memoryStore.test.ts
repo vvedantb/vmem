@@ -852,10 +852,12 @@ describe("convex memoryStore", () => {
     );
     expect(again).toBe(true);
 
-    const listed = await t.query(
-      internal.memoryStore.functions.listMemoryLinksForUserInternal,
-      { userId: USER_A },
-    );
+    const listed = (
+      await t.query(
+        internal.memoryStore.functions.paginateMemoryLinksForUserInternal,
+        { userId: USER_A, cursor: null, numItems: 100 },
+      )
+    ).rows;
     expect(listed).toHaveLength(1);
     expect(listed[0]?.reason).toBe("platform owns Helios");
 
@@ -874,10 +876,12 @@ describe("convex memoryStore", () => {
       userId: USER_A,
       memoryId: a.id,
     });
-    const afterDelete = await t.query(
-      internal.memoryStore.functions.listMemoryLinksForUserInternal,
-      { userId: USER_A },
-    );
+    const afterDelete = (
+      await t.query(
+        internal.memoryStore.functions.paginateMemoryLinksForUserInternal,
+        { userId: USER_A, cursor: null, numItems: 100 },
+      )
+    ).rows;
     expect(afterDelete).toHaveLength(0);
   });
 
@@ -936,10 +940,12 @@ describe("convex memoryStore", () => {
     );
     expect(hidden.memories.map((memory) => memory.id)).toEqual([stale.id]);
 
-    const links = await t.query(
-      internal.memoryStore.functions.listMemoryLinksForUserInternal,
-      { userId: USER_A },
-    );
+    const links = (
+      await t.query(
+        internal.memoryStore.functions.paginateMemoryLinksForUserInternal,
+        { userId: USER_A, cursor: null, numItems: 100 },
+      )
+    ).rows;
     expect(links.some((link) => link.reason === "updates")).toBe(true);
 
     const ranked = listed.memories.map((memory) =>
@@ -967,24 +973,33 @@ describe("convex memoryStore", () => {
       }),
     );
 
-    const listed = await t.query(
-      internal.memoryStore.functions.listMemoryLinksForUserInternal,
-      { userId: USER_A },
-    );
+    const listed = (
+      await t.query(
+        internal.memoryStore.functions.paginateMemoryLinksForUserInternal,
+        { userId: USER_A, cursor: null, numItems: 100 },
+      )
+    ).rows;
     expect(listed).toHaveLength(1);
     expect(listed[0]?.reason.toLowerCase()).toContain("alice");
     const ids = new Set([listed[0]?.sourceId, listed[0]?.targetId]);
     expect(ids.has(aliceDark.id)).toBe(true);
     expect(ids.has(aliceLondon.id)).toBe(true);
 
-    const graph = await t.query(
-      internal.memoryStore.functions.listEntitiesForGraphInternal,
-      { userId: USER_A },
+    const page = { userId: USER_A, cursor: null, numItems: 100 };
+    const nodes = await t.query(
+      internal.memoryStore.functions.paginateEntitiesForGraphInternal,
+      page,
     );
-    expect(graph.nodes.some((node) => node.normalizedName === "alice")).toBe(
+    expect(nodes.rows.some((node) => node.normalizedName === "alice")).toBe(
       true,
     );
-    expect(graph.mentions.length).toBeGreaterThanOrEqual(2);
+    const mentions = await t.query(
+      internal.memoryStore.functions.paginateEntityMentionsForGraphInternal,
+      page,
+    );
+    expect(
+      mentions.rows.filter((row) => row.entityId === "entity alice").length,
+    ).toBeGreaterThanOrEqual(2);
   });
 
   it("paginates scoped memories and stats without collecting the full set", async () => {
@@ -1445,27 +1460,6 @@ describe("convex memoryStore", () => {
       );
       expect(again.id).toBe(notion.id);
       expect(again.title).toBe("Doc v2");
-    });
-
-    it("caps memory link reads below the return array-length limit", async () => {
-      const t = convexTest(schema, modules);
-      await t.run(async (ctx) => {
-        for (let i = 0; i < 8_050; i += 1) {
-          await ctx.db.insert("memoryLinks", {
-            userId: USER_A,
-            sourceId: `s-${String(i)}`,
-            targetId: `t-${String(i)}`,
-            reason: "r",
-            createdAt: i,
-          });
-        }
-      });
-      const listed = await t.query(
-        internal.memoryStore.functions.listMemoryLinksForUserInternal,
-        { userId: USER_A },
-      );
-      expect(listed).toHaveLength(8_000);
-      expect(listed[0]?.sourceId).toBe("s-0");
     });
   });
 });

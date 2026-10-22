@@ -63,6 +63,35 @@ export async function walkPages<T>(
   throw new Error("scoped memory pagination exceeded page budget");
 }
 
+// Graph rows (links, entities, mentions) are read one page per query, so no
+// execution nears the read limit. The page budget stops a pathological
+// account from walking forever; past it, the rows read so far are kept.
+const GRAPH_PAGE_SIZE = 1_000;
+const MAX_GRAPH_PAGES = 50;
+
+export async function collectGraphRowsPaged<T>(
+  load: (args: {
+    cursor: string | null;
+    numItems: number;
+  }) => Promise<PageMeta & { rows: T[] }>,
+): Promise<T[]> {
+  const out: T[] = [];
+  let pages = 0;
+  await walkPages(
+    async (args) => {
+      const page = await load(args);
+      return { ...page, items: page.rows };
+    },
+    (items) => {
+      out.push(...items);
+      pages += 1;
+      return pages < MAX_GRAPH_PAGES;
+    },
+    GRAPH_PAGE_SIZE,
+  );
+  return out;
+}
+
 export async function collectScopedMemoriesPaged(
   ctx: RunQueryCtx,
   scope: MemoryReadScope,

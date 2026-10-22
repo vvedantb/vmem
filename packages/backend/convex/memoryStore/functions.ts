@@ -29,9 +29,9 @@ import {
   listMemories,
   listMemoriesForTeam,
   listMemoryLinksAround,
-  listMemoryLinksForUser,
   memoryDocIdsForEmbeddings,
   memoryReadScopeFromArgs,
+  paginateMemoryLinksForUser,
   paginateMemorySummaries,
   paginateScopedDocs,
   patchMemoryEmbedding,
@@ -47,9 +47,10 @@ import { toMemoryStatRow, toMemoryWithTags } from "./mappers";
 import { createOrUpsertMemory } from "./upsert";
 import {
   applyLlmEntityExtraction,
-  listEntitiesForGraph,
   listKnownEntities,
   listRecentMemoryCandidates,
+  paginateEntitiesForGraph,
+  paginateEntityMentionsForGraph,
 } from "./entities";
 
 // OR-lists and the inclusive createdAt window (epoch ms) on top of the
@@ -687,10 +688,36 @@ export const unlinkMemoriesInternal = internalMutation({
   handler: async (ctx, args) => unlinkMemories(ctx, args),
 });
 
-export const listMemoryLinksForUserInternal = internalQuery({
-  args: { userId: v.string() },
-  returns: v.array(memoryLinkEdgeValidator),
-  handler: async (ctx, args) => listMemoryLinksForUser(ctx, args.userId),
+const graphPageArgs = {
+  userId: v.string(),
+  cursor: v.union(v.string(), v.null()),
+  numItems: v.number(),
+};
+
+function toGraphPage<T>(result: {
+  page: T[];
+  isDone: boolean;
+  continueCursor: string;
+  splitCursor?: string | null;
+  pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+}) {
+  return {
+    rows: result.page,
+    isDone: result.isDone,
+    continueCursor: result.continueCursor,
+    splitCursor: result.splitCursor,
+    pageStatus: result.pageStatus,
+  };
+}
+
+export const paginateMemoryLinksForUserInternal = internalQuery({
+  args: graphPageArgs,
+  returns: v.object({
+    rows: v.array(memoryLinkEdgeValidator),
+    ...scopedPageMeta,
+  }),
+  handler: async (ctx, { userId, ...page }) =>
+    toGraphPage(await paginateMemoryLinksForUser(ctx, userId, page)),
 });
 
 export const listMemoryLinksAroundInternal = internalQuery({
@@ -797,10 +824,10 @@ export const applyLlmEntityExtractionInternal = internalMutation({
   handler: async (ctx, args) => applyLlmEntityExtraction(ctx, args),
 });
 
-export const listEntitiesForGraphInternal = internalQuery({
-  args: { userId: v.string() },
+export const paginateEntitiesForGraphInternal = internalQuery({
+  args: graphPageArgs,
   returns: v.object({
-    nodes: v.array(
+    rows: v.array(
       v.object({
         id: v.string(),
         name: v.string(),
@@ -809,12 +836,23 @@ export const listEntitiesForGraphInternal = internalQuery({
         createdAt: v.number(),
       }),
     ),
-    mentions: v.array(
+    ...scopedPageMeta,
+  }),
+  handler: async (ctx, { userId, ...page }) =>
+    toGraphPage(await paginateEntitiesForGraph(ctx, userId, page)),
+});
+
+export const paginateEntityMentionsForGraphInternal = internalQuery({
+  args: graphPageArgs,
+  returns: v.object({
+    rows: v.array(
       v.object({
         memoryId: v.string(),
         entityId: v.string(),
       }),
     ),
+    ...scopedPageMeta,
   }),
-  handler: async (ctx, args) => listEntitiesForGraph(ctx, args.userId),
+  handler: async (ctx, { userId, ...page }) =>
+    toGraphPage(await paginateEntityMentionsForGraph(ctx, userId, page)),
 });

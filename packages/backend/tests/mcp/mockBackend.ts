@@ -553,13 +553,18 @@ async function dispatchName(
         (id) => store.memories.find((memory) => memory.id === id) ?? null,
       );
     }
-    case "memoryStore/functions:listMemoryLinksForUserInternal": {
+    case "memoryStore/functions:paginateMemoryLinksForUserInternal": {
       const parsed = userIdArgsSchema.parse(args);
-      return store.links.filter((_link) => parsed.userId === store.clerkId);
+      return {
+        rows: store.links.filter((_link) => parsed.userId === store.clerkId),
+        continueCursor: "",
+        isDone: true,
+      };
     }
-    case "memoryStore/functions:listEntitiesForGraphInternal": {
+    case "memoryStore/functions:paginateEntitiesForGraphInternal":
+    case "memoryStore/functions:paginateEntityMentionsForGraphInternal": {
       userIdArgsSchema.parse(args);
-      return { nodes: [], mentions: [] };
+      return { rows: [], continueCursor: "", isDone: true };
     }
     case "memoryStore/functions:listMemoryLinksAroundInternal": {
       return linksAround(store, linksAroundArgsSchema.parse(args));

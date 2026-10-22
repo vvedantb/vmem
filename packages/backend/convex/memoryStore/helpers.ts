@@ -1598,24 +1598,22 @@ export async function unlinkMemories(
   return true;
 }
 
-// Hard cap on edges read per call. Stays below Convex's 8192 array-length
-// limit on return values: at 10k edges the query read fine but its result was
-// rejected, so graph views failed outright for users with that many links.
-export const MAX_MEMORY_LINKS_READ = 8_000;
-
-export async function listMemoryLinksForUser(
-  ctx: QueryCtx | MutationCtx,
+// one page of the user's links; graph views walk every page from an action
+export async function paginateMemoryLinksForUser(
+  ctx: QueryCtx,
   userId: string,
-): Promise<MemoryLinkEdge[]> {
-  const rows = await ctx.db
+  page: { cursor: string | null; numItems: number },
+) {
+  const result = await ctx.db
     .query("memoryLinks")
     .withIndex("by_user", (q) => q.eq("userId", userId))
-    .take(MAX_MEMORY_LINKS_READ);
-  return rows.map((row) => ({
+    .paginate(page);
+  const rows: MemoryLinkEdge[] = result.page.map((row) => ({
     sourceId: row.sourceId,
     targetId: row.targetId,
     reason: row.reason,
   }));
+  return { ...result, page: rows };
 }
 
 export const LINK_EXPANSION_PER_NODE = 16;
@@ -1651,7 +1649,7 @@ async function listIncidentLinks(
   return [...asSource, ...asTarget];
 }
 
-// Bounded replacement for listMemoryLinksForUser on the retrieve path: walks
+// Bounded replacement for a full link walk on the retrieve path: walks
 // outward from the seed memories with indexed per-node lookups, so the bytes
 // read scale with the neighbourhood of the hits, not with the user's total
 // number of links.
