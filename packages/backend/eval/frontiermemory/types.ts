@@ -28,13 +28,26 @@ export interface NormalizedRun {
   mentions: Record<string, number>;
 }
 
+const keywordSchema = z.string().trim().toLowerCase().min(3);
+
 export const taskSpecSchema = z.object({
   id: z.string().min(1),
   source: z.string(),
   title: z.string().min(1),
   description: z.string(),
   /** Distinctive terms. A run matches only if its prompt names one, or its body names one often. */
-  keywords: z.array(z.string().trim().toLowerCase().min(3)).min(1),
+  keywords: z.array(keywordSchema).min(1),
+  /**
+   * Optional weaker body rule for a name that task runs say only a few times
+   * (a package name): `term` at least `min` times plus `with` at least once.
+   */
+  cooccur: z
+    .object({
+      term: keywordSchema,
+      with: keywordSchema,
+      min: z.number().int().min(2),
+    })
+    .optional(),
 });
 export type TaskSpec = z.infer<typeof taskSpecSchema>;
 

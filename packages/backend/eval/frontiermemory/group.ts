@@ -30,20 +30,38 @@ function keywordHits(lowerPrompt: string, keyword: string): number {
   return lowerPrompt.match(pattern)?.length ?? 0;
 }
 
+/** Every term to count in a raw run (see `NormalizedRun.mentions`). */
+export function mentionTerms(tasks: readonly TaskSpec[]): string[] {
+  return [
+    ...new Set(
+      tasks.flatMap((task) => [
+        ...task.keywords,
+        ...(task.cooccur ? [task.cooccur.term, task.cooccur.with] : []),
+      ]),
+    ),
+  ];
+}
+
+type TaskMatch = {
+  taskId: string;
+  via: "prompt" | "body" | "cooccur";
+  score: number;
+};
+
 /**
  * Best public task for a run, or null. The prompt naming a task keyword
  * wins (most hits); else the keyword most mentioned in the whole run, if it
- * reaches `minBodyMentions`. Ties go to the earlier task.
+ * reaches `minBodyMentions`; else a task whose `cooccur` term reaches its
+ * `min` while its `with` term is also present. Ties go to the earlier task.
  */
 export function matchTask(
   prompt: string,
   tasks: readonly TaskSpec[],
   mentions: Readonly<Record<string, number>> = {},
   minBodyMentions = DEFAULT_GROUP_OPTIONS.minBodyMentions,
-): { taskId: string; via: "prompt" | "body"; score: number } | null {
+): TaskMatch | null {
   const lower = prompt.toLowerCase();
-  let best: { taskId: string; via: "prompt" | "body"; score: number } | null =
-    null;
+  let best: TaskMatch | null = null;
   for (const task of tasks) {
     const score = task.keywords.reduce(
       (sum, keyword) => sum + keywordHits(lower, keyword),
@@ -61,6 +79,18 @@ export function matchTask(
     );
     if (score >= minBodyMentions && (best === null || score > best.score)) {
       best = { taskId: task.id, via: "body", score };
+    }
+  }
+  if (best) return best;
+  for (const task of tasks) {
+    if (!task.cooccur) continue;
+    const score = mentions[task.cooccur.term] ?? 0;
+    if (
+      score >= task.cooccur.min &&
+      (mentions[task.cooccur.with] ?? 0) > 0 &&
+      (best === null || score > best.score)
+    ) {
+      best = { taskId: task.id, via: "cooccur", score };
     }
   }
   return best;
