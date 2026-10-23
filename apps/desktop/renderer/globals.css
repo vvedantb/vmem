@@ -8,13 +8,6 @@
  */
 @source "../../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
 
-html,
-body {
-  font-family: var(--font-sans);
-  background: var(--background);
-  color: var(--foreground);
-}
-
 button:not(:disabled) {
   cursor: pointer;
 }

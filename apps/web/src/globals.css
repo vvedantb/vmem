@@ -1,6 +1,16 @@
 @import "tailwindcss";
+/* Tokens also bring clear-input, scrollbar-thin and motion (ui-enter, page
+   motion off, reduced-motion view transitions). */
 @import "@vvedantb/ui/tokens";
 @import "shadow-plugin";
+@import "@vvedantb/ui/tokens/css/animations.css";
+@import "@vvedantb/ui/tokens/css/nav-icons.css";
+@import "@vvedantb/ui/tokens/css/base.css";
+@import "@vvedantb/ui/tokens/css/tabs-pills.css";
+@import "@vvedantb/ui/tokens/css/dialog.css";
+@import "@vvedantb/ui/tokens/css/modal.css";
+@import "@vvedantb/ui/tokens/css/tabs.css";
+@import "@vvedantb/ui/tokens/css/utilities.css";
 @plugin "tailwindcss-animate";
 
 /* Tailwind does not scan node_modules; include shared UI, shell and app sources. */
@@ -10,25 +20,16 @@
 /* Keeps theme vars the landing stylesheet reads, e.g. --font-instrumentSerif. */
 @source "../../../node_modules/@vvedantb/ui/src/marketing/landing.css";
 
-@import "@vvedantb/ui/tokens/css/animations.css";
-@import "@vvedantb/ui/tokens/css/nav-icons.css";
-
 @theme {
   --font-instrumentSerif: "Instrument Serif", Georgia, serif;
-  --font-inter: "Inter", system-ui, sans-serif;
 
   --breakpoint-xs: 475px;
 }
 
-/* transitions-dev — modal + tabs (see .claude/skills/transitions-dev/) */
 :root {
+  /* transitions-dev modal: slower than the package defaults (180ms / 120ms). */
   --modal-open-dur: 250ms;
   --modal-close-dur: 150ms;
-  --modal-scale: 0.96;
-  --modal-scale-close: 0.96;
-  --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --tabs-dur: 200ms;
-  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
   /* view transitions, mirror motionEase / motionDuration in @vvedantb/ui */
   --vt-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --vt-fast: 220ms;
@@ -55,13 +56,6 @@
     --vmem-toast-offset-top: calc(var(--vmem-mobile-header-height) + 0.5rem);
   }
 }
-
-/*
- * Colour, radius, shadow and font tokens live in @vvedantb/ui/tokens.
- * Base element rules and tab chrome vars come from the shared CSS files.
- */
-@import "@vvedantb/ui/tokens/css/base.css";
-@import "@vvedantb/ui/tokens/css/tabs-pills.css";
 
 @layer base {
   /* Radix menu items render as divs with menu roles, not buttons. */
@@ -130,15 +124,8 @@
   }
 }
 
-@import "@vvedantb/ui/tokens/css/dialog.css";
-@import "@vvedantb/ui/tokens/css/modal.css";
-@import "@vvedantb/ui/tokens/css/tabs.css";
-
 @layer components {
   .t-tabs {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
     max-width: 100%;
   }
   .t-tabs--pills .t-tab {
@@ -151,81 +138,7 @@
       background-color var(--tabs-dur) var(--tabs-ease),
       border-color var(--tabs-dur) var(--tabs-ease);
   }
-
-  .glass-panel-strong {
-    @apply bg-overlay;
-  }
-
-  /* Opacity modifiers don't work on bare oklch --muted; mix explicitly. */
-  .sidebar-section-label {
-    color: color-mix(in oklch, var(--muted) 55%, transparent);
-  }
 }
-
-@layer utilities {
-  /* Extends sub-40px controls to a 40×40px tap target without changing layout.
-     Only force `relative` when the element is otherwise static — absolute /
-     fixed / sticky already form a containing block for ::after. */
-  .hit-target:not(.absolute):not(.fixed):not(.sticky) {
-    position: relative;
-  }
-  .hit-target::after {
-    content: "";
-    position: absolute;
-    inset: -8px;
-  }
-
-  @media (max-width: 639px) {
-    .max-sm\:hit-target:not(.absolute):not(.fixed):not(.sticky) {
-      position: relative;
-    }
-    .max-sm\:hit-target::after {
-      content: "";
-      position: absolute;
-      inset: -8px;
-    }
-  }
-
-  /*
-   * Row / message / attachment actions that only appear on `group-hover`.
-   * Touch has no hover, so on a phone those controls are not merely hard to
-   * find — they are unreachable. Visible below `sm`; hidden on hover-capable
-   * viewports at `sm` and up, restored on group-hover / focus.
-   */
-  .reveal-on-hover {
-    opacity: 1;
-  }
-
-  @media (hover: hover) and (min-width: 640px) {
-    .reveal-on-hover {
-      opacity: 0;
-    }
-    .reveal-on-hover:is(:where(.group):hover *),
-    .reveal-on-hover:is(:where(.group):focus-within *),
-    .reveal-on-hover:focus-visible {
-      opacity: 1;
-    }
-  }
-
-  .justify-center-safe {
-    justify-content: safe center;
-  }
-
-  @media (max-width: 639px) {
-    .max-sm\:justify-center-safe {
-      justify-content: safe center;
-    }
-  }
-
-  .scrollbar-none {
-    scrollbar-width: none;
-  }
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-@import "@vvedantb/ui/tokens/css/scrollbar-thin.css";
 
 /*
  * View transitions — see src/lib/view-transitions.ts.
@@ -233,7 +146,8 @@
  * Browsers without the View Transitions API or transition types
  * (`:active-view-transition-type`) never start one, so pages swap instantly
  * as before. Names are only assigned while a typed transition is running, so
- * they stay unique and never leak into unrelated transitions.
+ * they stay unique and never leak into unrelated transitions. Reduced motion
+ * and page motion off are handled by @vvedantb/ui/tokens (motion.css).
  */
 
 /* the page itself stays instant unless a transition type below opts in */
@@ -367,29 +281,4 @@
 :root:active-view-transition-type(vmem-list-remove)
   [role="menu"][data-state="closed"] {
   visibility: hidden;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation: none !important;
-  }
-}
-
-/*
- * Experimental "Disable page animations" (`html[data-page-motion=off]`).
- * Route crossfade, memory panel, list remove. Leave loading UI (spinners,
- * sidebar icon loops) alone.
- */
-html[data-page-motion="off"]::view-transition-group(*),
-html[data-page-motion="off"]::view-transition-old(*),
-html[data-page-motion="off"]::view-transition-new(*) {
-  animation: none !important;
-}
-
-html[data-page-motion="off"] .animate-in,
-html[data-page-motion="off"] .animate-out {
-  animation-duration: 0s !important;
-  animation-delay: 0s !important;
 }

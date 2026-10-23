@@ -28,7 +28,7 @@ FOLLOW ALL OF THESE RULES
 - For debugging, use vmem MCP and Convex CLI for prod logs (prod deployment `clear-bear-690`, eu-west-1).
 
 ## Domain docs (read when relevant)
-- Frontend / UI work → `apps/web` (Vite, TanStack Router, nuqs, `@vvedantb/ui` / `@vvedantb/shell`); docs site `apps/docs` (Mintlify, `pnpm docs:dev`)
+- Frontend / UI work → `apps/web` (Vite, TanStack Router, nuqs, `@vvedantb/ui` ^0.15.0, shell included); docs site `apps/docs` (Mintlify, `pnpm docs:dev`)
 - Convex / schema / migrations → `packages/backend/README.md`, `packages/backend/convex/README.md`, `apps/docs/architecture.mdx`, `apps/docs/environment.mdx`
 - Chrome extension → `apps/chrome-extension/README.md`
 - agent-browser on vmem web → navigate to `/?agent` (auto sign-in; needs `CLERK_SECRET_KEY` + `AGENT_CLERK_USER_ID` in `apps/web/.env.local`)
@@ -42,7 +42,7 @@ FOLLOW ALL OF THESE RULES
 - Hosting: prod web `https://vmem.projectv.uk` (on Vercel); `vmem.vedantb.com` permanently redirects there. Staging: `https://vmem-staging.vedantb.com`.
 - Convex prod: `clear-bear-690` (`https://clear-bear-690.eu-west-1.convex.cloud` / `.convex.site`). The extension source fallback is `outgoing-reindeer-268` (not prod); production extension env must use `clear-bear-690`.
 - Auth: Project V Clerk. Prod `clerk.projectv.uk` (`pk_live_Y2xlcmsucHJvamVjdHYudWsk`). Preview/dev `allowing-coyote-80.clerk.accounts.dev`.
-- UI packages: npm `@vvedantb/ui`, `@vvedantb/shell`, `@vvedantb/tokens`. No `@vvedantb/native-ui` on main; Expo mobile is archived (`archive/mobile`). `packages/ui` in README.txt is stale.
+- UI package: npm `@vvedantb/ui` ^0.15.0 (tokens at `@vvedantb/ui/tokens`; shell exports from the main entry). No `@vvedantb/native-ui` on main; Expo mobile is archived (`archive/mobile`). `packages/ui` in README.txt is stale.
 - Web surfaces: memories (list/graph/timeline/tags), inbox (proposals + notifications), skills, sources/connectors/import, files, teams, settings (API keys, extension, profiles, preferences).
 - `/slides` is public (password for presenter pop-out). It skips ClerkProvider because Vercel preview hosts often return 400 on `clerk.projectv.uk`.
 - Landing has "Continue without an account". Dev: `/?agent` auto sign-in.
