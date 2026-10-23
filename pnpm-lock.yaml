@@ -716,6 +716,9 @@ importers:
       dayjs:
         specifier: ^1.11.21
         version: 1.11.21
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
     devDependencies:
       typescript:
         specifier: 'catalog:'

@@ -52,3 +52,10 @@ export {
   type RollupPeriod,
   type SummaryPeriod,
 } from "./rollupPeriod";
+export {
+  GRAPH_SNAPSHOT_VERSION,
+  decodeGraphSnapshot,
+  encodeGraphSnapshot,
+  type GraphSnapshotGraph,
+  type GraphSnapshotNode,
+} from "./graphSnapshot";

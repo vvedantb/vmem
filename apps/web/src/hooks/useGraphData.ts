@@ -1,9 +1,20 @@
 import { useState } from "react";
-import { useConvexAuth, useAction } from "convex/react";
-import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
+import {
+  useConvexAuth,
+  useAction,
+  useQuery as useConvexQuery,
+} from "convex/react";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  type InfiniteData,
+} from "@tanstack/react-query";
+import { decodeGraphSnapshot } from "@vmem/shared";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { api } from "@vmem/backend";
 import { generateBenchGraph } from "@/lib/graph/bench-data";
+import { mergeSnapshotDelta } from "@/lib/graph/graph-snapshot";
 import type {
   ApiGraphNode,
   ApiTagEdge,
@@ -81,6 +92,85 @@ function mergePages(pages: GraphResponse[]): MergedGraph {
   };
 }
 
+// Precomputed graph of the global view: snapshot metadata (reactive), the
+// body (fetched once per stored file, only while the view is open), the live
+// delta since it was built, and the refresh control. With no snapshot yet it
+// builds one once per profile and session; until then the live path runs.
+function useGraphSnapshot(profileId: string | null, enabled: boolean) {
+  const refreshGraphSnapshot = useAction(
+    api.graphSnapshots.refreshGraphSnapshot,
+  );
+  const meta = useConvexQuery(
+    api.graphSnapshots.getGraphSnapshot,
+    enabled && profileId !== null ? { profileId } : "skip",
+  );
+  const snapshot = meta?.snapshot ?? null;
+
+  const body = useQuery({
+    queryKey: ["graph-snapshot", profileId ?? "none", snapshot?.storageId],
+    enabled: snapshot !== null,
+    staleTime: Infinity,
+    // a rebuilt file keeps the old graph on screen until it is decoded
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[1] === (profileId ?? "none")
+        ? previousData
+        : undefined,
+    queryFn: async () => {
+      if (snapshot === null) throw new Error("No graph snapshot");
+      const response = await fetch(snapshot.url);
+      if (!response.ok) {
+        throw new Error(`Graph snapshot fetch failed (${response.status})`);
+      }
+      return decodeGraphSnapshot(await response.text());
+    },
+  });
+
+  const delta = useConvexQuery(
+    api.graphSnapshots.getGraphDelta,
+    snapshot !== null && profileId !== null
+      ? { profileId, since: snapshot.builtAt }
+      : "skip",
+  );
+
+  const isMissing =
+    profileId === null || (meta !== undefined && snapshot === null);
+  useQuery({
+    queryKey: ["graph-snapshot-build", profileId ?? "none"],
+    enabled: enabled && isMissing && profileId !== null,
+    staleTime: Infinity,
+    retry: false,
+    queryFn: async () =>
+      profileId === null ? null : await refreshGraphSnapshot({ profileId }),
+  });
+
+  const refresh = useMutation({
+    mutationFn: async () =>
+      profileId === null ? null : await refreshGraphSnapshot({ profileId }),
+  });
+
+  const graph =
+    body.data === undefined ? null : mergeSnapshotDelta(body.data, delta);
+  const refreshResult = refresh.data;
+
+  return {
+    // no snapshot to show: the caller falls back to the live path
+    useLive: isMissing || body.isError,
+    isLoading:
+      enabled && (meta === undefined || (snapshot !== null && body.isPending)),
+    graph,
+    builtAt: snapshot?.builtAt ?? null,
+    needsRefresh: delta?.needsRefresh === true || snapshot?.truncated === true,
+    isRefreshing: refresh.isPending,
+    refreshRetryAfterMs:
+      refreshResult?.status === "rate_limited"
+        ? refreshResult.retryAfterMs
+        : null,
+    refresh: () => {
+      refresh.mutate();
+    },
+  };
+}
+
 export function useGraphData(
   focusNodeId: string | null,
   profileId: string | null = null,
@@ -96,6 +186,11 @@ export function useGraphData(
 
   const isFocused = focusNodeId !== null;
   const benchData = benchCount > 0 ? generateBenchGraph(benchCount) : null;
+  const snapshot = useGraphSnapshot(
+    profileId,
+    isAuthenticated && enabled && !isFocused && benchData === null,
+  );
+  const snapshotGraph = isFocused || snapshot.useLive ? null : snapshot.graph;
 
   const graphQuery = useInfiniteQuery<
     GraphResponse,
@@ -141,7 +236,11 @@ export function useGraphData(
       lastPage.nextCursorId !== undefined
         ? { createdAt: lastPage.nextCursorCreatedAt, id: lastPage.nextCursorId }
         : undefined,
-    enabled: isAuthenticated && enabled && benchData === null,
+    enabled:
+      isAuthenticated &&
+      enabled &&
+      benchData === null &&
+      (isFocused || snapshot.useLive),
     staleTime: 30_000,
   });
 
@@ -171,7 +270,18 @@ export function useGraphData(
 
   const allRelatesToEdges = benchData
     ? benchData.relatesToEdges
-    : [...(merged?.relatesToEdges ?? []), ...liveRelatesToEdges];
+    : [
+        ...(snapshotGraph?.relatesToEdges ?? merged?.relatesToEdges ?? []),
+        ...liveRelatesToEdges,
+      ];
+
+  const snapshotStatus = {
+    snapshotBuiltAt: snapshotGraph === null ? null : snapshot.builtAt,
+    snapshotNeedsRefresh: snapshot.needsRefresh,
+    isRefreshingSnapshot: snapshot.isRefreshing,
+    snapshotRefreshRetryAfterMs: snapshot.refreshRetryAfterMs,
+    refreshSnapshot: snapshot.refresh,
+  };
 
   if (benchData) {
     return {
@@ -188,6 +298,33 @@ export function useGraphData(
       fetchNextPage: NOOP,
       isError: false,
       error: null,
+      ...snapshotStatus,
+      snapshotBuiltAt: null,
+    };
+  }
+
+  // a live graph already on screen stays until the snapshot body is decoded
+  if (
+    snapshotGraph !== null ||
+    (!isFocused && !snapshot.useLive && merged === null)
+  ) {
+    return {
+      apiNodes: snapshotGraph?.nodes ?? EMPTY_NODES,
+      apiTagEdges: EMPTY_TAG_EDGES,
+      allRelatesToEdges,
+      apiMentionsEdges: snapshotGraph?.mentionsEdges ?? EMPTY_MENTIONS_EDGES,
+      resolvedFocusNodeId: null,
+      isFocused: false,
+      totalMemoryCount:
+        snapshotGraph?.nodes.filter((node) => node.kind === "memory").length ??
+        null,
+      isLoading: snapshot.isLoading,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      fetchNextPage: NOOP,
+      isError: false,
+      error: null,
+      ...snapshotStatus,
     };
   }
 
@@ -207,5 +344,6 @@ export function useGraphData(
     },
     isError: graphQuery.isError,
     error: graphQuery.error,
+    ...snapshotStatus,
   };
 }

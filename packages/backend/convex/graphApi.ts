@@ -104,6 +104,7 @@ export function newestGraphMemories(
 export async function loadGraphLinks(
   ctx: Pick<ActionCtx, "runQuery">,
   memories: readonly MemoryWithTags[],
+  maxEdges: number = MAX_GRAPH_EDGES,
 ): Promise<GraphRelatesToEdge[]> {
   const memoryIds = new Set(memories.map((memory) => memory.id));
   const edges = new Map<string, GraphRelatesToEdge>();
@@ -115,7 +116,7 @@ export async function loadGraphLinks(
       ),
     );
     for (const link of links) {
-      if (edges.size >= MAX_GRAPH_EDGES) break;
+      if (edges.size >= maxEdges) break;
       if (!memoryIds.has(link.sourceId) || !memoryIds.has(link.targetId)) {
         continue;
       }
@@ -138,6 +139,7 @@ export async function loadGraphEntities(
   ctx: Pick<ActionCtx, "runQuery">,
   memories: readonly MemoryWithTags[],
   maxNodes: number = Infinity,
+  maxEdges: number = MAX_GRAPH_EDGES,
 ): Promise<{
   entityNodes: GraphNodeEntry[];
   mentionsEdges: GraphMentionsEdge[];
@@ -193,7 +195,7 @@ export async function loadGraphEntities(
   }
   for (const { node, mentionedIn } of kept) {
     for (const memoryId of mentionedIn) {
-      if (mentionsEdges.size >= MAX_GRAPH_EDGES) break;
+      if (mentionsEdges.size >= maxEdges) break;
       mentionsEdges.set(`${memoryId}|${node.id}`, {
         source: memoryId,
         target: node.id,
@@ -216,6 +218,113 @@ export async function loadGraphEntities(
   };
 }
 
+export interface ScopedGraph {
+  nodes: GraphNodeEntry[];
+  relatesToEdges: GraphRelatesToEdge[];
+  mentionsEdges: GraphMentionsEdge[];
+  totalMemoryCount: number;
+}
+
+// The account graph of one scope (no profileId: every personal memory; a
+// personal profile; a team profile), the way getGraphData scopes it. Skills
+// first, then the newest memories, then entities fill the rest; edges only
+// join kept nodes, as both loaders read for `shown` alone.
+export async function loadScopedGraph(
+  ctx: Pick<ActionCtx, "runQuery">,
+  args: {
+    userId: Id<"users">;
+    clerkId: string;
+    profileId?: string;
+    focus?: string;
+    includeSkills: boolean;
+    maxNodes: number;
+    maxEdges: number;
+  },
+): Promise<ScopedGraph> {
+  let teamId: Id<"teams"> | undefined;
+  let memories: readonly MemoryWithTags[];
+  if (args.profileId !== undefined) {
+    const scope = await ctx.runQuery(
+      internal.teams.resolveMemoryScopeInternal,
+      { userId: args.userId, profileId: args.profileId },
+    );
+    if (scope.kind === "team") {
+      teamId = scope.teamId;
+      memories = await collectScopedMemoriesPaged(ctx, {
+        kind: "team",
+        profileId: args.profileId,
+      });
+    } else {
+      memories = await collectScopedMemoriesPaged(ctx, {
+        kind: "personal",
+        userId: args.clerkId,
+        profileId: args.profileId,
+      });
+    }
+  } else {
+    memories = await collectScopedMemoriesPaged(ctx, {
+      kind: "personal",
+      userId: args.clerkId,
+    });
+  }
+
+  if (args.focus !== undefined) {
+    memories = memories.filter((memory) => memory.id === args.focus);
+  }
+
+  const skillRows = args.includeSkills
+    ? await ctx.runQuery(internal.skills.listForGraphInternal, {
+        userId: args.userId,
+        teamId,
+      })
+    : [];
+  const skillNodes = skillGraphNodes(skillRows);
+
+  const totalMemoryCount = memories.length;
+  const shown = newestGraphMemories(
+    memories,
+    args.maxNodes - skillNodes.length,
+  );
+  const [relatesToEdges, entities] = await Promise.all([
+    loadGraphLinks(ctx, shown, args.maxEdges),
+    loadGraphEntities(
+      ctx,
+      shown,
+      args.maxNodes - skillNodes.length - shown.length,
+      args.maxEdges,
+    ),
+  ]);
+
+  return {
+    nodes: [...memoryGraphNodes(shown), ...entities.entityNodes, ...skillNodes],
+    relatesToEdges,
+    mentionsEdges: entities.mentionsEdges,
+    totalMemoryCount,
+  };
+}
+
+export function skillGraphNodes(
+  skills: ReadonlyArray<{
+    _id: string;
+    name: string;
+    description: string;
+    createdAt: number;
+    enabled?: boolean;
+  }>,
+): GraphNodeEntry[] {
+  return skills
+    .filter((s) => s.enabled !== false)
+    .map((s) => ({
+      id: `${SKILL_PREFIX}${s._id}`,
+      title: s.name,
+      content: s.description,
+      tags: [],
+      createdAt: new Date(s.createdAt).toISOString(),
+      kind: "skill",
+      sourceType: null,
+    }));
+}
+
 export const getGraphData = authAction({
   args: {
     focus: v.optional(v.string()),
@@ -233,85 +342,19 @@ export const getGraphData = authAction({
         ? args.mode === "local"
         : args.focus !== undefined;
     const isFirstPage = args.cursorCreatedAt === undefined;
-    const includeAccountAtoms = !isLocal && isFirstPage;
-
-    let teamId: Id<"teams"> | undefined;
-    let memories: readonly MemoryWithTags[];
-    if (args.profileId !== undefined) {
-      const scope = await ctx.runQuery(
-        internal.teams.resolveMemoryScopeInternal,
-        { userId: ctx.userId, profileId: args.profileId },
-      );
-      if (scope.kind === "team") {
-        teamId = scope.teamId;
-        memories = await collectScopedMemoriesPaged(ctx, {
-          kind: "team",
-          profileId: args.profileId,
-        });
-      } else {
-        memories = await collectScopedMemoriesPaged(ctx, {
-          kind: "personal",
-          userId: clerkId,
-          profileId: args.profileId,
-        });
-      }
-    } else {
-      memories = await collectScopedMemoriesPaged(ctx, {
-        kind: "personal",
-        userId: clerkId,
-      });
-    }
-
-    if (args.focus !== undefined) {
-      memories = memories.filter((memory) => memory.id === args.focus);
-    }
-
-    const skillRows = includeAccountAtoms
-      ? await ctx.runQuery(internal.skills.listForGraphInternal, {
-          userId: ctx.userId,
-          teamId,
-        })
-      : [];
-
-    const skillNodes: GraphNodeEntry[] = skillRows
-      .filter((s) => s.enabled !== false)
-      .map((s) => ({
-        id: `${SKILL_PREFIX}${s._id}`,
-        title: s.name,
-        content: s.description,
-        tags: [],
-        createdAt: new Date(s.createdAt).toISOString(),
-        kind: "skill",
-        sourceType: null,
-      }));
-
-    // skills first, then the newest memories, then entities fill the rest;
-    // edges only join kept nodes, as both loaders read for `shown` alone
-    const totalMemoryCount = memories.length;
-    const shown = newestGraphMemories(
-      memories,
-      MAX_GRAPH_NODES - skillNodes.length,
-    );
-    const [relatesToEdges, entities] = await Promise.all([
-      loadGraphLinks(ctx, shown),
-      loadGraphEntities(
-        ctx,
-        shown,
-        MAX_GRAPH_NODES - skillNodes.length - shown.length,
-      ),
-    ]);
-
+    const graph = await loadScopedGraph(ctx, {
+      userId: ctx.userId,
+      clerkId,
+      profileId: args.profileId,
+      focus: args.focus,
+      includeSkills: !isLocal && isFirstPage,
+      maxNodes: MAX_GRAPH_NODES,
+      maxEdges: MAX_GRAPH_EDGES,
+    });
     return {
-      nodes: [
-        ...memoryGraphNodes(shown),
-        ...entities.entityNodes,
-        ...skillNodes,
-      ],
-      relatesToEdges,
+      ...graph,
       tagEdges: [],
-      mentionsEdges: entities.mentionsEdges,
       focusNodeId: args.focus,
-      totalMemoryCount,
     };
   },
 });

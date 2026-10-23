@@ -662,28 +662,34 @@ export const getEffectiveByNameInternal = internalQuery({
 });
 
 // workspace scoped enabled skills for the memory graph (personal or team)
+// enabled skills of a personal (no teamId) or team graph
+export async function listGraphSkills(
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+): Promise<Doc<"skills">[]> {
+  if (teamId !== undefined) {
+    const rows = await ctx.db
+      .query("skills")
+      .withIndex("by_team", (q) => q.eq("teamId", teamId))
+      .order("desc")
+      .collect();
+    return rows.filter((s) => isSkillEnabled(s));
+  }
+  const rows = await ctx.db
+    .query("skills")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .order("desc")
+    .collect();
+  return rows.filter((s) => isSkillEnabled(s) && s.teamId === undefined);
+}
+
 export const listForGraphInternal = internalQuery({
   args: {
     userId: v.id("users"),
     teamId: v.optional(v.id("teams")),
   },
-  handler: async (ctx, args) => {
-    if (args.teamId !== undefined) {
-      const teamId = args.teamId;
-      const rows = await ctx.db
-        .query("skills")
-        .withIndex("by_team", (q) => q.eq("teamId", teamId))
-        .order("desc")
-        .collect();
-      return rows.filter((s) => isSkillEnabled(s));
-    }
-    const rows = await ctx.db
-      .query("skills")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .order("desc")
-      .collect();
-    return rows.filter((s) => isSkillEnabled(s) && s.teamId === undefined);
-  },
+  handler: async (ctx, args) => listGraphSkills(ctx, args.userId, args.teamId),
 });
 
 export const createByClerkIdInternal = internalMutation({

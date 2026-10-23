@@ -29,6 +29,8 @@ import {
   memoryStatCounterFields,
   memoryStatsMetaFields,
   memoryLinkFields,
+  graphSnapshotFields,
+  memoryTombstoneFields,
   memoryEntityFields,
   memoryEntityMentionFields,
   proposedUpdateFields,
@@ -277,7 +279,20 @@ const schema = defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_source", ["userId", "sourceId"])
     .index("by_user_target", ["userId", "targetId"])
-    .index("by_source_target", ["sourceId", "targetId"]),
+    .index("by_source_target", ["sourceId", "targetId"])
+    // graph snapshot delta: links written since the snapshot
+    .index("by_user_created", ["userId", "createdAt"])
+    .index("by_profile_created", ["profileId", "createdAt"]),
+
+  graphSnapshots: defineTable(graphSnapshotFields).index("by_user_profile", [
+    "userId",
+    "profileId",
+  ]),
+
+  memoryTombstones: defineTable(memoryTombstoneFields)
+    .index("by_user_deleted", ["userId", "deletedAt"])
+    .index("by_profile_deleted", ["profileId", "deletedAt"])
+    .index("by_deleted", ["deletedAt"]),
 
   memoryEntities: defineTable(memoryEntityFields)
     .index("by_user", ["userId"])

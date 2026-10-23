@@ -188,6 +188,43 @@ export const memoryLinkFields = {
   origin: v.optional(memoryLinkOriginValidator),
 };
 
+// latest precomputed graph per user and scope (graphSnapshots.ts); the
+// compact body lives in file storage
+export const graphSnapshotFields = {
+  // clerk id of the viewer the graph was built for
+  userId: v.string(),
+  // the personal or team profile the graph view shows
+  profileId: v.string(),
+  // last build claim; refreshes are rate limited on it
+  buildStartedAt: v.number(),
+  snapshot: v.optional(
+    v.object({
+      storageId: v.id("_storage"),
+      version: v.number(),
+      // data read time (the build start); the live delta starts here
+      builtAt: v.number(),
+      buildMs: v.number(),
+      byteSize: v.number(),
+      memoryCount: v.number(),
+      entityCount: v.number(),
+      skillCount: v.number(),
+      relatesCount: v.number(),
+      mentionsCount: v.number(),
+      // a safety cap dropped part of the graph
+      truncated: v.boolean(),
+    }),
+  ),
+};
+
+// hard-deleted memories, so a graph snapshot older than the delete can drop
+// them; purged after GRAPH_TOMBSTONE_RETENTION_MS
+export const memoryTombstoneFields = {
+  userId: v.string(),
+  profileId: v.optional(v.string()),
+  memoryId: v.string(),
+  deletedAt: v.number(),
+};
+
 export const memoryEntityTypeValidator = v.union(
   v.literal("person"),
   v.literal("organization"),

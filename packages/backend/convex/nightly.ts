@@ -10,7 +10,7 @@ import { periodsClosingAfter, yesterdayDayKey } from "@vmem/shared";
 const USER_PAGE = 50;
 
 // global kill switch for the cron path; manual runs still work
-function nightlyDisabled(): boolean {
+export function nightlyDisabled(): boolean {
   return process.env.NIGHTLY_DISABLED === "1";
 }
 

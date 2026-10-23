@@ -50,6 +50,11 @@ export function useMemoryGraphController({
     fetchNextPage,
     isError,
     error,
+    snapshotBuiltAt,
+    snapshotNeedsRefresh,
+    isRefreshingSnapshot,
+    snapshotRefreshRetryAfterMs,
+    refreshSnapshot,
   } = useGraphData(focusNodeId, activeProfileId, enabled, params.bench);
 
   const searchQuery = params.q.trim();
@@ -169,6 +174,12 @@ export function useMemoryGraphController({
     canLoadMore,
     isLoadingMore: isFetchingNextPage,
     fetchNextPage,
+
+    snapshotBuiltAt,
+    snapshotNeedsRefresh,
+    isRefreshingSnapshot,
+    snapshotRefreshRetryAfterMs,
+    refreshSnapshot,
 
     graphNodes,
     graphEdges,
