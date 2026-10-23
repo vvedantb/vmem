@@ -915,6 +915,17 @@ export const memorySummaryValidator = v.object({
   visitCount: v.optional(v.number()),
 });
 
+export const graphMemoryValidator = v.object({
+  id: v.string(),
+  userId: v.string(),
+  title: v.string(),
+  tags: v.array(v.string()),
+  createdAt: v.string(),
+  source: v.string(),
+  sourceType: v.union(v.string(), v.null()),
+  type: memoryTypeValidator,
+});
+
 export const memorySummaryFilterFields = {
   type: v.optional(v.string()),
   source: v.optional(v.string()),

@@ -180,3 +180,29 @@ export function toMemorySummary(doc: Doc<"memories">): MemorySummary {
     ...visitCountField(doc),
   };
 }
+
+// what a graph node and the graph author list need from a memory
+export type GraphMemory = Pick<
+  MemoryWithTags,
+  | "id"
+  | "userId"
+  | "title"
+  | "tags"
+  | "createdAt"
+  | "source"
+  | "sourceType"
+  | "type"
+>;
+
+export function toGraphMemory(doc: Doc<"memories">): GraphMemory {
+  return {
+    id: doc.memoryId,
+    userId: doc.userId,
+    title: doc.title,
+    tags: doc.tags,
+    createdAt: toIso(doc.createdAt),
+    source: doc.source,
+    sourceType: doc.sourceType ?? null,
+    type: doc.type,
+  };
+}

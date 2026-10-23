@@ -6,12 +6,13 @@ import {
 } from "../../engine/memory/dashboardStats";
 import { internal } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
-import type { MemorySummary } from "./mappers";
+import type { GraphMemory, MemorySummary } from "./mappers";
 import { SCOPED_MEMORY_PAGE_SIZE } from "./helpers";
 
 type RunQueryCtx = Pick<ActionCtx, "runQuery">;
 
 const MAX_SCOPED_PAGES = 20_000;
+const SUMMARY_WALK_PAGE_SIZE = 200;
 
 type PageMeta = {
   isDone: boolean;
@@ -66,28 +67,63 @@ export async function walkPages<T>(
 // Graph rows (links, entities, mentions) are read one page per query, so no
 // execution nears the read limit. The page budget stops a pathological
 // account from walking forever; past it, the rows read so far are kept.
-const GRAPH_PAGE_SIZE = 1_000;
-const MAX_GRAPH_PAGES = 50;
+export const GRAPH_PAGE_SIZE = 1_000;
+export const MAX_GRAPH_PAGES = 50;
 
-export async function collectGraphRowsPaged<T>(
-  load: (args: {
-    cursor: string | null;
-    numItems: number;
-  }) => Promise<PageMeta & { rows: T[] }>,
-): Promise<T[]> {
-  const out: T[] = [];
+export type GraphRowsLoad<T> = (args: {
+  cursor: string | null;
+  numItems: number;
+}) => Promise<PageMeta & { rows: T[] }>;
+
+// Feeds each page of graph rows to onRows (false stops the walk). Returns
+// true when the page budget ran out before the last page. A full last page
+// can still report isDone false, so a one-row probe confirms more rows exist.
+export async function walkGraphRowsPaged<T>(
+  load: GraphRowsLoad<T>,
+  onRows: (rows: T[]) => boolean | void,
+  budget: { maxPages: number; pageSize: number },
+): Promise<boolean> {
   let pages = 0;
+  let next: string | null = null;
   await walkPages(
     async (args) => {
       const page = await load(args);
+      next = page.isDone ? null : page.continueCursor;
+      return { ...page, items: page.rows };
+    },
+    (items) => {
+      if (onRows(items) === false) {
+        next = null;
+        return false;
+      }
+      pages += 1;
+      return pages < budget.maxPages;
+    },
+    budget.pageSize,
+  );
+  if (next === null) return false;
+  const probe = await load({ cursor: next, numItems: 1 });
+  return probe.rows.length > 0 || !probe.isDone;
+}
+
+// newest first, slim rows: the graph needs no memory content
+export async function collectScopedGraphMemoriesPaged(
+  ctx: RunQueryCtx,
+  scope: MemoryReadScope,
+): Promise<GraphMemory[]> {
+  const out: GraphMemory[] = [];
+  await walkPages(
+    async ({ cursor, numItems }) => {
+      const page = await ctx.runQuery(
+        internal.memoryStore.functions.paginateScopedGraphMemoriesInternal,
+        { ...scopeArgs(scope), cursor, numItems },
+      );
       return { ...page, items: page.rows };
     },
     (items) => {
       out.push(...items);
-      pages += 1;
-      return pages < MAX_GRAPH_PAGES;
     },
-    GRAPH_PAGE_SIZE,
+    SUMMARY_WALK_PAGE_SIZE,
   );
   return out;
 }
@@ -130,8 +166,6 @@ export async function foldScopedMemoryStats(
     },
   );
 }
-
-const SUMMARY_WALK_PAGE_SIZE = 200;
 
 // cap for one full-scope summary walk (facets, timeline, bulk tag edits)
 export const MAX_SCOPE_SUMMARIES = 10_000;

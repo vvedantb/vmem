@@ -7,6 +7,7 @@ import {
   memoryListResultValidator,
   memoryStatusValidator,
   memorySummaryFilterFields,
+  graphMemoryValidator,
   memorySummaryValidator,
   memoryTypeValidator,
   memoryVersionValidator,
@@ -43,7 +44,7 @@ import {
   upsertMemoryFromSource,
   supersedeMemories,
 } from "./helpers";
-import { toMemoryStatRow, toMemoryWithTags } from "./mappers";
+import { toGraphMemory, toMemoryStatRow, toMemoryWithTags } from "./mappers";
 import { createOrUpsertMemory } from "./upsert";
 import {
   applyLlmEntityExtraction,
@@ -279,6 +280,30 @@ export const paginateScopedMemoriesInternal = internalQuery({
     });
     return {
       memories: page.page.map(toMemoryWithTags),
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+      splitCursor: page.splitCursor,
+      pageStatus: page.pageStatus,
+    };
+  },
+});
+
+// graph node rows for the scope walk in graphApi.loadScopedGraph
+export const paginateScopedGraphMemoriesInternal = internalQuery({
+  args: scopedPageArgs,
+  returns: v.object({
+    rows: v.array(graphMemoryValidator),
+    ...scopedPageMeta,
+  }),
+  handler: async (ctx, args) => {
+    const scope = memoryReadScopeFromArgs(args);
+    if (scope === null) return { rows: [], ...emptyScopedPage(args.cursor) };
+    const page = await paginateScopedDocs(ctx, scope, {
+      numItems: args.numItems,
+      cursor: args.cursor,
+    });
+    return {
+      rows: page.page.map(toGraphMemory),
       isDone: page.isDone,
       continueCursor: page.continueCursor,
       splitCursor: page.splitCursor,

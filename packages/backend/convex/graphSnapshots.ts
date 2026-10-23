@@ -18,7 +18,7 @@ import {
   type GraphRelatesToEdge,
 } from "./graphApi";
 import { memoryMatchesScope } from "../engine/memory/scope";
-import { toMemoryWithTags } from "./memoryStore/mappers";
+import { toGraphMemory } from "./memoryStore/mappers";
 import { nightlyDisabled } from "./nightly";
 import { listGraphSkills } from "./skills";
 import { runResolveMemoryScopeInternal } from "./teams/auth";
@@ -37,6 +37,9 @@ const NIGHTLY_REBUILD_INTERVAL_MS = 60 * 60_000;
 // safety caps for pathological accounts only
 const MAX_SNAPSHOT_NODES = 100_000;
 const MAX_SNAPSHOT_EDGES = 300_000;
+// pages of 1,000 rows per link, entity and mention walk, and graph authors
+const MAX_SNAPSHOT_GRAPH_PAGES = 2_000;
+const MAX_SNAPSHOT_AUTHORS = 500;
 // past this many changed rows the view shows the snapshot and offers a refresh
 export const GRAPH_DELTA_LIMIT = 500;
 // tombstones older than this are purged; older snapshots need a rebuild
@@ -180,6 +183,8 @@ async function buildSnapshot(
     includeSkills: true,
     maxNodes: MAX_SNAPSHOT_NODES,
     maxEdges: MAX_SNAPSHOT_EDGES,
+    maxPages: MAX_SNAPSHOT_GRAPH_PAGES,
+    maxAuthors: MAX_SNAPSHOT_AUTHORS,
   });
   const blob = new Blob([encodeGraphSnapshot(graph)], {
     type: "application/json",
@@ -197,10 +202,14 @@ async function buildSnapshot(
     else if (node.kind === "entity") counts.entityCount += 1;
     else counts.skillCount += 1;
   }
-  const truncated =
-    counts.memoryCount < graph.totalMemoryCount ||
-    counts.relatesCount >= MAX_SNAPSHOT_EDGES ||
-    counts.mentionsCount >= MAX_SNAPSHOT_EDGES;
+  const truncated = graph.capsHit.length > 0;
+  if (truncated) {
+    console.warn(
+      "[graphSnapshots] truncated",
+      args.profileId,
+      graph.capsHit.join(","),
+    );
+  }
   const buildMs = Date.now() - args.startedAt;
   await ctx.runMutation(internal.graphSnapshots.saveSnapshotInternal, {
     userId: args.clerkId,
@@ -280,6 +289,7 @@ export const listBuildScopesInternal = internalQuery({
       clerkId: v.string(),
       defaultProfileId: v.union(v.string(), v.null()),
       profileIds: v.array(v.string()),
+      ownedProfileIds: v.array(v.string()),
     }),
   ),
   handler: async (ctx, args) => {
@@ -293,13 +303,53 @@ export const listBuildScopesInternal = internalQuery({
     const fallback = await defaultProfileId(ctx, args.userId);
     const profileIds = new Set(rows.map((row) => row.profileId));
     if (fallback !== null) profileIds.add(fallback);
+    const owned = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .take(100);
     return {
       clerkId,
       defaultProfileId: fallback,
       profileIds: [...profileIds],
+      ownedProfileIds: owned.map((profile) => profile._id),
     };
   },
 });
+
+async function buildForUserProfile(
+  ctx: ActionCtx,
+  user: { userDocId: Id<"users">; clerkId: string },
+  profileId: string,
+): Promise<BuildResult> {
+  await ctx.runQuery(internal.teams.resolveMemoryScopeInternal, {
+    userId: user.userDocId,
+    profileId,
+  });
+  const claim = await ctx.runMutation(
+    internal.graphSnapshots.claimBuildInternal,
+    { userId: user.clerkId, profileId, minIntervalMs: 0 },
+  );
+  if (!claim.claimed) throw new Error("Build claim failed");
+  return await buildSnapshot(ctx, {
+    userId: user.userDocId,
+    clerkId: user.clerkId,
+    profileId,
+    startedAt: claim.startedAt,
+  });
+}
+
+async function cliBuildScopes(ctx: ActionCtx, clerkId: string) {
+  const userDocId = await ctx.runQuery(
+    internal.auth.getUserIdByClerkIdInternal,
+    { clerkId },
+  );
+  if (userDocId === null) throw new Error("User not found");
+  const scopes = await ctx.runQuery(
+    internal.graphSnapshots.listBuildScopesInternal,
+    { userId: userDocId },
+  );
+  return { user: { userDocId, clerkId }, scopes };
+}
 
 // CLI: `npx convex run graphSnapshots:buildForUserInternal '{"userId":"user_…"}'`
 // builds one viewer's snapshot (default personal profile unless profileId is
@@ -308,32 +358,35 @@ export const buildForUserInternal = internalAction({
   args: { userId: v.string(), profileId: v.optional(v.string()) },
   returns: buildResultValidator,
   handler: async (ctx, args): Promise<BuildResult> => {
-    const userDocId = await ctx.runQuery(
-      internal.auth.getUserIdByClerkIdInternal,
-      { clerkId: args.userId },
-    );
-    if (userDocId === null) throw new Error("User not found");
-    const scopes = await ctx.runQuery(
-      internal.graphSnapshots.listBuildScopesInternal,
-      { userId: userDocId },
-    );
+    const { user, scopes } = await cliBuildScopes(ctx, args.userId);
     const profileId = args.profileId ?? scopes?.defaultProfileId ?? null;
     if (profileId === null) throw new Error("User has no default profile");
-    await ctx.runQuery(internal.teams.resolveMemoryScopeInternal, {
-      userId: userDocId,
-      profileId,
-    });
-    const claim = await ctx.runMutation(
-      internal.graphSnapshots.claimBuildInternal,
-      { userId: args.userId, profileId, minIntervalMs: 0 },
-    );
-    if (!claim.claimed) throw new Error("Build claim failed");
-    return await buildSnapshot(ctx, {
-      userId: userDocId,
-      clerkId: args.userId,
-      profileId,
-      startedAt: claim.startedAt,
-    });
+    return await buildForUserProfile(ctx, user, profileId);
+  },
+});
+
+type ProfileBuildResult = BuildResult & { profileId: string };
+
+// CLI: `npx convex run graphSnapshots:buildAllProfilesForUserInternal
+// '{"userId":"user_…"}'` builds every profile the user owns, personal and
+// team, with no rate limit. A profile that fails is logged and skipped.
+export const buildAllProfilesForUserInternal = internalAction({
+  args: { userId: v.string() },
+  returns: v.array(
+    v.object({ profileId: v.string(), ...buildResultValidator.fields }),
+  ),
+  handler: async (ctx, args): Promise<ProfileBuildResult[]> => {
+    const { user, scopes } = await cliBuildScopes(ctx, args.userId);
+    const results: ProfileBuildResult[] = [];
+    for (const profileId of scopes?.ownedProfileIds ?? []) {
+      try {
+        const result = await buildForUserProfile(ctx, user, profileId);
+        results.push({ profileId, ...result });
+      } catch (err) {
+        console.error("[graphSnapshots][cli]", args.userId, profileId, err);
+      }
+    }
+    return results;
   },
 });
 
@@ -570,7 +623,7 @@ export const getGraphDelta = authQuery({
 
     const memories = memoryRows
       .filter((row) => memoryMatchesScope(row, readScope))
-      .map(toMemoryWithTags);
+      .map(toGraphMemory);
     const skills = await listGraphSkills(
       ctx,
       ctx.userId,
