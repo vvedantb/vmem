@@ -47,11 +47,6 @@ Every fact must be grounded in the user's literal words. Do not infer affiliatio
 Compound statements MUST be split:
 - "I love Python and I prefer Vim" → 2 facts: "I love Python" / "I prefer Vim"
 
-# Context
-
-Observation date: ${observationDate}
-Current date: ${currentDate}
-
 # Output schema
 
 {
@@ -67,6 +62,11 @@ When a fact is time-bounded, include:
 - eventStart / eventEnd as ISO dates (YYYY-MM-DD) when the message names a date or relative day. Resolve relative phrases against the observation date. Omit them when unknown.
 
 If no durable facts: { "facts": [] }
+
+# Context
+
+Observation date: ${observationDate}
+Current date: ${currentDate}
 
 # User message
 
