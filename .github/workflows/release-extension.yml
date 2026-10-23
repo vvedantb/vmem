@@ -1,11 +1,6 @@
 name: Release Chrome Extension
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "apps/chrome-extension/**"
-      - "packages/shared/**"
   workflow_dispatch:
 
 jobs:
