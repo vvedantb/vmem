@@ -9,6 +9,7 @@ import {
 } from "@vmem/shared";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { loadScopedGraph } from "./graphApi";
 import {
   buildRetryAfterMs,
   GRAPH_SNAPSHOT_REFRESH_INTERVAL_MS,
@@ -343,6 +344,55 @@ describe("graph snapshot build", () => {
     await drain(t);
   });
 
+  it("builds every owned profile and skips one that fails", async () => {
+    const t = testConvex();
+    const { userId, profileId } = await seedUser(t);
+    await seedGraph(t, userId);
+    const { workId, goneTeamProfileId } = await t.run(async (ctx) => {
+      const workId = await ctx.db.insert("profiles", {
+        userId,
+        name: "Work",
+        color: "#10B981",
+        icon: "briefcase",
+        isDefault: false,
+        createdAt: 0,
+        updatedAt: 0,
+      });
+      const teamId = await ctx.db.insert("teams", {
+        name: "Gone",
+        createdBy: userId,
+        createdAt: 0,
+        updatedAt: 0,
+      });
+      const goneTeamProfileId = await ctx.db.insert("profiles", {
+        userId,
+        teamId,
+        name: "Gone team",
+        color: "#EF4444",
+        icon: "users",
+        isDefault: false,
+        createdAt: 0,
+        updatedAt: 0,
+      });
+      await ctx.db.delete(teamId);
+      return { workId, goneTeamProfileId };
+    });
+
+    const results = await t.action(
+      internal.graphSnapshots.buildAllProfilesForUserInternal,
+      { userId: CLERK_ID },
+    );
+    expect(results.map((r) => r.profileId).sort()).toEqual(
+      [profileId, workId].sort(),
+    );
+    expect(results.map((r) => r.profileId)).not.toContain(goneTeamProfileId);
+    const personal = results.find((r) => r.profileId === profileId);
+    expect(personal?.truncated).toBe(false);
+    expect(personal?.counts.relatesCount).toBe(LINK_COUNT);
+    expect(personal?.byteSize).toBeGreaterThan(0);
+    await drain(t);
+  });
+
   it("nightly schedules builds only for users with memories", async () => {
     const t = testConvex();
     await seedUser(t);
@@ -358,6 +408,74 @@ describe("graph snapshot build", () => {
       job.name.includes("rebuildUserInternal"),
     );
     expect(builds).toHaveLength(1);
+    await drain(t);
+  });
+});
+
+describe("graph snapshot caps", () => {
+  async function seeded() {
+    const t = testConvex();
+    const { userId, profileId } = await seedUser(t);
+    await seedGraph(t, userId);
+    const read = (limits: {
+      maxNodes?: number;
+      maxEdges?: number;
+      maxPages?: number;
+      pageSize?: number;
+    }) =>
+      loadScopedGraph(
+        { runQuery: t.query },
+        {
+          userId,
+          clerkId: CLERK_ID,
+          profileId,
+          includeSkills: false,
+          maxNodes: 8_000,
+          maxEdges: 8_000,
+          ...limits,
+        },
+      );
+    return { t, read };
+  }
+
+  it("keeps the 50-page cap by default and reads every page with a build budget", async () => {
+    const { t, read } = await seeded();
+    // 10-row pages: 110 pages of links, 120 of mentions
+    const capped = await read({ pageSize: 10 });
+    expect(capped.relatesToEdges).toHaveLength(500);
+    expect(capped.mentionsEdges).toHaveLength(500);
+    expect(capped.capsHit).toEqual(["link_pages", "mention_pages"]);
+
+    const full = await read({ pageSize: 10, maxPages: 2_000 });
+    expect(full.relatesToEdges).toHaveLength(LINK_COUNT);
+    expect(full.mentionsEdges).toHaveLength(MEMORY_COUNT * ENTITY_COUNT);
+    expect(full.nodes).toHaveLength(MEMORY_COUNT + ENTITY_COUNT);
+    expect(full.capsHit).toEqual([]);
+
+    const tight = await read({ pageSize: 10, maxPages: 3 });
+    expect(tight.capsHit).toEqual(["link_pages", "mention_pages"]);
+    expect((await read({ pageSize: 10, maxPages: 120 })).capsHit).toEqual([]);
+    await drain(t);
+  });
+
+  it("reports an edge or node cap only when it drops something", async () => {
+    const { t, read } = await seeded();
+    const exact = await read({ maxEdges: LINK_COUNT });
+    expect(exact.relatesToEdges).toHaveLength(LINK_COUNT);
+    expect(exact.mentionsEdges).toHaveLength(LINK_COUNT);
+    expect(exact.capsHit).toEqual(["mentions_edges"]);
+
+    const under = await read({ maxEdges: LINK_COUNT - 1 });
+    expect(under.relatesToEdges).toHaveLength(LINK_COUNT - 1);
+    expect(under.capsHit).toEqual(["mentions_edges", "relates_edges"]);
+
+    const fits = await read({ maxNodes: MEMORY_COUNT + ENTITY_COUNT });
+    expect(fits.capsHit).toEqual([]);
+    const fewerEntities = await read({ maxNodes: MEMORY_COUNT + 10 });
+    expect(fewerEntities.capsHit).toEqual(["entity_nodes"]);
+    const fewerMemories = await read({ maxNodes: 30 });
+    expect(fewerMemories.capsHit).toEqual(["entity_nodes", "memory_nodes"]);
+    expect(fewerMemories.totalMemoryCount).toBe(MEMORY_COUNT);
     await drain(t);
   });
 });

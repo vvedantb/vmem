@@ -3,11 +3,15 @@ import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { ActionCtx } from "./_generated/server";
-import type { MemoryType, MemoryWithTags } from "./memoryApi/types";
+import type { MemoryType } from "./memoryApi/types";
 import type { GraphEntityNode } from "./memoryStore/entities";
+import type { GraphMemory } from "./memoryStore/mappers";
 import {
-  collectGraphRowsPaged,
-  collectScopedMemoriesPaged,
+  collectScopedGraphMemoriesPaged,
+  GRAPH_PAGE_SIZE,
+  MAX_GRAPH_PAGES,
+  walkGraphRowsPaged,
+  type GraphRowsLoad,
 } from "./memoryStore/walk";
 
 const SKILL_PREFIX = "skill:";
@@ -57,14 +61,57 @@ interface GraphResult {
 // author of the memories on screen (team graphs span several members)
 const MAX_GRAPH_AUTHORS = 50;
 
-function graphAuthors(memories: readonly MemoryWithTags[]): string[] {
-  return [...new Set(memories.map((memory) => memory.userId))]
-    .sort()
-    .slice(0, MAX_GRAPH_AUTHORS);
+// caps a graph read can hit; a snapshot that hit any is marked truncated
+export type GraphCap =
+  | "authors"
+  | "link_pages"
+  | "entity_pages"
+  | "mention_pages"
+  | "relates_edges"
+  | "mentions_edges"
+  | "memory_nodes"
+  | "entity_nodes";
+
+// Page and author budget of one graph read. capsHit collects every cap that
+// actually dropped rows.
+export interface GraphReadBudget {
+  maxPages: number;
+  maxAuthors: number;
+  pageSize: number;
+  capsHit: Set<GraphCap>;
+}
+
+function graphReadBudget(
+  limits: Partial<Omit<GraphReadBudget, "capsHit">> = {},
+): GraphReadBudget {
+  return {
+    maxPages: limits.maxPages ?? MAX_GRAPH_PAGES,
+    maxAuthors: limits.maxAuthors ?? MAX_GRAPH_AUTHORS,
+    pageSize: limits.pageSize ?? GRAPH_PAGE_SIZE,
+    capsHit: new Set(),
+  };
+}
+
+function graphAuthors(
+  memories: readonly GraphMemory[],
+  budget: GraphReadBudget,
+): string[] {
+  const authors = [...new Set(memories.map((memory) => memory.userId))].sort();
+  if (authors.length > budget.maxAuthors) budget.capsHit.add("authors");
+  return authors.slice(0, budget.maxAuthors);
+}
+
+async function walkGraphRows<T>(
+  budget: GraphReadBudget,
+  cap: GraphCap,
+  load: GraphRowsLoad<T>,
+  onRows: (rows: T[]) => boolean | void,
+): Promise<void> {
+  if (await walkGraphRowsPaged(load, onRows, budget)) budget.capsHit.add(cap);
 }
 
 export function memoryGraphNodes(
-  memories: readonly MemoryWithTags[],
+  memories: readonly GraphMemory[],
 ): GraphNodeEntry[] {
   return memories.map((memory) => ({
     id: memory.id,
@@ -85,10 +132,10 @@ const MAX_GRAPH_NODES = 8_000;
 const MAX_GRAPH_EDGES = 8_000;
 
 // the newest `max` memories, in their original order
-export function newestGraphMemories(
-  memories: readonly MemoryWithTags[],
+export function newestGraphMemories<M extends GraphMemory>(
+  memories: readonly M[],
   max: number,
-): readonly MemoryWithTags[] {
+): readonly M[] {
   if (memories.length <= max) return memories;
   const kept = new Set(
     [...memories]
@@ -101,33 +148,45 @@ export function newestGraphMemories(
 
 // RELATES_TO links with both ends inside `memories`. Callers load
 // `memories` through their own scope check, so no edge leaves the scope.
+// Rows are filtered page by page; the walk stops once `maxEdges` is full.
 export async function loadGraphLinks(
   ctx: Pick<ActionCtx, "runQuery">,
-  memories: readonly MemoryWithTags[],
+  memories: readonly GraphMemory[],
   maxEdges: number = MAX_GRAPH_EDGES,
+  budget: GraphReadBudget = graphReadBudget(),
 ): Promise<GraphRelatesToEdge[]> {
   const memoryIds = new Set(memories.map((memory) => memory.id));
   const edges = new Map<string, GraphRelatesToEdge>();
-  for (const userId of graphAuthors(memories)) {
-    const links = await collectGraphRowsPaged((page) =>
-      ctx.runQuery(
-        internal.memoryStore.functions.paginateMemoryLinksForUserInternal,
-        { userId, ...page },
-      ),
+  for (const userId of graphAuthors(memories, budget)) {
+    if (budget.capsHit.has("relates_edges")) break;
+    await walkGraphRows(
+      budget,
+      "link_pages",
+      (page) =>
+        ctx.runQuery(
+          internal.memoryStore.functions.paginateMemoryLinksForUserInternal,
+          { userId, ...page },
+        ),
+      (links) => {
+        for (const link of links) {
+          if (!memoryIds.has(link.sourceId) || !memoryIds.has(link.targetId)) {
+            continue;
+          }
+          const key = `${link.sourceId}|${link.targetId}`;
+          if (edges.has(key)) continue;
+          if (edges.size >= maxEdges) {
+            budget.capsHit.add("relates_edges");
+            return false;
+          }
+          edges.set(key, {
+            source: link.sourceId,
+            target: link.targetId,
+            reason: link.reason,
+          });
+        }
+        return undefined;
+      },
     );
-    for (const link of links) {
-      if (edges.size >= maxEdges) break;
-      if (!memoryIds.has(link.sourceId) || !memoryIds.has(link.targetId)) {
-        continue;
-      }
-      const key = `${link.sourceId}|${link.targetId}`;
-      if (edges.has(key)) continue;
-      edges.set(key, {
-        source: link.sourceId,
-        target: link.targetId,
-        reason: link.reason,
-      });
-    }
   }
   return [...edges.values()];
 }
@@ -135,57 +194,69 @@ export async function loadGraphLinks(
 // Entity nodes mentioned by `memories`, plus the memory→entity edges. Edges
 // come out entity by entity, in entity creation order (authors in turn).
 // Past `maxNodes`, the most-mentioned entities are kept (ties: that order).
+// Mentions are read first, so only mentioned entities are kept per page.
 export async function loadGraphEntities(
   ctx: Pick<ActionCtx, "runQuery">,
-  memories: readonly MemoryWithTags[],
+  memories: readonly GraphMemory[],
   maxNodes: number = Infinity,
   maxEdges: number = MAX_GRAPH_EDGES,
+  budget: GraphReadBudget = graphReadBudget(),
 ): Promise<{
   entityNodes: GraphNodeEntry[];
   mentionsEdges: GraphMentionsEdge[];
 }> {
   const memoryIds = new Set(memories.map((memory) => memory.id));
-  const entityNodes: GraphNodeEntry[] = [];
-  const mentionsEdges = new Map<string, GraphMentionsEdge>();
-  const entities: GraphEntityNode[] = [];
-  const mentionedBy = new Map<string, string[]>();
-  for (const userId of graphAuthors(memories)) {
-    const [entityRows, mentionRows] = await Promise.all([
-      collectGraphRowsPaged((page) =>
-        ctx.runQuery(
-          internal.memoryStore.functions.paginateEntitiesForGraphInternal,
-          { userId, ...page },
-        ),
-      ),
-      collectGraphRowsPaged((page) =>
+  const authors = graphAuthors(memories, budget);
+  const mentionedBy = new Map<string, Set<string>>();
+  for (const userId of authors) {
+    await walkGraphRows(
+      budget,
+      "mention_pages",
+      (page) =>
         ctx.runQuery(
           internal.memoryStore.functions.paginateEntityMentionsForGraphInternal,
           { userId, ...page },
         ),
-      ),
-    ]);
-    entities.push(...entityRows);
-    for (const mention of mentionRows) {
-      if (!memoryIds.has(mention.memoryId)) continue;
-      const ids = mentionedBy.get(mention.entityId);
-      if (ids === undefined) {
-        mentionedBy.set(mention.entityId, [mention.memoryId]);
-      } else {
-        ids.push(mention.memoryId);
-      }
-    }
+      (mentions) => {
+        for (const mention of mentions) {
+          if (!memoryIds.has(mention.memoryId)) continue;
+          const ids = mentionedBy.get(mention.entityId);
+          if (ids === undefined) {
+            mentionedBy.set(mention.entityId, new Set([mention.memoryId]));
+          } else {
+            ids.add(mention.memoryId);
+          }
+        }
+      },
+    );
   }
   const candidates: Array<{ node: GraphEntityNode; mentionedIn: string[] }> =
     [];
   const seen = new Set<string>();
-  for (const node of entities) {
-    if (seen.has(node.id)) continue;
-    seen.add(node.id);
-    const mentionedIn = [...new Set(mentionedBy.get(node.id))];
-    if (mentionedIn.length > 0) candidates.push({ node, mentionedIn });
+  for (const userId of authors) {
+    await walkGraphRows(
+      budget,
+      "entity_pages",
+      (page) =>
+        ctx.runQuery(
+          internal.memoryStore.functions.paginateEntitiesForGraphInternal,
+          { userId, ...page },
+        ),
+      (entities) => {
+        for (const node of entities) {
+          if (seen.has(node.id)) continue;
+          seen.add(node.id);
+          const mentionedIn = mentionedBy.get(node.id);
+          if (mentionedIn !== undefined) {
+            candidates.push({ node, mentionedIn: [...mentionedIn] });
+          }
+        }
+      },
+    );
   }
   let kept = candidates;
   if (candidates.length > maxNodes) {
+    budget.capsHit.add("entity_nodes");
     const top = new Set(
       [...candidates]
         .sort((a, b) => b.mentionedIn.length - a.mentionedIn.length)
@@ -193,15 +264,15 @@ export async function loadGraphEntities(
     );
     kept = candidates.filter((candidate) => top.has(candidate));
   }
+  const entityNodes: GraphNodeEntry[] = [];
+  const mentionsEdges: GraphMentionsEdge[] = [];
   for (const { node, mentionedIn } of kept) {
-    for (const memoryId of mentionedIn) {
-      if (mentionsEdges.size >= maxEdges) break;
-      mentionsEdges.set(`${memoryId}|${node.id}`, {
-        source: memoryId,
-        target: node.id,
-      });
+    const room = maxEdges - mentionsEdges.length;
+    if (room < mentionedIn.length) budget.capsHit.add("mentions_edges");
+    if (room <= 0) continue;
+    for (const memoryId of mentionedIn.slice(0, room)) {
+      mentionsEdges.push({ source: memoryId, target: node.id });
     }
-    if (!mentionsEdges.has(`${mentionedIn[0]}|${node.id}`)) continue;
     entityNodes.push({
       id: node.id,
       title: node.name,
@@ -212,10 +283,7 @@ export async function loadGraphEntities(
       entityType: node.type,
     });
   }
-  return {
-    entityNodes,
-    mentionsEdges: [...mentionsEdges.values()],
-  };
+  return { entityNodes, mentionsEdges };
 }
 
 export interface ScopedGraph {
@@ -223,12 +291,15 @@ export interface ScopedGraph {
   relatesToEdges: GraphRelatesToEdge[];
   mentionsEdges: GraphMentionsEdge[];
   totalMemoryCount: number;
+  capsHit: GraphCap[];
 }
 
 // The account graph of one scope (no profileId: every personal memory; a
 // personal profile; a team profile), the way getGraphData scopes it. Skills
 // first, then the newest memories, then entities fill the rest; edges only
-// join kept nodes, as both loaders read for `shown` alone.
+// join kept nodes, as both loaders read for `shown` alone. maxPages and
+// maxAuthors default to the interactive budget (MAX_GRAPH_PAGES,
+// MAX_GRAPH_AUTHORS); the snapshot build raises them.
 export async function loadScopedGraph(
   ctx: Pick<ActionCtx, "runQuery">,
   args: {
@@ -239,10 +310,14 @@ export async function loadScopedGraph(
     includeSkills: boolean;
     maxNodes: number;
     maxEdges: number;
+    maxPages?: number;
+    maxAuthors?: number;
+    pageSize?: number;
   },
 ): Promise<ScopedGraph> {
+  const budget = graphReadBudget(args);
   let teamId: Id<"teams"> | undefined;
-  let memories: readonly MemoryWithTags[];
+  let memories: readonly GraphMemory[];
   if (args.profileId !== undefined) {
     const scope = await ctx.runQuery(
       internal.teams.resolveMemoryScopeInternal,
@@ -250,19 +325,19 @@ export async function loadScopedGraph(
     );
     if (scope.kind === "team") {
       teamId = scope.teamId;
-      memories = await collectScopedMemoriesPaged(ctx, {
+      memories = await collectScopedGraphMemoriesPaged(ctx, {
         kind: "team",
         profileId: args.profileId,
       });
     } else {
-      memories = await collectScopedMemoriesPaged(ctx, {
+      memories = await collectScopedGraphMemoriesPaged(ctx, {
         kind: "personal",
         userId: args.clerkId,
         profileId: args.profileId,
       });
     }
   } else {
-    memories = await collectScopedMemoriesPaged(ctx, {
+    memories = await collectScopedGraphMemoriesPaged(ctx, {
       kind: "personal",
       userId: args.clerkId,
     });
@@ -285,13 +360,15 @@ export async function loadScopedGraph(
     memories,
     args.maxNodes - skillNodes.length,
   );
+  if (shown.length < totalMemoryCount) budget.capsHit.add("memory_nodes");
   const [relatesToEdges, entities] = await Promise.all([
-    loadGraphLinks(ctx, shown, args.maxEdges),
+    loadGraphLinks(ctx, shown, args.maxEdges, budget),
     loadGraphEntities(
       ctx,
       shown,
       args.maxNodes - skillNodes.length - shown.length,
       args.maxEdges,
+      budget,
     ),
   ]);
 
@@ -300,6 +377,7 @@ export async function loadScopedGraph(
     relatesToEdges,
     mentionsEdges: entities.mentionsEdges,
     totalMemoryCount,
+    capsHit: [...budget.capsHit].sort(),
   };
 }
 
@@ -352,7 +430,10 @@ export const getGraphData = authAction({
       maxEdges: MAX_GRAPH_EDGES,
     });
     return {
-      ...graph,
+      nodes: graph.nodes,
+      relatesToEdges: graph.relatesToEdges,
+      mentionsEdges: graph.mentionsEdges,
+      totalMemoryCount: graph.totalMemoryCount,
       tagEdges: [],
       focusNodeId: args.focus,
     };
