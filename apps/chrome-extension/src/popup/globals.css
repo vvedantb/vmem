@@ -2,6 +2,8 @@
 @import "@vvedantb/ui/tokens";
 @import "shadow-plugin";
 @import "@vvedantb/ui/tokens/css/base.css";
+@import "@vvedantb/ui/tokens/css/tabs-pills.css";
+@import "@vvedantb/ui/tokens/css/tabs.css";
 @import "@vvedantb/ui/tokens/css/utilities.css";
 @plugin "tailwindcss-animate";
 
