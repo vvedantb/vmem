@@ -438,6 +438,10 @@ From one memory, extract:
 - Titles like "Helios project overview" → entity Helios, type project.
 - Cap at 10 entities. relatedMemoryIds must be ids from Existing memories only.
 
+# Output
+
+{"entities":[{"name":"Helios","type":"project"}],"relatedMemoryIds":["id1"]}
+
 # Input
 
 Memory:
@@ -448,11 +452,7 @@ Known entities (reuse exact names):
 ${entityVocabulary || "(none yet)"}
 
 Existing memories:
-${memoryList || "(none)"}
-
-# Output
-
-{"entities":[{"name":"Helios","type":"project"}],"relatedMemoryIds":["id1"]}`;
+${memoryList || "(none)"}`;
 }
 
 export function projectOverviewName(title: string): string | null {

@@ -101,8 +101,8 @@ export function buildDreamSkillPrompt(
     "- Never recommend bypassing a safeguard: hooks, tests, lint, type checks, CI, TLS, secrets, force-push or broad deletes.",
     "- Do not draft a skill that repeats an existing skill.",
     "- sourceIds: the ids of the memories the skill comes from.",
-    `Existing skills: ${names.length > 0 ? names.join(", ") : "(none)"}`,
     'Reply as JSON: {"skills": [{"name": "...", "description": "Use when a task ...", "steps": ["..."], "pitfalls": ["..."], "sourceIds": ["m0"]}]}',
+    `Existing skills: ${names.length > 0 ? names.join(", ") : "(none)"}`,
     "",
     JSON.stringify({ memories: rows }, null, 2),
   ].join("\n");

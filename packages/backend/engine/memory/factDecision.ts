@@ -33,12 +33,6 @@ export function buildFactDecisionPrompt(
 
   return `You reconcile one new atomic fact against existing memories. Respond with ONLY a JSON object.
 
-# New fact
-${factText}
-
-# Existing memories
-${listed}
-
 # Events
 - ADD: new information not represented in any existing memory.
 - UPDATE: the fact contradicts or supersedes exactly ONE existing memory. Include that memory's id and the replacement text.
@@ -54,7 +48,13 @@ Never UPDATE/DELETE based on guessed contradictions — the contradiction must b
 ADD: { "event": "ADD", "text": "I prefer TypeScript" }
 UPDATE: { "event": "UPDATE", "id": "<existing id>", "text": "I prefer TypeScript", "oldMemory": "I prefer Python" }
 DELETE: { "event": "DELETE", "id": "<existing id>" }
-NONE: { "event": "NONE" }`;
+NONE: { "event": "NONE" }
+
+# New fact
+${factText}
+
+# Existing memories
+${listed}`;
 }
 
 export function parseFactDecisionResponse(
