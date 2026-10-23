@@ -7,7 +7,7 @@ import {
   DialogTitle,
   DialogDescription,
   EmptyState,
-  Input,
+  SearchInput,
   Badge,
   Button,
   cn,
@@ -200,21 +200,14 @@ export default function LinkMemoryModal({
 
         <div className="flex min-h-0 flex-1 flex-col gap-4 px-6 pb-6">
           <div className="space-y-2">
-            <div className="relative">
-              <IconSearch
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-                size={16}
-                stroke={1.5}
-              />
-              <Input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by title, content, or tag…"
-                className="h-10 border-border bg-field-background pl-9 text-foreground placeholder:text-field-placeholder"
-                autoFocus
-              />
-            </div>
+            <SearchInput
+              size="md"
+              value={search}
+              onChange={setSearch}
+              label="Search memories"
+              placeholder="Search by title, content, or tag…"
+              autoFocus
+            />
             <p className="text-xs text-muted tabular-nums">
               {filteredMemories.length === 0
                 ? hasQuery

@@ -4,13 +4,12 @@ import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Button, Sidebar, Spinner, cn } from "@vvedantb/ui";
+import { Button, SearchInput, Sidebar, Spinner, cn } from "@vvedantb/ui";
 import { IconApps, IconBolt, IconListCheck } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
 import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
 import { skillsSearchParams } from "@/lib/url-state/skills";
-import { SidebarListSearchBar } from "./SidebarListSearchBar";
 import { SidebarHeaderTrailing } from "./SidebarHeaderTrailing";
 import { useIdSelection } from "@/hooks/useIdSelection";
 import {
@@ -195,16 +194,19 @@ export function SkillsSidebarNav({
           <>
             {!isIconOnly && !selectionMode ? (
               <>
-                <div className="shrink-0">
-                  <SidebarListSearchBar
+                <div className="flex min-w-0 shrink-0 items-center gap-1">
+                  {/* flat sub-sidebar surface; transparent border keeps the focus border */}
+                  <SearchInput
+                    variant="toolbar"
                     value={searchQuery}
                     onChange={(value) => {
                       void setSearchParams({ q: value });
                     }}
-                    placeholder="Search skills"
-                    aria-label="Search skills"
-                    actions={selectButton}
+                    label="Search skills"
+                    wrapperClassName="sm:flex-1"
+                    className="border-transparent bg-surface-secondary/60 hover:bg-surface-tertiary/50 focus-visible:bg-surface-tertiary/80 sm:w-full md:w-full"
                   />
+                  {selectButton}
                 </div>
                 {hubSection}
               </>
