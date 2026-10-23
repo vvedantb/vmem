@@ -52,6 +52,7 @@ const config: KnipConfig = {
         "@radix-ui/react-scroll-area",
         "@radix-ui/react-select",
         "@radix-ui/react-separator",
+        "@radix-ui/react-slider",
         "@radix-ui/react-slot",
         "@radix-ui/react-switch",
         "@radix-ui/react-tabs",

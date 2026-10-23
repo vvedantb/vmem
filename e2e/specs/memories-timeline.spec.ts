@@ -76,9 +76,10 @@ test.describe(
         await expect(memoryTitle(page, title)).toBeVisible();
 
         await spans.getByRole("button", { name: "Day" }).click();
-        await slider.fill("0");
+        await slider.focus();
+        await slider.press("Home");
         await expect
-          .poll(async () => Number(await slider.inputValue()))
+          .poll(async () => Number(await slider.getAttribute("aria-valuenow")))
           .toBeLessThan(50);
         const emptyWindow = page.getByRole("heading", {
           name: "No memories in this window",
@@ -90,7 +91,7 @@ test.describe(
         await page.getByRole("button", { name: "Jump to now" }).click();
         // prod range end can drift a few steps after Date.now() is frozen
         await expect
-          .poll(async () => Number(await slider.inputValue()))
+          .poll(async () => Number(await slider.getAttribute("aria-valuenow")))
           .toBeGreaterThan(900);
         await expect(memoryTitle(page, title)).toBeVisible();
 
