@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Label } from "@vvedantb/ui";
+import { handleNativeRangeKeyDown } from "@vmem/shared";
+import { Label, Slider } from "@vvedantb/ui";
 
 interface SettingsSliderRowProps {
   id: string;
@@ -48,6 +49,8 @@ export function SettingsSliderRow({
   const maxIndex = Math.max(0, presets.length - 1);
   const index = nearestIndex(presets, value);
   const snapped = valueAt(presets, index);
+  const labelId = `${id}-label`;
+  const changeIndex = (next: number) => onValueChange(valueAt(presets, next));
 
   return (
     <div className="space-y-3">
@@ -57,7 +60,7 @@ export function SettingsSliderRow({
             <span className="mt-0.5 shrink-0 text-muted">{icon}</span>
           ) : null}
           <div className="min-w-0">
-            <Label htmlFor={id} className="text-sm font-medium">
+            <Label id={labelId} htmlFor={id} className="text-sm font-medium">
               {label}
             </Label>
             {description ? (
@@ -72,18 +75,27 @@ export function SettingsSliderRow({
         </span>
       </div>
       <div className="space-y-1">
-        <input
+        <Slider
           id={id}
-          type="range"
+          aria-labelledby={labelId}
           min={0}
           max={maxIndex}
           step={1}
-          value={index}
+          value={[index]}
           disabled={disabled}
-          onChange={(event) =>
-            onValueChange(valueAt(presets, Number(event.target.value)))
+          onValueChange={(values) => {
+            const next = values[0];
+            if (next !== undefined) changeIndex(next);
+          }}
+          onKeyDown={(event) =>
+            handleNativeRangeKeyDown(
+              event,
+              index,
+              { min: 0, max: maxIndex, step: 1 },
+              changeIndex,
+            )
           }
-          className="w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+          className="cursor-pointer py-1"
         />
         <div className="flex justify-between text-[11px] text-muted tabular-nums">
           <span>{formatShort(valueAt(presets, 0))}</span>

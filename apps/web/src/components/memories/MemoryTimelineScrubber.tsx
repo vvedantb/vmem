@@ -1,5 +1,9 @@
-import { formatDate, formatDateTime } from "@vmem/shared";
-import { Button, Input, cn } from "@vvedantb/ui";
+import {
+  formatDate,
+  formatDateTime,
+  handleNativeRangeKeyDown,
+} from "@vmem/shared";
+import { Button, Slider, cn } from "@vvedantb/ui";
 import {
   TIMELINE_DENSITY_BUCKETS,
   TIMELINE_SCRUBBER_STEPS,
@@ -22,6 +26,17 @@ interface MemoryTimelineScrubberProps {
   onSpanChange: (span: TimelineSpan) => void;
   countLabel: string;
 }
+
+const SCRUBBER_RANGE = { min: 0, max: TIMELINE_SCRUBBER_STEPS, step: 1 };
+
+// Radix renders Track > Range as the first span, then Thumb (role="slider").
+// The track stays transparent so the decorative track below shows through.
+const SCRUBBER_CLASS = cn(
+  "relative z-[1] h-11 cursor-pointer",
+  "[&>span:first-child]:h-2 [&>span:first-child]:bg-transparent [&>span:first-child>span]:bg-transparent",
+  "[&_[role=slider]]:size-[1.125rem] [&_[role=slider]]:border-2 [&_[role=slider]]:border-surface [&_[role=slider]]:bg-accent",
+  "[&_[role=slider]]:shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_22%,transparent)]",
+);
 
 function percent(value: number): string {
   return `${(value * 100).toFixed(3)}%`;
@@ -47,6 +62,10 @@ export default function MemoryTimelineScrubber({
   const progress = progressFromPlayhead(playheadMs, range);
   const sliderValue = Math.round(progress * TIMELINE_SCRUBBER_STEPS);
   const playheadLabel = formatDateTime(playheadMs);
+  const scrubTo = (step: number) =>
+    onPlayheadChange(
+      playheadFromProgress(step / TIMELINE_SCRUBBER_STEPS, range),
+    );
 
   return (
     <div
@@ -120,24 +139,26 @@ export default function MemoryTimelineScrubber({
           aria-hidden="true"
         />
 
-        <Input
-          type="range"
-          min={0}
-          max={TIMELINE_SCRUBBER_STEPS}
-          step={1}
-          value={sliderValue}
+        <Slider
+          min={SCRUBBER_RANGE.min}
+          max={SCRUBBER_RANGE.max}
+          step={SCRUBBER_RANGE.step}
+          value={[sliderValue]}
           aria-label="Scrub through memory time"
-          aria-valuemin={0}
-          aria-valuemax={TIMELINE_SCRUBBER_STEPS}
-          aria-valuenow={sliderValue}
           aria-valuetext={playheadLabel}
-          className="timeline-scrubber relative z-[1] mt-0 h-11 w-full cursor-pointer border-0 bg-transparent px-0 py-0 shadow-none hover:bg-transparent focus-visible:border-0 focus-visible:bg-transparent focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          onChange={(event) => {
-            const next = Number(event.target.value);
-            onPlayheadChange(
-              playheadFromProgress(next / TIMELINE_SCRUBBER_STEPS, range),
-            );
+          className={SCRUBBER_CLASS}
+          onValueChange={(values) => {
+            const next = values[0];
+            if (next !== undefined) scrubTo(next);
           }}
+          onKeyDown={(event) =>
+            handleNativeRangeKeyDown(
+              event,
+              sliderValue,
+              SCRUBBER_RANGE,
+              scrubTo,
+            )
+          }
         />
       </div>
 

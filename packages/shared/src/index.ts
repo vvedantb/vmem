@@ -32,6 +32,10 @@ export {
 } from "./settings";
 export { browseKey, browseParts, canonicalUrl } from "./browseKey";
 export {
+  handleNativeRangeKeyDown,
+  nativeRangeKeyValue,
+} from "./nativeRangeKeys";
+export {
   adjacentPeriodKey,
   coarsestFittingPeriod,
   dayWindow,
