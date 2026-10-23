@@ -15,8 +15,14 @@ if (uiSrc === undefined) {
 }
 const sharedUiSrc: string = uiSrc;
 
-const cssRules = stripComments(
+const globalsCss = stripComments(
   readFileSync(join(webSrc, "globals.css"), "utf8").replaceAll("\r\n", "\n"),
+);
+const uiUtilitiesCss = stripComments(
+  readFileSync(
+    join(sharedUiSrc, "../tokens/src/css/utilities.css"),
+    "utf8",
+  ).replaceAll("\r\n", "\n"),
 );
 
 function stripComments(source: string): string {
@@ -85,15 +91,27 @@ describe("the mobile viewport contract", () => {
 });
 
 describe("the reveal-on-hover utility", () => {
+  it("is imported from @vvedantb/ui", () => {
+    expect(globalsCss).toContain(
+      '@import "@vvedantb/ui/tokens/css/utilities.css";',
+    );
+  });
+
   it("ships the control visible and only hides it where hover exists", () => {
-    expect(cssRules).toMatch(/\.reveal-on-hover\s*\{[\s\S]*opacity:\s*1/);
-    const hidden = cssRules.slice(cssRules.indexOf(".reveal-on-hover"));
+    expect(uiUtilitiesCss).toMatch(
+      /@utility reveal-on-hover\s*\{\s*opacity:\s*1/,
+    );
+    const hidden = uiUtilitiesCss.slice(
+      uiUtilitiesCss.indexOf("@utility reveal-on-hover"),
+    );
     expect(hidden).toContain("hover: hover");
-    expect(hidden).toMatch(/min-width:\s*640px/);
+    expect(hidden).toMatch(/width >= theme\(--breakpoint-sm\)/);
   });
 
   it("restores the control on focus", () => {
-    const hidden = cssRules.slice(cssRules.indexOf(".reveal-on-hover"));
+    const hidden = uiUtilitiesCss.slice(
+      uiUtilitiesCss.indexOf("@utility reveal-on-hover"),
+    );
     expect(hidden).toContain(":focus-visible");
     expect(hidden).toContain(":focus-within");
   });

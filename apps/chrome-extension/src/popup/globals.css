@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "@vvedantb/ui/tokens";
 @import "shadow-plugin";
+@import "@vvedantb/ui/tokens/css/base.css";
+@import "@vvedantb/ui/tokens/css/utilities.css";
 @plugin "tailwindcss-animate";
 
 /*
@@ -14,74 +16,16 @@
 @source "../../../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
 @source "../../../../node_modules/@vvedantb/ui/app/src/**/*.{ts,tsx}";
 
-/* tab animation timing matches apps/web/src/globals.css */
-:root {
-  --tabs-dur: 200ms;
-  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/*
- * Colour, radius, shadow and font tokens live in @vvedantb/ui/tokens.
- * Tokens only name "Instrument Sans"; the typeface is loaded from
- * public/fonts on extension pages (MV3 CSP blocks Google Fonts).
- * Tab chrome vars stay here — they are app tab CSS, not the token set.
- */
-@layer base {
-  :root,
-  .light,
-  [data-theme="light"] {
-    --tabs-text-muted: var(--muted);
-    --tabs-text-active: var(--segment-foreground);
-    --tabs-bar-bg: var(--default);
-    --tabs-pill-bg: var(--segment);
-  }
-
-  .dark,
-  [data-theme="dark"] {
-    --tabs-text-muted: var(--muted);
-    --tabs-text-active: var(--segment-foreground);
-    --tabs-bar-bg: var(--default);
-    --tabs-pill-bg: var(--segment);
-  }
-}
-
-html {
-  accent-color: var(--accent);
-}
-
 /* Clerk injects unlayered `body { font-family: Inter }` which beats
- * `@layer base` from @vvedantb/ui/tokens. Keep extension pages on Instrument Sans. */
+ * `@layer base` from @vvedantb/ui/tokens. Keep extension pages on Instrument Sans.
+ * Tokens only name "Instrument Sans"; the typeface is loaded from
+ * public/fonts on extension pages (MV3 CSP blocks Google Fonts). */
 html,
 body {
   font-family: var(--font-sans);
 }
 
-::selection {
-  background-color: color-mix(in oklch, var(--accent) 18%, transparent);
-  color: var(--foreground);
-}
-
-button,
-a,
-input,
-textarea,
-[role="button"] {
-  transition-property:
-    background-color, border-color, color, box-shadow, transform, opacity;
-  transition-duration: 240ms;
-  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* tailwind v4 preflight sets cursor: default on buttons restore the
-   pointer affordance for enabled interactive controls layered so cursor-*
-   utilities can still override per element */
 @layer base {
-  button:not(:disabled),
-  [role="button"]:not(:disabled),
-  a[href] {
-    cursor: pointer;
-  }
-
   /* radix menu items render as divs with menu roles not buttons */
   [role="menuitem"]:not([data-disabled]),
   [role="menuitemcheckbox"]:not([data-disabled]),
@@ -95,103 +39,5 @@ textarea,
   [role="menuitemradio"][data-disabled],
   [role="option"][data-disabled] {
     cursor: not-allowed;
-  }
-}
-
-input[type="range"] {
-  accent-color: var(--accent);
-}
-
-/* thin themed scrollbar webkit only on purpose setting scrollbar-width/
-   scrollbar-color (like apps/web does for firefox) makes chrome 121+ ignore
-   the ::-webkit-scrollbar rules and fall back to its fluent overlay scrollbar
-   which auto hides and fades in with a delay the extension is chrome only
-   so webkit styling alone gives an always visible instant scrollbar */
-@layer utilities {
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: color-mix(in oklch, var(--scrollbar) 80%, transparent);
-    border-radius: 3px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: color-mix(in oklch, var(--scrollbar) 100%, transparent);
-  }
-}
-
-/* floating overlays matches apps/web; elevation is `smooth-shadow-ring-*` */
-.glass-panel-strong {
-  background: var(--overlay);
-  color: var(--overlay-foreground);
-}
-
-/* transitions.dev tabs sliding (matches apps/web) */
-.t-tabs {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 3px;
-  border-radius: 48px;
-  background: var(--tabs-bar-bg);
-}
-.t-tabs--segmented {
-  gap: 3px;
-  padding: 3px;
-  border-radius: 48px;
-  background: var(--tabs-bar-bg);
-}
-.t-tab {
-  position: relative;
-  appearance: none;
-  border: 0;
-  background: transparent;
-  height: 30px;
-  padding: 4px 12px;
-  color: var(--tabs-text-muted);
-  cursor: pointer;
-  border-radius: 48px;
-  z-index: 1;
-  transition: color var(--tabs-dur) var(--tabs-ease);
-}
-.t-tab:not([aria-selected="true"]):not([data-state="active"]):hover,
-.t-tab[aria-selected="true"],
-.t-tab[data-state="active"] {
-  color: var(--tabs-text-active);
-}
-.t-tabs-pill {
-  position: absolute;
-  top: 3px;
-  left: 0;
-  height: 30px;
-  width: 0;
-  background: var(--tabs-pill-bg);
-  border-radius: 48px;
-  transform: translateX(0);
-  transition:
-    transform var(--tabs-dur) var(--tabs-ease),
-    width var(--tabs-dur) var(--tabs-ease),
-    top var(--tabs-dur) var(--tabs-ease),
-    height var(--tabs-dur) var(--tabs-ease);
-  will-change: transform, width;
-  z-index: 0;
-  pointer-events: none;
-}
-
-@utility hit-target {
-  &:not(.absolute):not(.fixed):not(.sticky) {
-    position: relative;
-  }
-  &::after {
-    content: "";
-    position: absolute;
-    inset: -8px;
   }
 }
