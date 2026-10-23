@@ -48,6 +48,7 @@ import type * as fileIndexing from "../fileIndexing.js";
 import type * as files from "../files.js";
 import type * as files_lib from "../files/lib.js";
 import type * as graphApi from "../graphApi.js";
+import type * as graphSnapshots from "../graphSnapshots.js";
 import type * as http from "../http.js";
 import type * as http_auth_connectorCallback from "../http/auth/connectorCallback.js";
 import type * as http_auth_connectorCallbackHtml from "../http/auth/connectorCallbackHtml.js";
@@ -211,6 +212,7 @@ declare const fullApi: ApiFromModules<{
   files: typeof files;
   "files/lib": typeof files_lib;
   graphApi: typeof graphApi;
+  graphSnapshots: typeof graphSnapshots;
   http: typeof http;
   "http/auth/connectorCallback": typeof http_auth_connectorCallback;
   "http/auth/connectorCallbackHtml": typeof http_auth_connectorCallbackHtml;

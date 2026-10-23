@@ -7,6 +7,15 @@ const crons = cronJobs();
 // rollup for yesterday (NIGHTLY_DISABLED=1 stops it)
 crons.cron("nightly maintenance", "30 2 * * *", internal.nightly.kick, {});
 
+// 03:30 utc, after the nightly maintenance and before the connector sync:
+// rebuilds each user's precomputed graph snapshots, staggered per user
+crons.cron(
+  "nightly graph snapshots",
+  "30 3 * * *",
+  internal.graphSnapshots.kickNightlyInternal,
+  {},
+);
+
 crons.cron(
   "daily connector sync",
   "0 4 * * *",
@@ -90,6 +99,15 @@ crons.interval(
   "sweep expired dream duplicates",
   { hours: 1 },
   internal.dream.sweepExpiredDuplicates,
+  {},
+);
+
+// drops memory tombstones (graph snapshot delta) older than 7 days, 500 rows
+// a batch
+crons.interval(
+  "purge expired memory tombstones",
+  { hours: 1 },
+  internal.graphSnapshots.purgeExpiredTombstonesInternal,
   {},
 );
 

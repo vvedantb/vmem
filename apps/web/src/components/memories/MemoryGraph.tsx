@@ -1,8 +1,9 @@
 // force-directed graph canvas + canvas-local overlays (filters live in controller)
 
 import { useRef } from "react";
-import { IconArrowBack } from "@tabler/icons-react";
+import { IconArrowBack, IconRefresh } from "@tabler/icons-react";
 import { Button } from "@vvedantb/ui";
+import { formatRelativeTime } from "@vmem/shared";
 import { useMemoryContext } from "@/contexts/MemoryContext";
 import GraphCanvas from "@/components/_components/GraphCanvas";
 import type { GraphCanvasHandle } from "@/components/_components/GraphCanvas";
@@ -46,6 +47,11 @@ export default function MemoryGraph({
     canLoadMore,
     isLoadingMore,
     fetchNextPage,
+    snapshotBuiltAt,
+    snapshotNeedsRefresh,
+    isRefreshingSnapshot,
+    snapshotRefreshRetryAfterMs,
+    refreshSnapshot,
     isLoading,
     isError,
     error,
@@ -157,6 +163,40 @@ export default function MemoryGraph({
             >
               {isLoadingMore ? "Loading…" : "Load more"}
             </Button>
+          ) : null}
+          {snapshotBuiltAt !== null ? (
+            <>
+              <span
+                className="text-xs text-muted"
+                title={
+                  snapshotNeedsRefresh
+                    ? "Many changes since the last build. Refresh to see them all."
+                    : undefined
+                }
+              >
+                {snapshotRefreshRetryAfterMs !== null
+                  ? `Refresh again in ${String(Math.ceil(snapshotRefreshRetryAfterMs / 60_000))} min`
+                  : `Updated ${formatRelativeTime(snapshotBuiltAt)}`}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refreshSnapshot}
+                disabled={isRefreshingSnapshot}
+                aria-label="Refresh graph"
+                title="Refresh graph"
+                className={
+                  snapshotNeedsRefresh
+                    ? "h-6 px-1.5 text-foreground"
+                    : "h-6 px-1.5 text-muted"
+                }
+              >
+                <IconRefresh
+                  size={14}
+                  className={isRefreshingSnapshot ? "animate-spin" : undefined}
+                />
+              </Button>
+            </>
           ) : null}
         </div>
       )}

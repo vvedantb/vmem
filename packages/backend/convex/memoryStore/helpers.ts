@@ -1076,6 +1076,12 @@ async function deleteMemoryDoc(
   await trackMemoryChange(ctx, doc, null);
   await deleteMemoryUsage(ctx, doc.memoryId);
   await ctx.db.delete(doc._id);
+  await ctx.db.insert("memoryTombstones", {
+    userId: doc.userId,
+    ...(doc.profileId === undefined ? {} : { profileId: doc.profileId }),
+    memoryId: doc.memoryId,
+    deletedAt: Date.now(),
+  });
 }
 
 // deleting a memory also deletes its prior versions (bounded chain)
@@ -1113,6 +1119,22 @@ export async function deleteTeamMemoryAsOwner(
   return true;
 }
 
+async function deleteGraphSnapshotsForUser(
+  ctx: MutationCtx,
+  userId: string,
+): Promise<void> {
+  const rows = await ctx.db
+    .query("graphSnapshots")
+    .withIndex("by_user_profile", (q) => q.eq("userId", userId))
+    .collect();
+  for (const row of rows) {
+    if (row.snapshot !== undefined) {
+      await ctx.storage.delete(row.snapshot.storageId);
+    }
+    await ctx.db.delete(row._id);
+  }
+}
+
 export async function deleteMemoriesForUser(
   ctx: MutationCtx,
   userId: string,
@@ -1123,6 +1145,7 @@ export async function deleteMemoriesForUser(
     .collect();
   await deleteEntitiesForUser(ctx, userId);
   await deleteLinksForUser(ctx, userId);
+  await deleteGraphSnapshotsForUser(ctx, userId);
   await trackMemoryChanges(
     ctx,
     docs.map((doc) => ({ before: doc, after: null })),

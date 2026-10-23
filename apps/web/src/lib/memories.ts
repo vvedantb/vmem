@@ -25,7 +25,7 @@ export function formatMemoryTypeLabel(type: MemoryType): string {
   return MEMORY_TYPE_LABELS[type];
 }
 
-function isMemoryType(value: string): value is MemoryType {
+export function isMemoryType(value: string): value is MemoryType {
   return MEMORY_TYPES.some((type) => type === value);
 }
 
