@@ -11,18 +11,3 @@
 button:not(:disabled) {
   cursor: pointer;
 }
-
-/*
- * In dark mode the @vvedantb/ui off switch uses bg-default for the track and
- * bg-background for the thumb, both close to the card colour, so it nearly
- * disappears. Give unchecked switches a visible track, border and thumb.
- * Unlayered CSS wins over Tailwind's layered utilities.
- */
-.dark button[role="switch"][data-state="unchecked"] {
-  background-color: color-mix(in oklab, var(--foreground) 18%, transparent);
-  border-color: color-mix(in oklab, var(--foreground) 32%, transparent);
-}
-
-.dark button[role="switch"][data-state="unchecked"] > span {
-  background-color: color-mix(in oklab, var(--foreground) 75%, transparent);
-}
