@@ -24,7 +24,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "catalog:",
     "@vmem/sdk": "workspace:*",
-    "@vvedantb/server": "^0.6.1",
+    "@vvedantb/server": "^0.7.0",
     "get-windows": "^9.2.0",
     "zod": "catalog:"
   },

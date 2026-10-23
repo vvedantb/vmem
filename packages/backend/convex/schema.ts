@@ -1,5 +1,6 @@
 ﻿import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { mcpTokenCacheTable } from "@vvedantb/server";
 import { MEMORY_EMBEDDING_DIMENSIONS } from "../engine/memory/searchableText";
 import {
   fileNodeFields,
@@ -19,7 +20,6 @@ import {
   userSettingsFields,
   oauthStateFields,
   contextPromptCacheFields,
-  mcpTokenCacheFields,
   queryEmbeddingCacheFields,
   memoryFields,
   memoryAccessPendingFields,
@@ -196,9 +196,7 @@ const schema = defineSchema({
   ]),
 
   // short-lived caches on the recall_context path, pruned by cron
-  mcpTokenCache: defineTable(mcpTokenCacheFields)
-    .index("by_token_hash", ["tokenHash"])
-    .index("by_expires", ["expiresAt"]),
+  mcpTokenCache: mcpTokenCacheTable(defineTable, v),
   queryEmbeddingCache: defineTable(queryEmbeddingCacheFields)
     .index("by_key", ["key"])
     .index("by_expires", ["expiresAt"]),
