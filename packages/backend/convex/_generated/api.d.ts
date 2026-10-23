@@ -79,6 +79,7 @@ import type * as lib_scopedTree from "../lib/scopedTree.js";
 import type * as lib_systemOneKey from "../lib/systemOneKey.js";
 import type * as lib_userFacingError from "../lib/userFacingError.js";
 import type * as lib_versionSnapshot from "../lib/versionSnapshot.js";
+import type * as lib_wellFormed from "../lib/wellFormed.js";
 import type * as mcp_bundled_memoryGraphHtml from "../mcp/bundled/memoryGraphHtml.js";
 import type * as mcp_content from "../mcp/content.js";
 import type * as mcp_fileOps from "../mcp/fileOps.js";
@@ -243,6 +244,7 @@ declare const fullApi: ApiFromModules<{
   "lib/systemOneKey": typeof lib_systemOneKey;
   "lib/userFacingError": typeof lib_userFacingError;
   "lib/versionSnapshot": typeof lib_versionSnapshot;
+  "lib/wellFormed": typeof lib_wellFormed;
   "mcp/bundled/memoryGraphHtml": typeof mcp_bundled_memoryGraphHtml;
   "mcp/content": typeof mcp_content;
   "mcp/fileOps": typeof mcp_fileOps;
