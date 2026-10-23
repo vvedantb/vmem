@@ -21,7 +21,7 @@
     "@tabler/icons-react": "catalog:",
     "@vmem/backend": "workspace:*",
     "@vmem/shared": "workspace:*",
-    "@vvedantb/ui": "^0.16.2",
+    "@vvedantb/ui": "^0.16.3",
     "@webext-core/messaging": "^2.3.0",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
