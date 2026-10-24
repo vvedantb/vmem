@@ -19,7 +19,6 @@ import {
   userSettingsFields,
   oauthStateFields,
   contextPromptCacheFields,
-  mcpTokenCacheFields,
   queryEmbeddingCacheFields,
   memoryFields,
   memoryAccessPendingFields,
@@ -195,10 +194,7 @@ const schema = defineSchema({
     "userId",
   ]),
 
-  // short-lived caches on the recall_context path, pruned by cron
-  mcpTokenCache: defineTable(mcpTokenCacheFields)
-    .index("by_token_hash", ["tokenHash"])
-    .index("by_expires", ["expiresAt"]),
+  // short-lived cache on the recall_context path, pruned by cron
   queryEmbeddingCache: defineTable(queryEmbeddingCacheFields)
     .index("by_key", ["key"])
     .index("by_expires", ["expiresAt"]),

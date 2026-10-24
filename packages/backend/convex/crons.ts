@@ -50,14 +50,8 @@ crons.interval(
   {},
 );
 
-// drops expired rows of the recall_context caches (verified MCP tokens and
-// query embeddings), a bounded batch each
-crons.interval(
-  "purge expired mcp token cache",
-  { minutes: 10 },
-  internal.mcp.tokenCache.purgeExpired,
-  {},
-);
+// drops expired rows of the recall_context query embedding cache, a bounded
+// batch each run
 crons.interval(
   "purge expired query embedding cache",
   { minutes: 10 },

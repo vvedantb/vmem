@@ -6,9 +6,10 @@ import {
   createHealthHandler,
   createMcpHttpHandler,
   createProtectedResourceMetadata,
+  authenticateClerkBearer,
+  requiredEnvUrl,
 } from "@vvedantb/server";
 import type { McpScope } from "../profiles/mcpAccess";
-import { authenticateWithTokenCache } from "./tokenCache";
 
 // proxies clerk as metadata for older mcp clients that hit this host's well, known
 export const oauthMetadata = httpAction(
@@ -30,11 +31,27 @@ function mcpEndpoint(scope: McpScope): PublicHttpAction {
           ? "/.well-known/oauth-protected-resource/mcp/team"
           : undefined,
       authenticate: ({ ctx, token }) =>
-        authenticateWithTokenCache(ctx, token, (uncached) =>
-          ctx.runAction(internal.mcp.nodeActions.verifyAccessToken, {
-            token: uncached,
-          }),
-        ),
+        authenticateClerkBearer({
+          token,
+          issuer: requiredEnvUrl("CLERK_FRONTEND_API_URL"),
+          // opaque tokens only; JWTs verify locally
+          verifyOpaque: (opaque) =>
+            ctx.runAction(internal.mcp.nodeActions.verifyAccessToken, {
+              token: opaque,
+            }),
+          onReject: (rejection) => {
+            console.error(
+              "[MCP][authenticateClerkBearer] rejected:",
+              rejection.kind,
+            );
+          },
+          onError: (err) => {
+            console.error(
+              "[MCP][authenticateClerkBearer] threw:",
+              err instanceof Error ? err.message : err,
+            );
+          },
+        }),
       handleRpc: ({ ctx, principal, body }) =>
         ctx.runAction(internal.mcp.nodeActions.handleMcpRequest, {
           clerkUserId: principal.clerkUserId,
