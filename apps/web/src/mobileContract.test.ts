@@ -123,8 +123,8 @@ describe("small Button sizes", () => {
       readFileSync(join(sharedUiSrc, "ui", "button.tsx"), "utf8"),
     ).replaceAll(/\/\/.*$/gm, "");
     const variants = button.slice(
-      button.indexOf("size:"),
-      button.indexOf("defaultVariants"),
+      button.indexOf("buttonSizeClasses = {"),
+      button.indexOf("};", button.indexOf("buttonSizeClasses = {")),
     );
     const at = variants.search(new RegExp(`"?${size}"?:`));
     expect(at, `the ${size} size is gone`).toBeGreaterThan(-1);
