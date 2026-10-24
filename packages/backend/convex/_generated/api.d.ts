@@ -91,7 +91,6 @@ import type * as mcp_nodeActions from "../mcp/nodeActions.js";
 import type * as mcp_recallPrelude from "../mcp/recallPrelude.js";
 import type * as mcp_resources from "../mcp/resources.js";
 import type * as mcp_serverInfo from "../mcp/serverInfo.js";
-import type * as mcp_tokenCache from "../mcp/tokenCache.js";
 import type * as mcp_toolCatalog from "../mcp/toolCatalog.js";
 import type * as mcp_toolTypes from "../mcp/toolTypes.js";
 import type * as mcp_tools from "../mcp/tools.js";
@@ -256,7 +255,6 @@ declare const fullApi: ApiFromModules<{
   "mcp/recallPrelude": typeof mcp_recallPrelude;
   "mcp/resources": typeof mcp_resources;
   "mcp/serverInfo": typeof mcp_serverInfo;
-  "mcp/tokenCache": typeof mcp_tokenCache;
   "mcp/toolCatalog": typeof mcp_toolCatalog;
   "mcp/toolTypes": typeof mcp_toolTypes;
   "mcp/tools": typeof mcp_tools;
