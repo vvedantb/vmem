@@ -49,17 +49,17 @@ describe("product tabs are isolated pills", () => {
   ].join("\n");
 
   it("defaults TabsList to the pills variant", () => {
-    expect(tabs).toContain('variant = "pills"');
+    expect(tabs).toContain('?? "pills"');
     expect(tabs).toContain('"t-tabs--pills"');
     expect(tabs).toContain('"t-tabs--segmented"');
   });
 
   it("only renders the sliding pill for the segmented variant", () => {
-    const pillIdx = tabs.indexOf('className="t-tabs-pill"');
+    const pillIdx = tabs.indexOf('"t-tabs-pill"');
     const guardIdx = tabs.lastIndexOf('variant === "segmented"', pillIdx);
     expect(pillIdx).toBeGreaterThan(-1);
     expect(guardIdx).toBeGreaterThan(-1);
-    expect(pillIdx - guardIdx).toBeLessThan(80);
+    expect(pillIdx - guardIdx).toBeLessThan(160);
   });
 
   it("gives pills a gap and no shared track", () => {
