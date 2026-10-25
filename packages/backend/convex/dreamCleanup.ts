@@ -1070,7 +1070,7 @@ async function applyPlanBatch(
     await ctx.scheduler.runAfter(
       0,
       internal.tagConsolidate.consolidateProfileTagsInternal,
-      { profileId, runId: applyRunId },
+      { profileId, runId: applyRunId, userId: plan.userId },
     );
   } else {
     await ctx.scheduler.runAfter(0, internal.dreamCleanup.applyInternal, {

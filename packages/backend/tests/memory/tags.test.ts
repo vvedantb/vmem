@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   applyTagMerges,
+  planTagAiGroups,
   planTagMerges,
+  tagMergeFromVerdict,
 } from "../../engine/memory/dream/tagConsolidate";
 import {
   legacyDomainTag,
@@ -72,8 +74,10 @@ describe("legacy dotless host tags", () => {
       { keeper: "github", losers: ["wwwgithubcom"] },
     ]);
     expect(planTagMerges(["telecom"])).toEqual([]);
-    expect(planTagMerges(["telecom", "tele"])).toEqual([
-      { keeper: "tele", losers: ["telecom"] },
+    // a short brand is too risky for a plain suffix tag
+    expect(planTagMerges(["telecom", "tele"])).toEqual([]);
+    expect(planTagMerges(["youtubecom", "youtube"])).toEqual([
+      { keeper: "youtube", losers: ["youtubecom"] },
     ]);
   });
 
@@ -92,5 +96,69 @@ describe("legacy dotless host tags", () => {
     expect(
       applyTagMerges(["a", "wwwyoutubecom", "youtube", "b"], merges),
     ).toEqual(["a", "youtube", "b"]);
+  });
+});
+
+describe("AI tier planning", () => {
+  const count = (tag: string, n: number) => ({ tag, count: n });
+
+  it("groups look-alike leftovers, busiest first, and skips unrelated tags", () => {
+    const groups = planTagAiGroups(
+      [
+        count("machinelearning", 2),
+        count("machine-learning", 9),
+        count("tools", 1),
+        count("tool", 3),
+        count("rust", 5),
+      ],
+      new Set(),
+    );
+    expect(groups.map((g) => g.map((t) => t.tag))).toEqual([
+      ["machine-learning", "machinelearning"],
+      ["tool", "tools"],
+    ]);
+  });
+
+  it("leaves out tags the deterministic tier took and caps the group count", () => {
+    expect(
+      planTagAiGroups(
+        [count("youtube", 4), count("youtubes", 1)],
+        new Set(["youtube"]),
+      ),
+    ).toEqual([]);
+    const many = ["alpha", "beta1", "gamma", "delta", "omega", "sigma"].flatMap(
+      (base) => [count(`${base}-x`, 2), count(`${base}x`, 1)],
+    );
+    expect(planTagAiGroups(many, new Set(), 2)).toHaveLength(2);
+  });
+
+  it("merges only a flagged verdict and picks the keeper itself", () => {
+    const group = [count("machinelearning", 2), count("machine-learning", 9)];
+    expect(
+      tagMergeFromVerdict(group, {
+        status: "flagged",
+        keeperId: "machinelearning",
+        removeIds: ["machine-learning"],
+        reason: "Same fact stated in different words",
+        confidence: 0.9,
+      }),
+    ).toEqual({ keeper: "machine-learning", losers: ["machinelearning"] });
+    expect(
+      tagMergeFromVerdict(group, {
+        status: "not_duplicate",
+        reason: "Different",
+        confidence: 0.2,
+      }),
+    ).toBeNull();
+    // Jev names a tag outside the group: nothing is invented
+    expect(
+      tagMergeFromVerdict(group, {
+        status: "flagged",
+        keeperId: "ml",
+        removeIds: ["machine-learning"],
+        reason: "x",
+        confidence: 0.9,
+      }),
+    ).toBeNull();
   });
 });

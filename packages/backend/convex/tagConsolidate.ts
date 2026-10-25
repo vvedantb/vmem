@@ -1,14 +1,24 @@
 import { v } from "convex/values";
+import { DREAM_DAILY_BUDGET_USD } from "../engine/memory/dream/nightly";
+import { judgeDuplicateGroup } from "../engine/memory/dream/jevDuplicate";
 import {
   applyTagMerges,
   emptyTagConsolidationCounts,
+  planTagAiGroups,
   planTagMerges,
+  tagJevMember,
+  tagMergeFromVerdict,
   type TagConsolidationCounts,
+  type TagCount,
   type TagMerge,
 } from "../engine/memory/dream/tagConsolidate";
 import { buildSearchableText } from "../engine/memory/searchableText";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { dreamSpentTodayUsd } from "./dream";
+import { resolveSystemOneApiKey } from "./lib/systemOneKey";
+import { scheduleLog } from "./lib/openRouter/shared";
+import { dreamSettingsOf, getSettingsDoc } from "./userSettings";
 import {
   internalAction,
   internalMutation,
@@ -20,14 +30,19 @@ import {
 // one-off cleanup (dreamCleanup.ts apply) and the MCP tool
 // memory_tags_consolidate all call consolidateProfileTags.
 //
-// Deterministic only: it merges host-name spellings that lost their dots
-// (`wwwyoutubecom`, `youtubecom`) into the brand (`youtube`); see
-// engine/memory/dream/tagConsolidate.ts. No AI call, so it needs no key or
-// budget. Pass 1 pages the profile and counts tags; pass 2 pages it again and
-// retags only rows that carry a loser. Pages are small so each query and
-// mutation stays inside Convex read and write limits. A second run finds no
-// group. Retagging does not touch updatedAt, so it does not enter the dream
-// change window, and it has no undo: the old spelling is not kept.
+// Two tiers. Deterministic first: it merges host-name spellings that lost
+// their dots (`wwwyoutubecom`, `youtubecom`) into the brand (`youtube`); see
+// engine/memory/dream/tagConsolidate.ts. Then the AI tier: leftover tags that
+// look alike go to Jev (judgeDuplicateGroup, as dream near-dup does) in groups
+// of at most four, at most five calls per run. It runs only with a userId,
+// AI_GATEWAY_API_KEY, dreamModeUseAi on and today's dream budget left;
+// otherwise it is skipped and the run is deterministic only. Pass 1 pages the
+// profile and counts tags; pass 2 pages it again and retags only rows that
+// carry a loser. Pages are small so each query and mutation stays inside
+// Convex read and write limits. A second run finds no deterministic group;
+// Jev may judge the same unmerged groups again (at most five calls). Retagging
+// does not touch updatedAt, so it does not enter the dream change window, and
+// it has no undo: the old spelling is not kept.
 
 const PAGE_SIZE = 100;
 const MAX_SCAN_ROWS = 50_000;
@@ -103,6 +118,16 @@ export const retagPageInternal = internalMutation({
   },
 });
 
+// the AI gate for one user: settings and today's spend, read together
+export const tagAiGateInternal = internalQuery({
+  args: { userId: v.id("users") },
+  returns: v.object({ useAi: v.boolean(), spentTodayUsd: v.number() }),
+  handler: async (ctx, args) => ({
+    useAi: dreamSettingsOf(await getSettingsDoc(ctx, args.userId)).useAi,
+    spentTodayUsd: await dreamSpentTodayUsd(ctx),
+  }),
+});
+
 // adds one dream run's merged-group count to its counts row
 export const recordTagMergeInternal = internalMutation({
   args: { runId: v.id("dreamRuns"), groupsMerged: v.number() },
@@ -124,14 +149,76 @@ export type TagConsolidationResult = TagConsolidationCounts & {
   merges: TagMerge[];
 };
 
+interface TagAi {
+  apiKey: string;
+  userId: Id<"users">;
+  spentTodayUsd: number;
+}
+
+// null: no user, no key, AI off for the user, or the daily budget is spent
+async function resolveTagAi(
+  ctx: Pick<ActionCtx, "runQuery">,
+  userId: Id<"users"> | undefined,
+): Promise<TagAi | null> {
+  const apiKey = resolveSystemOneApiKey();
+  if (apiKey === undefined || userId === undefined) return null;
+  const gate = await ctx.runQuery(internal.tagConsolidate.tagAiGateInternal, {
+    userId,
+  });
+  if (!gate.useAi || gate.spentTodayUsd >= DREAM_DAILY_BUDGET_USD) return null;
+  return { apiKey, userId, spentTodayUsd: gate.spentTodayUsd };
+}
+
+// Jev over the leftover look-alike groups; stops at the budget
+async function judgeTagGroups(
+  ctx: Pick<ActionCtx, "scheduler">,
+  args: { profileId: string; ai: TagAi; groups: TagCount[][] },
+): Promise<{ merges: TagMerge[]; calls: number }> {
+  const merges: TagMerge[] = [];
+  let calls = 0;
+  let spent = args.ai.spentTodayUsd;
+  for (const group of args.groups) {
+    if (spent >= DREAM_DAILY_BUDGET_USD) break;
+    const result = await judgeDuplicateGroup({
+      members: group.map(tagJevMember),
+      apiKey: args.ai.apiKey,
+      tag: "dream-tags",
+    });
+    calls += 1;
+    spent += result.costUsd ?? 0;
+    await scheduleLog(ctx, {
+      userId: args.ai.userId,
+      profileId: args.profileId,
+      feature: "dream",
+      endpoint: "chat",
+      model: result.model,
+      promptTokens: result.promptTokens,
+      completionTokens: result.completionTokens,
+      costUsd: result.costUsd,
+      ...(result.verdict.status === "error"
+        ? { errorMessage: result.verdict.reason }
+        : {}),
+    });
+    const merge = tagMergeFromVerdict(group, result.verdict);
+    if (merge !== null) merges.push(merge);
+  }
+  return { merges, calls };
+}
+
 /**
- * Merges the legacy host-name tags of one profile (personal or team). Safe to
- * call twice and from any action: the second call returns zero groups.
- * Pass runId to add the merged groups to that dream run's counts.
+ * Merges duplicate tags of one profile (personal or team): host-name
+ * spellings first, then look-alike tags that Jev judges the same. Safe to
+ * call twice and from any action. Pass userId to allow the AI tier (see the
+ * top of this file); without it only the deterministic tier runs. Pass runId
+ * to add the merged groups to that dream run's counts.
  */
 export async function consolidateProfileTags(
-  ctx: Pick<ActionCtx, "runQuery" | "runMutation">,
-  args: { profileId: string; runId?: Id<"dreamRuns"> },
+  ctx: Pick<ActionCtx, "runQuery" | "runMutation" | "scheduler">,
+  args: {
+    profileId: string;
+    runId?: Id<"dreamRuns">;
+    userId?: Id<"users">;
+  },
 ): Promise<TagConsolidationResult> {
   const result = emptyTagConsolidationCounts();
   const tagCounts = new Map<string, number>();
@@ -158,7 +245,24 @@ export async function consolidateProfileTags(
     cursor = page.continueCursor;
   }
 
-  const merges = planTagMerges(tagCounts.keys());
+  const planned = planTagMerges(tagCounts.keys());
+  const merges = [...planned];
+  const ai = await resolveTagAi(ctx, args.userId);
+  if (ai !== null) {
+    const taken = new Set(planned.flatMap((m) => [m.keeper, ...m.losers]));
+    const groups = planTagAiGroups(
+      [...tagCounts].map(([tag, count]) => ({ tag, count })),
+      taken,
+    );
+    const judged = await judgeTagGroups(ctx, {
+      profileId: args.profileId,
+      ai,
+      groups,
+    });
+    result.aiCalls = judged.calls;
+    result.aiGroupsMerged = judged.merges.length;
+    merges.push(...judged.merges);
+  }
   if (merges.length === 0) return { ...result, merges };
 
   cursor = null;
@@ -186,7 +290,11 @@ export async function consolidateProfileTags(
 
 // for the cleanup apply, which runs in a mutation and so schedules this
 export const consolidateProfileTagsInternal = internalAction({
-  args: { profileId: v.string(), runId: v.optional(v.id("dreamRuns")) },
+  args: {
+    profileId: v.string(),
+    runId: v.optional(v.id("dreamRuns")),
+    userId: v.optional(v.id("users")),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     await consolidateProfileTags(ctx, args);

@@ -1351,9 +1351,13 @@ async function dreamProfile(
       if (stopped) truncated = true;
     }
 
-    // step 6b: merge host-name tag spellings (shared with cleanup and MCP);
+    // step 6b: merge duplicate tags (host-name spellings, then Jev look-alikes) (shared with cleanup and MCP);
     // after the batches above because they rewrite counts without tagsMerged
-    await consolidateProfileTags(ctx, { profileId: args.profileId, runId });
+    await consolidateProfileTags(ctx, {
+      profileId: args.profileId,
+      runId,
+      userId: args.userId,
+    });
 
     const counts = await ctx.runMutation(
       internal.dreaming.finishProfileRunInternal,
