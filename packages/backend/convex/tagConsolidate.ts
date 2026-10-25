@@ -206,6 +206,43 @@ async function judgeTagGroups(
 }
 
 /**
+ * Pages one profile and counts its tags (memories per tag). Stops at the scan
+ * cap. The plan in the cleanup scan and the merge below share it.
+ */
+export async function collectTagCounts(
+  ctx: Pick<ActionCtx, "runQuery">,
+  profileId: string,
+): Promise<{
+  tagCounts: Map<string, number>;
+  scannedRows: number;
+  truncated: boolean;
+}> {
+  const tagCounts = new Map<string, number>();
+  let scannedRows = 0;
+  let cursor: string | null = null;
+  for (;;) {
+    const page: {
+      isDone: boolean;
+      continueCursor: string;
+      rows: number;
+      tags: { tag: string; count: number }[];
+    } = await ctx.runQuery(internal.tagConsolidate.tagCountsPageInternal, {
+      profileId,
+      cursor,
+    });
+    scannedRows += page.rows;
+    for (const { tag, count } of page.tags) {
+      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + count);
+    }
+    if (page.isDone) return { tagCounts, scannedRows, truncated: false };
+    if (scannedRows >= MAX_SCAN_ROWS) {
+      return { tagCounts, scannedRows, truncated: true };
+    }
+    cursor = page.continueCursor;
+  }
+}
+
+/**
  * Merges duplicate tags of one profile (personal or team): host-name
  * spellings first, then look-alike tags that Jev judges the same. Safe to
  * call twice and from any action. Pass userId to allow the AI tier (see the
@@ -221,29 +258,12 @@ export async function consolidateProfileTags(
   },
 ): Promise<TagConsolidationResult> {
   const result = emptyTagConsolidationCounts();
-  const tagCounts = new Map<string, number>();
-  let cursor: string | null = null;
-  for (;;) {
-    const page: {
-      isDone: boolean;
-      continueCursor: string;
-      rows: number;
-      tags: { tag: string; count: number }[];
-    } = await ctx.runQuery(internal.tagConsolidate.tagCountsPageInternal, {
-      profileId: args.profileId,
-      cursor,
-    });
-    result.scannedRows += page.rows;
-    for (const { tag, count } of page.tags) {
-      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + count);
-    }
-    if (page.isDone) break;
-    if (result.scannedRows >= MAX_SCAN_ROWS) {
-      result.truncated = true;
-      break;
-    }
-    cursor = page.continueCursor;
-  }
+  const { tagCounts, scannedRows, truncated } = await collectTagCounts(
+    ctx,
+    args.profileId,
+  );
+  result.scannedRows = scannedRows;
+  result.truncated = truncated;
 
   const planned = planTagMerges(tagCounts.keys());
   const merges = [...planned];
@@ -265,7 +285,7 @@ export async function consolidateProfileTags(
   }
   if (merges.length === 0) return { ...result, merges };
 
-  cursor = null;
+  let cursor: string | null = null;
   for (;;) {
     const page: { isDone: boolean; continueCursor: string; retagged: number } =
       await ctx.runMutation(internal.tagConsolidate.retagPageInternal, {

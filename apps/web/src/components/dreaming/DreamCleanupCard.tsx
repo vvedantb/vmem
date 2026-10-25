@@ -69,10 +69,13 @@ function PendingCleanupBody({ state }: { state: PendingCleanup }) {
     ? state.deterministic
     : state.deterministic.slice(0, COLLAPSED_GROUPS);
 
+  const hasMemories = state.groups > 0;
   const doneMessage =
     state.ai.length > 0
       ? "Cleaning up. AI suggestions are on the Proposals tab."
-      : "Cleaning up. You can undo each group on the History tab.";
+      : hasMemories
+        ? "Cleaning up. You can undo each group on the History tab."
+        : "Cleaning up. Duplicate tags are merging.";
 
   const handleApply = async () => {
     try {
@@ -87,14 +90,33 @@ function PendingCleanupBody({ state }: { state: PendingCleanup }) {
   return (
     <>
       <p className="text-sm text-foreground">
-        Found {plural(state.rows, "duplicate row")} in{" "}
-        {plural(state.groups, "group")}.
+        {hasMemories
+          ? `Found ${plural(state.rows, "duplicate row")} in ${plural(state.groups, "group")}.`
+          : state.tags.length > 0
+            ? `Found ${plural(state.tags.length, "duplicate tag group")} to merge.`
+            : state.ai.length > 0
+              ? `Found ${plural(state.ai.length, "AI suggestion")}.`
+              : null}
+        {hasMemories && state.tags.length > 0
+          ? ` Plus ${plural(state.tags.length, "duplicate tag group")} to merge.`
+          : ""}
       </p>
       {shown.length > 0 ? (
         <ul className="space-y-1.5">
           {shown.map((group) => (
             <SampleGroupRow
               key={group.keeperId ?? group.keeperTitle}
+              group={group}
+              showLosers={reviewing}
+            />
+          ))}
+        </ul>
+      ) : null}
+      {state.tags.length > 0 ? (
+        <ul className="space-y-1.5">
+          {state.tags.map((group) => (
+            <SampleGroupRow
+              key={group.keeperTitle}
               group={group}
               showLosers={reviewing}
             />
@@ -141,10 +163,12 @@ function PendingCleanupBody({ state }: { state: PendingCleanup }) {
           <ConfirmDialog.Header>
             <ConfirmDialog.Title>Clean up duplicates?</ConfirmDialog.Title>
             <ConfirmDialog.Description>
-              Hides {plural(state.rows, "duplicate row")} in{" "}
-              {plural(state.groups, "group")} and keeps one memory per group.
-              You can undo each group for 30 days on the History tab. After
-              that, the hidden copies are deleted.
+              {hasMemories
+                ? `Hides ${plural(state.rows, "duplicate row")} in ${plural(state.groups, "group")} and keeps one memory per group. You can undo each group for 30 days on the History tab. After that, the hidden copies are deleted.`
+                : ""}
+              {state.tags.length > 0
+                ? `${hasMemories ? " " : ""}Merges ${plural(state.tags.length, "duplicate tag group")} into one tag each. You cannot undo a tag merge.`
+                : ""}
               {state.ai.length > 0
                 ? ` ${plural(state.ai.length, "AI suggestion")} go to the Proposals tab for approval.`
                 : ""}
@@ -174,6 +198,23 @@ function SampleGroupRow({
   showLosers: boolean;
 }) {
   const losers = group.loserTitles ?? [];
+  if (group.rule === "tag") {
+    return (
+      <li className="rounded-lg bg-surface-secondary px-3 py-2">
+        <div className="flex items-center gap-2">
+          <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+            {losers.join(", ")} → {group.keeperTitle}
+          </span>
+          <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
+            ×{group.count}
+          </Badge>
+        </div>
+        {showLosers && group.reason ? (
+          <p className="mt-1 text-xs text-muted">{group.reason}</p>
+        ) : null}
+      </li>
+    );
+  }
   return (
     <li className="rounded-lg bg-surface-secondary px-3 py-2">
       <div className="flex items-center gap-2">
