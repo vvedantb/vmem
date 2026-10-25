@@ -19,25 +19,12 @@ const CHART_GRID_LINES = (
   </div>
 );
 
-const CHART_LEGEND = (
-  <div className="ml-8 mt-4 flex flex-wrap items-center gap-4 sm:gap-6">
-    <div className="flex items-center gap-2">
-      <span className="h-2.5 w-2.5 rounded-sm bg-surface-tertiary" />
-      <span className="text-xs text-muted">Total memories</span>
-    </div>
-    <div className="flex items-center gap-2">
-      <span className="h-2.5 w-2.5 rounded-sm bg-foreground" />
-      <span className="text-xs text-muted">New that day</span>
-    </div>
-  </div>
-);
-
-function maxGrowthTotal(growthData: GrowthData): number {
-  let maxTotal = 1;
+function maxGrowthNew(growthData: GrowthData): number {
+  let maxNew = 1;
   for (const day of growthData) {
-    if (day.total > maxTotal) maxTotal = day.total;
+    if (day.new > maxNew) maxNew = day.new;
   }
-  return maxTotal;
+  return maxNew;
 }
 
 export function MemoryGrowthChart({ growthData }: { growthData: GrowthData }) {
@@ -74,7 +61,7 @@ export function MemoryGrowthChart({ growthData }: { growthData: GrowthData }) {
     );
   }
 
-  const maxTotal = maxGrowthTotal(growthData);
+  const maxNew = maxGrowthNew(growthData);
   const plotHeight = CHART_HEIGHT - 30;
 
   return (
@@ -94,8 +81,8 @@ export function MemoryGrowthChart({ growthData }: { growthData: GrowthData }) {
 
           <div className="relative" style={{ height: CHART_HEIGHT + 40 }}>
             <div className="absolute left-0 top-0 flex h-full flex-col justify-between pr-2 text-xs tabular-nums text-muted">
-              <span>{maxTotal}</span>
-              <span>{Math.round(maxTotal / 2)}</span>
+              <span>{maxNew}</span>
+              <span>{Math.round(maxNew / 2)}</span>
               <span>0</span>
             </div>
 
@@ -107,8 +94,7 @@ export function MemoryGrowthChart({ growthData }: { growthData: GrowthData }) {
                 style={{ height: CHART_HEIGHT }}
               >
                 {growthData.map((day, index) => {
-                  const barHeight = (day.total / maxTotal) * plotHeight;
-                  const newHeight = (day.new / maxTotal) * plotHeight;
+                  const barHeight = (day.new / maxNew) * plotHeight;
 
                   return (
                     <div
@@ -120,20 +106,12 @@ export function MemoryGrowthChart({ growthData }: { growthData: GrowthData }) {
                         style={{ height: plotHeight }}
                       >
                         <div className="pointer-events-none absolute -top-9 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap glass-panel-strong smooth-shadow-ring-md rounded-full px-2.5 py-1 text-xs text-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                          {day.total} total (+{day.new})
+                          {day.new} added
                         </div>
 
                         <div
-                          className="absolute bottom-0 w-full rounded-t-md bg-surface-tertiary transition-[height] duration-300"
+                          className="absolute bottom-0 w-full rounded-t-md bg-foreground transition-[height] duration-300"
                           style={{ height: barHeight }}
-                        />
-
-                        <div
-                          className="absolute bottom-0 w-full rounded-t-md bg-foreground transition-[height,opacity] duration-300"
-                          style={{
-                            height: newHeight,
-                            opacity: day.new > 0 ? 1 : 0,
-                          }}
                         />
                       </div>
                     </div>
@@ -153,8 +131,6 @@ export function MemoryGrowthChart({ growthData }: { growthData: GrowthData }) {
               </div>
             </div>
           </div>
-
-          {CHART_LEGEND}
         </CardContent>
       </Card>
     </motion.div>
