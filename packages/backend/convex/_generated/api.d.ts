@@ -154,6 +154,7 @@ import type * as skillVersions from "../skillVersions.js";
 import type * as skills from "../skills.js";
 import type * as skillsAdminImport from "../skillsAdminImport.js";
 import type * as systemSkills from "../systemSkills.js";
+import type * as tagConsolidate from "../tagConsolidate.js";
 import type * as teams from "../teams.js";
 import type * as teams_auth from "../teams/auth.js";
 import type * as teams_handlers from "../teams/handlers.js";
@@ -318,6 +319,7 @@ declare const fullApi: ApiFromModules<{
   skills: typeof skills;
   skillsAdminImport: typeof skillsAdminImport;
   systemSkills: typeof systemSkills;
+  tagConsolidate: typeof tagConsolidate;
   teams: typeof teams;
   "teams/auth": typeof teams_auth;
   "teams/handlers": typeof teams_handlers;

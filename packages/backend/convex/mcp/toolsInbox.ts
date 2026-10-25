@@ -108,7 +108,7 @@ export const inboxToolSpecs = {
     name: "dream_run",
     schema: emptyInputSchema,
     description:
-      "Run Dream Mode now, like the web Run dream mode button: the nightly pass over your personal profiles and the team profiles you own. Merges exact and same-page duplicates, expires rows past expiresAt and archives stale browsing history (each change undoable for 30 days). Returns reason, runIds (one dreaming log row per profile) and counts. Rate limited to once an hour; returns reason rate-limited when it ran too recently.",
+      "Run Dream Mode now, like the web Run dream mode button: the nightly pass over your personal profiles and the team profiles you own. Merges exact and same-page duplicates and host-name tag spellings (see memory_tags_consolidate), expires rows past expiresAt and archives stale browsing history (each change undoable for 30 days). Returns reason, runIds (one dreaming log row per profile) and counts. Rate limited to once an hour; returns reason rate-limited when it ran too recently.",
     errorLabel: "Dream run failed",
     scopes: ["personal"],
     async run(h): Promise<unknown> {

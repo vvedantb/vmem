@@ -22,6 +22,7 @@ export const MEMORY_MANAGE_TOOL_NAMES = [
   "memory_facets",
   "memory_tag_rename",
   "memory_tag_delete",
+  "memory_tags_consolidate",
   "memory_link",
   "memory_unlink",
   "memory_history",

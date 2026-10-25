@@ -12,6 +12,7 @@ import {
   listMemoriesForClerk,
   listMemoriesForTeamProfile,
 } from "../memoryRuntime";
+import { consolidateProfileTags } from "../tagConsolidate";
 import { readUploadBlob } from "./fileOps";
 import {
   loadMemoryForMcpScope,
@@ -63,6 +64,8 @@ const memoryTagDeleteSchema = z.object({
     .describe("Must be true: removes the tag from every memory in the profile"),
   profileId: profileIdParam,
 });
+
+const memoryTagsConsolidateSchema = z.object({ profileId: profileIdParam });
 
 const memoryLinkSchema = z.object({
   memoryIdA: z.string().describe("First memory ID"),
@@ -288,6 +291,18 @@ export const memoryManageToolSpecs = {
         );
         return { tag: params.tag, updated, truncated };
       });
+    },
+  }),
+  memory_tags_consolidate: toolSpec({
+    name: "memory_tags_consolidate",
+    schema: memoryTagsConsolidateSchema,
+    description:
+      "Merge near-duplicate host-name tags in a profile into one brand tag, e.g. wwwyoutubecom and youtubecom into youtube. Same merge as Dream Mode and the Dreaming page cleanup; no AI. Safe to repeat: a second run merges nothing. Returns groupsMerged, tagsRemoved, memoriesRetagged, scannedRows, truncated and the merges (keeper and losers).",
+    errorLabel: "Consolidate tags failed",
+    async run(h, params): Promise<unknown> {
+      return inScope(h, params.profileId, (scope) =>
+        consolidateProfileTags(h.ctx, { profileId: scope.profileId }),
+      );
     },
   }),
   memory_link: toolSpec({

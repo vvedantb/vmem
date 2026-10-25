@@ -228,6 +228,35 @@ describe("MCP memory parity tools (convex-test backend)", () => {
     );
   });
 
+  it("memory_tags_consolidate merges host-name tags in the caller's profile only and is idempotent", async () => {
+    const { alice, bob } = await twoUsers();
+    await add(alice, { title: "Y1", tags: ["wwwyoutubecom", "video"] });
+    await add(alice, { title: "Y2", tags: ["youtubecom"] });
+    await add(alice, { title: "Y3", tags: ["youtube", "wwwyoutubecom"] });
+    const bobMemory = await add(bob, { title: "B1", tags: ["wwwyoutubecom"] });
+
+    expect(await alice.call("memory_tags_consolidate", {})).toMatchObject({
+      groupsMerged: 1,
+      tagsRemoved: 2,
+      memoriesRetagged: 3,
+      truncated: false,
+      merges: [{ keeper: "youtube", losers: ["wwwyoutubecom", "youtubecom"] }],
+    });
+    const facets = facetsSchema.parse(await alice.call("memory_facets", {}));
+    expect(facets.tags.map((tag) => [tag.tag, tag.count])).toEqual([
+      ["video", 1],
+      ["youtube", 3],
+    ]);
+    expect(await alice.call("memory_tags_consolidate", {})).toMatchObject({
+      groupsMerged: 0,
+      memoriesRetagged: 0,
+    });
+    expect(
+      memoryRowSchema.parse(await bob.call("memory_get", { id: bobMemory }))
+        .tags,
+    ).toEqual(["wwwyoutubecom"]);
+  });
+
   it("memory_link / memory_unlink and memory_graph neighbours, tag edges, filters and cursor", async () => {
     const { alice, bob } = await twoUsers();
     const a = await add(alice, { title: "Apple pie", tags: ["x"] });
