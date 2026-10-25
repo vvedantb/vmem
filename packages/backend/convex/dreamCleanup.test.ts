@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import type * as Ai from "ai";
 import { convexTest } from "convex-test";
+import { ConvexError } from "convex/values";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MEMORY_EMBEDDING_DIMENSIONS } from "../engine/memory/searchableText";
 import { api, internal } from "./_generated/api";
@@ -8,6 +9,19 @@ import type { Doc, Id } from "./_generated/dataModel";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
+
+// convex-test may JSON-encode ConvexError data; decode it back
+function convexErrorData(err: unknown): unknown {
+  if (!(err instanceof ConvexError)) return undefined;
+  const data: unknown = err.data;
+  if (typeof data !== "string") return data;
+  try {
+    const parsed: unknown = JSON.parse(data);
+    return parsed;
+  } catch {
+    return data;
+  }
+}
 
 const NOW = Date.parse("2026-10-20T03:00:00Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -692,26 +706,31 @@ describe("dreamCleanup web", () => {
     await addMemory(t, owner, { contentHash: "h" });
     const planId = await dryRun(t, owner);
 
-    await expect(
-      asStranger.mutation(api.dreamCleanup.applyCleanup, { runId: planId }),
-    ).rejects.toThrow("Dream run not found");
-    await expect(
-      asStranger.mutation(api.dreamCleanup.startDryRun, {
-        profileId: owner.profileId,
-      }),
-    ).rejects.toThrow("Profile not found");
+    const strangerApply = await asStranger
+      .mutation(api.dreamCleanup.applyCleanup, { runId: planId })
+      .catch((err: unknown) => err);
+    expect(strangerApply).toBeInstanceOf(ConvexError);
+    expect(convexErrorData(strangerApply)).toBe("Dream run not found");
+    const strangerScan = await asStranger
+      .mutation(api.dreamCleanup.startDryRun, { profileId: owner.profileId })
+      .catch((err: unknown) => err);
+    expect(strangerScan).toBeInstanceOf(ConvexError);
+    expect(convexErrorData(strangerScan)).toBe("Profile not found");
     expect(
       await asStranger.query(api.dreamCleanup.latestForProfile, {
         profileId: owner.profileId,
       }),
     ).toBeNull();
-    await expect(
-      t
-        .withIdentity({ subject: owner.clerkId })
-        .mutation(api.dreamCleanup.startDryRun, {
-          profileId: owner.profileId,
-        }),
-    ).rejects.toThrow("last hour");
+    const cooldown = await t
+      .withIdentity({ subject: owner.clerkId })
+      .mutation(api.dreamCleanup.startDryRun, { profileId: owner.profileId })
+      .catch((err: unknown) => err);
+    expect(cooldown).toBeInstanceOf(ConvexError);
+    const data = convexErrorData(cooldown);
+    expect(data).toMatchObject({
+      message: expect.stringContaining("last hour"),
+      nextAllowedAt: expect.any(Number),
+    });
   });
 
   it("sends Jev groups to the inbox even with auto-accept on", async () => {

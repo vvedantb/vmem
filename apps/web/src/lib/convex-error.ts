@@ -1,5 +1,12 @@
 import { ConvexError } from "convex/values";
 
+function localHourMinute(ms: number): string {
+  return new Date(ms).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function convexPayloadMessage(data: unknown): string | undefined {
   if (typeof data === "string") {
     let value = data.trim();
@@ -12,6 +19,15 @@ function convexPayloadMessage(data: unknown): string | undefined {
       }
     }
     return value.length > 0 ? value : undefined;
+  }
+  if (
+    typeof data === "object" &&
+    data !== null &&
+    "nextAllowedAt" in data &&
+    typeof data.nextAllowedAt === "number" &&
+    Number.isFinite(data.nextAllowedAt)
+  ) {
+    return `You can scan again at ${localHourMinute(data.nextAllowedAt)}`;
   }
   if (
     typeof data === "object" &&

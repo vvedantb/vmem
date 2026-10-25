@@ -148,3 +148,21 @@ export function cleanupCardState<Id extends string>(
     ai,
   };
 }
+
+// Must match WEB_DRY_RUN_GAP_MS in packages/backend/convex/dreamCleanup.ts
+export const WEB_DRY_RUN_GAP_MS = 60 * 60 * 1000;
+
+export function scanCooldownUntil(
+  startedAt: number,
+  nowMs: number,
+): number | null {
+  const nextAllowedAt = startedAt + WEB_DRY_RUN_GAP_MS;
+  return nowMs < nextAllowedAt ? nextAllowedAt : null;
+}
+
+export function formatScanAgainAt(untilMs: number): string {
+  return new Date(untilMs).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

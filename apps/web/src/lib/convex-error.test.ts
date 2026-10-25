@@ -3,6 +3,20 @@ import { describe, expect, it } from "vitest";
 import { convexErrorMessage } from "./convex-error";
 
 describe("convexErrorMessage", () => {
+  it("formats nextAllowedAt as a local time", () => {
+    const nextAllowedAt = Date.parse("2026-10-20T19:58:00");
+    const local = new Date(nextAllowedAt).toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    expect(
+      convexErrorMessage(
+        new ConvexError({ message: "A cleanup ran", nextAllowedAt }),
+        "Scan failed to start",
+      ),
+    ).toBe(`You can scan again at ${local}`);
+  });
+
   it("prefers ConvexError data", () => {
     expect(
       convexErrorMessage(

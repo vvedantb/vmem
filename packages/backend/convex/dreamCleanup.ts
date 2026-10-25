@@ -1,4 +1,4 @@
-import { v, type Infer, type ObjectType } from "convex/values";
+import { ConvexError, v, type Infer, type ObjectType } from "convex/values";
 import {
   judgeDuplicateGroup,
   type JevDuplicateVerdict,
@@ -39,6 +39,7 @@ import {
 } from "./_generated/server";
 import { authMutation, authQuery, getUserByClerkId } from "./auth";
 import { dreamSpentTodayUsd, mergeGroup, proposeDreamChange } from "./dream";
+import { userFacingError } from "./lib/userFacingError";
 import { resolveSystemOneApiKey } from "./lib/systemOneKey";
 import { scheduleLog } from "./lib/openRouter/shared";
 import {
@@ -1251,14 +1252,17 @@ export const startDryRun = authMutation({
       profile.userId !== ctx.userId ||
       profile.teamId !== undefined
     ) {
-      throw new Error("Profile not found");
+      userFacingError("Profile not found");
     }
     const latest = await latestCleanupRun(ctx, ctx.userId, profile._id);
     if (latest?.status === "running") {
-      throw new Error("A cleanup is already running");
+      userFacingError("A cleanup is already running");
     }
     if (latest && Date.now() - latest.startedAt < WEB_DRY_RUN_GAP_MS) {
-      throw new Error("A cleanup ran in the last hour. Try again later.");
+      throw new ConvexError({
+        message: "A cleanup ran in the last hour. Try again later.",
+        nextAllowedAt: latest.startedAt + WEB_DRY_RUN_GAP_MS,
+      });
     }
     const { useAi } = dreamSettingsOf(await getSettingsDoc(ctx, ctx.userId));
     return await startPlan(ctx, {
@@ -1280,11 +1284,11 @@ export const applyCleanup = authMutation({
   handler: async (ctx, args) => {
     const plan = await ctx.db.get(args.runId);
     if (!plan || plan.userId !== ctx.userId || !plan.profileId) {
-      throw new Error("Dream run not found");
+      userFacingError("Dream run not found");
     }
     const latest = await latestCleanupRun(ctx, ctx.userId, plan.profileId);
     if (latest?._id !== plan._id) {
-      throw new Error("This cleanup was already applied");
+      userFacingError("This cleanup was already applied");
     }
     return await applyPlanBatch(ctx, {
       runId: plan._id,
