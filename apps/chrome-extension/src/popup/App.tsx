@@ -17,6 +17,7 @@ import {
 } from "@tabler/icons-react";
 import { CLERK_SYNC_HOST } from "@/lib/constants";
 import {
+  AppMark,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -29,7 +30,6 @@ import {
 } from "@vvedantb/ui";
 import { api } from "@vmem/backend";
 import { SettingsForm } from "./_components/SettingsForm";
-import { VmemLogo } from "./_components/VmemLogo";
 import { QuickSave } from "./_components/QuickSave";
 import { ImportPanel } from "./_components/ImportPanel";
 import { TokenSync } from "./_components/TokenSync";
@@ -155,7 +155,7 @@ export function App() {
     <div className="flex h-full flex-col overflow-hidden bg-background font-sans text-foreground">
       <header className="flex items-center justify-between bg-surface px-5 py-3.5">
         <span className="flex items-center gap-2">
-          <VmemLogo />
+          <AppMark app="vmem" size={18} className="text-foreground" />
           <span className="text-lg font-semibold leading-none tracking-tight">
             v<span className="italic">mem</span>
           </span>

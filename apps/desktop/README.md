@@ -132,6 +132,6 @@ Users see **vmem**: `productName: vmem` (window title, installer, Start Menu, Ap
 
 There is no `electron-updater`, `publish` block or `latest*.yml` in this repo, so the rename changes no update feed. On Windows the unpacked app is now `release/win-unpacked/vmem.exe`, and the workflow checks that name.
 
-Icons live in `assets/`: `icon.png` (Linux, BrowserWindow), `icon.icns` (macOS), `icon.ico` (Windows), `tray.png` and `tray@2x.png` (Windows and Linux tray) and `trayTemplate.png` and `trayTemplate@2x.png` (macOS menu bar template, monochrome). `pnpm --filter @vmem/desktop icons` regenerates them from `apps/web/public/icon.png` and the `VmemLogo` paths. The files are committed, so CI needs no `iconutil`.
+Icons live in `assets/`: `icon.png` (Linux, BrowserWindow), `icon.icns` (macOS), `icon.ico` (Windows), `tray.png` and `tray@2x.png` (Windows and Linux tray) and `trayTemplate.png` and `trayTemplate@2x.png` (macOS menu bar template, monochrome). `pnpm --filter @vmem/desktop icons` regenerates them from `apps/web/public/icon.png` and the shared `@vvedantb/ui/brand` vmem mark. The files are committed, so CI needs no `iconutil`.
 
 Releases: push a tag `desktop-v*` or run the `Desktop` workflow manually. Windows and macOS build on native runners, then a `publish` job creates the GitHub Release. Installers are unsigned.

@@ -1,7 +1,7 @@
 // AI-generated (Claude), prompt: "vmem logo spinner as a branded loading indicator"
 // Modified by me: size prop and currentcolor styling
 import { cn } from "@vvedantb/ui";
-import { VmemPaths } from "./VmemPaths";
+import { VMEM_MARK_VIEWBOX, VmemPaths } from "./VmemPaths";
 
 interface VmemSpinnerProps {
   // pixel size for both width and height
@@ -16,7 +16,7 @@ export function VmemSpinner({ size = 24, className }: VmemSpinnerProps) {
     <svg
       width={size}
       height={size}
-      viewBox="0 0 210 204"
+      viewBox={VMEM_MARK_VIEWBOX}
       role="status"
       aria-label="Loading"
       className={cn("vmem-sequencer", className)}
