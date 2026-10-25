@@ -16,7 +16,8 @@ function convexErrorData(err: unknown): unknown {
   const data: unknown = err.data;
   if (typeof data !== "string") return data;
   try {
-    return JSON.parse(data);
+    const parsed: unknown = JSON.parse(data);
+    return parsed;
   } catch {
     return data;
   }
