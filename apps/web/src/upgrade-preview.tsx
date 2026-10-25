@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import {
   AppMark,
+  Button,
   PricingModal,
   RailTile,
   SidebarUpgradeCard,
@@ -25,35 +26,37 @@ function Preview() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-background text-foreground">
+      <div className="min-h-dvh bg-background text-foreground">
         <div className="flex items-center gap-3 border-b border-separator px-4 py-3">
           <AppMark app="vmem" size={22} className="text-foreground" />
           <span className="text-lg font-semibold leading-none">vmem</span>
           <div className="ml-auto flex gap-2">
-            <button
+            <Button
               type="button"
+              size="sm"
+              variant="outline"
               data-testid="toggle-theme"
-              className="rounded-md border border-separator px-3 py-1 text-sm"
               onClick={() => setIsDark((v) => !v)}
             >
               {isDark ? "Light" : "Dark"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="sm"
+              variant="outline"
               data-testid="toggle-collapse"
-              className="rounded-md border border-separator px-3 py-1 text-sm"
               onClick={() => setCollapsed((v) => !v)}
             >
               {collapsed ? "Expand" : "Collapse"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="sm"
               data-testid="open-pricing"
-              className="rounded-md bg-foreground px-3 py-1 text-sm text-background"
               onClick={() => setPricingOpen(true)}
             >
               Open pricing
-            </button>
+            </Button>
           </div>
         </div>
 
