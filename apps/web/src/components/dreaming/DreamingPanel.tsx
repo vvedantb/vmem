@@ -27,8 +27,10 @@ import {
   dreamActionKindLabel,
   dreamRunCountParts,
   dreamTriggerLabel,
+  formatScanAgainAt,
   groupDreamActionsByKind,
   plural,
+  scanCooldownUntil,
   type DreamAction,
   type DreamRun,
 } from "./_dreamingUtils";
@@ -81,14 +83,22 @@ export function DreamingActions() {
 function ScanForDuplicatesButton() {
   const profile = useActiveProfile();
   const startDryRun = useMutation(api.dreamCleanup.startDryRun);
+  const latest = useQuery(api.dreamCleanup.latestForProfile, {
+    profileId: profile._id,
+  });
   const { submitting, run } = useAsyncSubmit();
   if (profile.teamId !== undefined) return null;
+  const until = latest ? scanCooldownUntil(latest.startedAt, Date.now()) : null;
+  const hint =
+    until === null ? null : `You can scan again at ${formatScanAgainAt(until)}`;
+  const coolingDown = until !== null || latest?.status === "running";
   return (
     <Button
       type="button"
       size="sm"
       variant="outline"
-      disabled={submitting}
+      title={hint ?? undefined}
+      disabled={submitting || coolingDown}
       onClick={() => {
         void run(async () => {
           await startDryRun({ profileId: profile._id });
@@ -96,7 +106,7 @@ function ScanForDuplicatesButton() {
         }, "Scan failed to start");
       }}
     >
-      Scan for duplicates
+      {hint ?? "Scan for duplicates"}
     </Button>
   );
 }

@@ -6,6 +6,9 @@ import {
   canUndoDreamAction,
   cleanupCardState,
   dreamRunCountParts,
+  formatScanAgainAt,
+  scanCooldownUntil,
+  WEB_DRY_RUN_GAP_MS,
   groupDreamActionsByKind,
   type DreamAction,
   type DreamRun,
@@ -245,5 +248,22 @@ describe("dreaming surfaces", () => {
     expect(read("../_components/MemoryVirtuosoList.tsx")).toContain(
       "api.dream.lastSuccessfulRunAt",
     );
+  });
+});
+
+describe("scan cooldown", () => {
+  it("returns the next allowed time while cooling down", () => {
+    expect(scanCooldownUntil(1_000, 1_000 + WEB_DRY_RUN_GAP_MS - 1)).toBe(
+      1_000 + WEB_DRY_RUN_GAP_MS,
+    );
+  });
+
+  it("returns null once the gap has passed", () => {
+    expect(scanCooldownUntil(1_000, 1_000 + WEB_DRY_RUN_GAP_MS)).toBeNull();
+  });
+
+  it("formats a local hour and minute", () => {
+    const until = Date.parse("2026-10-20T19:58:00");
+    expect(formatScanAgainAt(until)).toMatch(/19:58|7:58/);
   });
 });
