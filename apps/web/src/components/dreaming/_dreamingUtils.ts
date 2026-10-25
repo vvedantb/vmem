@@ -49,19 +49,30 @@ const COUNT_LABELS: readonly [keyof DreamCounts, string][] = [
 ];
 
 export function dreamRunCountParts(
-  run: Pick<DreamRun, "dryRun" | "cleanup" | "counts">,
+  run: Pick<DreamRun, "dryRun" | "cleanup" | "counts" | "sample">,
 ): string[] {
   if (run.dryRun && run.cleanup) {
+    const tagGroups = (run.sample ?? []).filter(
+      (group) => group.rule === "tag",
+    ).length;
     return [
-      `${plural(run.cleanup.rowsToSuppress, "duplicate row")} in ${plural(run.cleanup.groups, "group")}`,
+      ...(run.cleanup.groups > 0
+        ? [
+            `${plural(run.cleanup.rowsToSuppress, "duplicate row")} in ${plural(run.cleanup.groups, "group")}`,
+          ]
+        : []),
+      ...(tagGroups > 0
+        ? [`${plural(tagGroups, "duplicate tag group")}`]
+        : []),
       ...(run.counts.aiFlagged > 0
         ? [`${String(run.counts.aiFlagged)} AI flagged`]
         : []),
     ];
   }
-  return COUNT_LABELS.flatMap(([key, label]) =>
-    run.counts[key] > 0 ? [`${String(run.counts[key])} ${label}`] : [],
-  );
+  return COUNT_LABELS.flatMap(([key, label]) => {
+    const n = run.counts[key];
+    return n !== undefined && n > 0 ? [`${String(n)} ${label}`] : [];
+  });
 }
 
 export function plural(count: number, word: string): string {
@@ -100,6 +111,7 @@ export type CleanupCardState<Id extends string = DreamRun["_id"]> =
       rows: number;
       groups: number;
       deterministic: DreamSampleGroup[];
+      tags: DreamSampleGroup[];
       ai: DreamSampleGroup[];
     }
   | { kind: "applying" };
@@ -119,14 +131,20 @@ export function cleanupCardState<Id extends string>(
   if (!run.dryRun || run.status === "failed") return { kind: "none" };
   const sample = run.sample ?? [];
   const ai = sample.filter((group) => group.rule === "near_dup");
+  const tags = sample.filter((group) => group.rule === "tag");
   const groups = run.cleanup?.groups ?? 0;
-  if (groups === 0 && ai.length === 0) return { kind: "none" };
+  if (groups === 0 && ai.length === 0 && tags.length === 0) {
+    return { kind: "none" };
+  }
   return {
     kind: "pending",
     runId: run._id,
     rows: run.cleanup?.rowsToSuppress ?? 0,
     groups,
-    deterministic: sample.filter((group) => group.rule !== "near_dup"),
+    deterministic: sample.filter(
+      (group) => group.rule !== "near_dup" && group.rule !== "tag",
+    ),
+    tags,
     ai,
   };
 }

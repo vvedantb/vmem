@@ -80,6 +80,33 @@ describe("cleanupCardState", () => {
     });
   });
 
+  it("keeps a tag-only plan pending", () => {
+    const tag: NonNullable<DreamRun["sample"]> = [
+      {
+        rule: "tag",
+        keeperTitle: "youtube",
+        loserTitles: ["wwwyoutubecom", "youtubecom"],
+        count: 3,
+        memoryIds: [],
+      },
+    ];
+    expect(
+      cleanupCardState(
+        run({
+          dryRun: true,
+          cleanup: { ...CLEANUP, groups: 0, rowsToSuppress: 0 },
+          sample: tag,
+        }),
+      ),
+    ).toMatchObject({
+      kind: "pending",
+      groups: 0,
+      deterministic: [],
+      tags: [{ keeperTitle: "youtube" }],
+      ai: [],
+    });
+  });
+
   it("hides once applied, failed, empty or absent", () => {
     expect(cleanupCardState(null).kind).toBe("none");
     expect(cleanupCardState(run()).kind).toBe("none");
@@ -120,6 +147,23 @@ describe("dream run rows", () => {
         }),
       ),
     ).toEqual(["9 duplicate rows in 2 groups", "1 AI flagged"]);
+    expect(
+      dreamRunCountParts(
+        run({
+          dryRun: true,
+          cleanup: { ...CLEANUP, groups: 0, rowsToSuppress: 0 },
+          sample: [
+            {
+              rule: "tag",
+              keeperTitle: "youtube",
+              loserTitles: ["youtubecom"],
+              count: 2,
+              memoryIds: [],
+            },
+          ],
+        }),
+      ),
+    ).toEqual(["1 duplicate tag group"]);
   });
 
   it("groups actions by kind in a fixed order", () => {

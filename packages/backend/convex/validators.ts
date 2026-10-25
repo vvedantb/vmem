@@ -715,6 +715,8 @@ export const dreamRunFields = {
           v.literal("exact"),
           v.literal("key"),
           v.literal("near_dup"),
+          // a duplicate-tag group: keeperTitle is the kept tag
+          v.literal("tag"),
         ),
         keeperTitle: v.string(),
         count: v.number(),

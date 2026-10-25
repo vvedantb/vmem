@@ -268,6 +268,35 @@ describe("dreamCleanup dry run", () => {
     expect(evaluate).not.toHaveBeenCalled();
   });
 
+  it("plans duplicate tags when no memory is duplicated, without AI", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_tag_scan");
+    await addMemory(t, owner, { tags: ["wwwyoutubecom", "video"] });
+    await addMemory(t, owner, { tags: ["youtubecom"] });
+    await addMemory(t, owner, { tags: ["youtubecom", "youtube"] });
+    const before = await memories(t);
+
+    const run = await summary(t, await dryRun(t, owner));
+
+    expect(await memories(t)).toEqual(before);
+    expect(run).toMatchObject({
+      status: "ok",
+      aiCalls: 0,
+      cleanup: { groups: 0, rowsToSuppress: 0 },
+    });
+    expect(run.sample).toEqual([
+      {
+        rule: "tag",
+        keeperTitle: "youtube",
+        loserTitles: ["wwwyoutubecom", "youtubecom"],
+        count: 3,
+        memoryIds: [],
+        reason: "Host-name tag spellings",
+      },
+    ]);
+    expect(evaluate).not.toHaveBeenCalled();
+  });
+
   it("caps sample titles at 80 chars", async () => {
     const t = setupT();
     const owner = await addUser(t, "clerk_titles");
@@ -332,6 +361,8 @@ describe("dreamCleanup apply", () => {
     const b = await addMemory(t, owner, { tags: ["youtubecom", "youtube"] });
 
     const planId = await dryRun(t, owner);
+    // a tag-only plan: no plan groups, only the tag sample
+    expect((await summary(t, planId)).sample?.[0]?.rule).toBe("tag");
     const applyId = await apply(t, planId);
 
     expect((await getDoc(t, a)).tags).toEqual(["youtube", "video"]);

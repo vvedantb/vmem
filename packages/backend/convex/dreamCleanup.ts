@@ -20,6 +20,7 @@ import {
   type DeterministicGroup,
   type PlanRow,
 } from "../engine/memory/dream/plan";
+import { planTagMerges } from "../engine/memory/dream/tagConsolidate";
 import {
   DREAM_DAILY_BUDGET_USD,
   emptyDreamCounts,
@@ -44,6 +45,7 @@ import {
   memoryReadScopeFromArgs,
   paginateScopedDocs,
 } from "./memoryStore/helpers";
+import { collectTagCounts } from "./tagConsolidate";
 import { walkPages } from "./memoryStore/walk";
 import { dreamSettingsOf, getSettingsDoc } from "./userSettings";
 import {
@@ -78,6 +80,7 @@ const PLAN_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 // web "Scan for duplicates": at most one cleanup start per hour
 const WEB_DRY_RUN_GAP_MS = 60 * 60 * 1000;
 const PURGE_BATCH = 500;
+const SAMPLE_TAG_GROUPS = 20;
 
 type MemoryId = Id<"memories">;
 type RunId = Id<"dreamRuns">;
@@ -593,12 +596,28 @@ async function planRun(
     if (cleanup.aiSkipped > 0) cleanup.aiStopReason = "cap";
   }
 
+  // deterministic host-name tag groups; the merge itself runs on apply
+  const { tagCounts } = await collectTagCounts(ctx, args.scope.profileId);
+  const tagSample = planTagMerges(tagCounts.keys())
+    .slice(0, SAMPLE_TAG_GROUPS)
+    .map(
+      (merge): SampleItem => ({
+        rule: "tag",
+        keeperTitle: merge.keeper,
+        loserTitles: merge.losers,
+        count: merge.losers.reduce((n, t) => n + (tagCounts.get(t) ?? 0), 0),
+        memoryIds: [],
+        reason: "Host-name tag spellings",
+      }),
+    );
+
   await ctx.runMutation(internal.dreamCleanup.recordScanInternal, {
     runId: args.runId,
     cleanup,
-    sample: groups
-      .slice(0, SAMPLE_DETERMINISTIC_GROUPS)
-      .map(deterministicSample),
+    sample: [
+      ...groups.slice(0, SAMPLE_DETERMINISTIC_GROUPS).map(deterministicSample),
+      ...tagSample,
+    ],
     ...(truncated
       ? { error: `scan stopped at ${String(MAX_PLAN_ROWS)} rows` }
       : {}),
