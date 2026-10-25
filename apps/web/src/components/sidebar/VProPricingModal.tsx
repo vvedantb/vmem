@@ -3,6 +3,8 @@ import { CheckoutButton } from "@clerk/clerk-react/experimental";
 import { PricingModal } from "@vvedantb/ui";
 import { V_PRO_CLERK_PLAN_ID, V_PRO_COPY } from "@/lib/vPlan";
 
+const PRO_PLAN_ID = "pro";
+
 export function VProPricingModal({
   open,
   onClose,
@@ -10,30 +12,48 @@ export function VProPricingModal({
   open: boolean;
   onClose: () => void;
 }) {
+  const { free, pro } = V_PRO_COPY;
   return (
     <PricingModal
       open={open}
       onClose={onClose}
-      title={V_PRO_COPY.title}
-      description={V_PRO_COPY.description}
-      logo={{ dark: "/icon.png", light: "/icon.png" }}
-      wordmark="vmem"
-      price={V_PRO_COPY.pricePerMonth}
-      yearly={V_PRO_COPY.yearly}
+      title="V plans"
+      apps={["vibot", "verve", "velth", "vmem", "vhub"]}
+      headline={V_PRO_COPY.headline}
+      finePrint={V_PRO_COPY.finePrint}
       defaultBillingPeriod="year"
-      tagline={V_PRO_COPY.tagline}
-      features={V_PRO_COPY.features}
-      ctaLabel="Get V Pro"
-      renderCheckout={(button, period) => (
-        <SignedIn>
-          <CheckoutButton
-            planId={V_PRO_CLERK_PLAN_ID}
-            planPeriod={period === "year" ? "annual" : "month"}
-          >
-            {button}
-          </CheckoutButton>
-        </SignedIn>
-      )}
+      plans={[
+        {
+          id: "free",
+          name: free.name,
+          price: free.price,
+          current: true,
+          benefits: free.benefits.map((label) => ({ label })),
+        },
+        {
+          id: PRO_PLAN_ID,
+          name: pro.name,
+          price: pro.price,
+          featured: true,
+          ctaLabel: pro.ctaLabel,
+          intro: pro.intro,
+          benefits: pro.benefits.map((label) => ({ label })),
+        },
+      ]}
+      renderCheckout={(button, plan, period) =>
+        plan.id === PRO_PLAN_ID ? (
+          <SignedIn>
+            <CheckoutButton
+              planId={V_PRO_CLERK_PLAN_ID}
+              planPeriod={period === "year" ? "annual" : "month"}
+            >
+              {button}
+            </CheckoutButton>
+          </SignedIn>
+        ) : (
+          button
+        )
+      }
     />
   );
 }

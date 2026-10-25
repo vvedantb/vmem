@@ -1,5 +1,6 @@
 import { formatCompactNumber } from "@vmem/shared";
-import { cn } from "@vvedantb/ui";
+import { cn, SidebarUpgradeCard } from "@vvedantb/ui";
+import { useHasVPlan } from "@/lib/vPlan";
 
 export interface SidebarStats {
   addedToday: number;
@@ -56,18 +57,26 @@ export type SidebarFooterProps = {
   isMobile: boolean;
   stats: SidebarStats;
   showStats: boolean;
+  onUpgrade: () => void;
 };
 
 export function SidebarFooter({
   isMobile,
   stats,
   showStats,
+  onUpgrade,
 }: SidebarFooterProps) {
-  if (!showStats) return null;
+  const hasPro = useHasVPlan();
+  if (!showStats && hasPro) return null;
 
   return (
-    <div className={cn("pt-3", isMobile ? "pb-1" : "pb-3")}>
-      <StatsCard stats={stats} />
+    <div className={cn("space-y-3 pt-3", isMobile ? "pb-1" : "pb-3")}>
+      {showStats ? <StatsCard stats={stats} /> : null}
+      {hasPro ? null : (
+        <div className="px-2">
+          <SidebarUpgradeCard onUpgrade={onUpgrade} />
+        </div>
+      )}
     </div>
   );
 }

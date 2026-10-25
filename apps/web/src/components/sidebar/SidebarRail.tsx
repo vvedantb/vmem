@@ -8,9 +8,11 @@ import {
   RailTile,
   SettingsIcon,
   SidebarRail,
+  SidebarUpgradeCard,
   Skeleton,
   railBadgeClass,
 } from "@vvedantb/ui";
+import { useHasVPlan } from "@/lib/vPlan";
 import type { NavHref, NavItem } from "./types";
 import {
   homeRailHref,
@@ -87,6 +89,7 @@ export type VmemSidebarRailProps = {
   isAuthLoading: boolean;
   onToggleCollapse: () => void;
   onOpenSearch: () => void;
+  onUpgrade: () => void;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 };
 
@@ -102,8 +105,10 @@ export function VmemSidebarRail({
   isAuthLoading,
   onToggleCollapse,
   onOpenSearch,
+  onUpgrade,
   onNavigate,
 }: VmemSidebarRailProps) {
+  const hasPro = useHasVPlan();
   const homePath = navHrefToPath(homeRailHref satisfies NavHref, profileId);
   const homeActive = railSectionFromPathname(pathname) === "home";
   const settingsPath = navHrefToPath(settingsRailItem.href, profileId);
@@ -117,6 +122,9 @@ export function VmemSidebarRail({
   // sit on the outer edge against the floating main content.
   const showRailPanelDivider =
     !isPanelHidden && !(layout === "desktop" && isCollapsed);
+  // The full card lives in the panel. Without a visible panel, use the rail.
+  const showRailUpgrade =
+    !hasPro && layout === "desktop" && (isCollapsed || isPanelHidden);
 
   return (
     <SidebarRail
@@ -152,10 +160,13 @@ export function VmemSidebarRail({
           <RailTile label="Search" onClick={onOpenSearch}>
             <IconSearch className="size-[22px]" />
           </RailTile>
+          {showRailUpgrade ? (
+            <SidebarUpgradeCard collapsed onUpgrade={onUpgrade} />
+          ) : null}
           {isAuthLoading ? (
             <Skeleton className="size-11 rounded-lg" />
           ) : (
-            <SidebarUserMenu />
+            <SidebarUserMenu onUpgrade={onUpgrade} />
           )}
           <RailTile
             asChild

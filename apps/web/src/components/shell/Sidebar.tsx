@@ -17,6 +17,7 @@ import {
   type SidebarStats,
 } from "@/components/sidebar/SidebarFooter";
 import { SidebarWorkspaceSwitcher } from "@/components/sidebar/SidebarWorkspaceSwitcher";
+import { VProPricingModal } from "@/components/sidebar/VProPricingModal";
 import { VmemSidebarRail } from "@/components/sidebar/SidebarRail";
 import {
   panelTitleBySection,
@@ -26,6 +27,7 @@ import {
 } from "@/components/sidebar/nav-config";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
+import { useHasVPlan } from "@/lib/vPlan";
 import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
 
 function renderMobileMenuIcon(open: boolean) {
@@ -51,6 +53,9 @@ export default function Sidebar({
   const hidePanel = railSectionHidesPanel(section);
   const panelSection = hidePanel ? null : section;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pricingOpen, setPricingOpen] = useState(false);
+  const hasPro = useHasVPlan();
+  const openPricing = () => setPricingOpen(true);
   const [headerTrailing, setHeaderTrailing] = useState<HTMLDivElement | null>(
     null,
   );
@@ -134,68 +139,78 @@ export default function Sidebar({
   const showStats = showWorkspaceSwitcher;
 
   return (
-    <AppSidebar
-      isDesktop={isDesktopViewport}
-      collapsed={isCollapsed}
-      panelHidden={hidePanel}
-      mobileOpen={mobileMenuOpen}
-      onMobileOpenChange={setMobileMenuOpen}
-      asideProps={{ "data-vt": VIEW_TRANSITION_TARGET.sidebar }}
-      mobileTitle={pageTitle}
-      mobileMenuIcon={renderMobileMenuIcon}
-      rail={
-        <VmemSidebarRail
-          layout={layout}
-          pathname={pathname}
-          profileId={activeProfileId}
-          isTeamWorkspace={isTeamWorkspace}
-          unreadCount={unreadCount}
-          proposalsCount={proposalsCount}
-          isCollapsed={isCollapsed}
-          isPanelHidden={hidePanel}
-          isAuthLoading={isAuthLoading}
-          onToggleCollapse={onToggleCollapse}
-          onOpenSearch={onOpenSearch}
-          onNavigate={closeMobileMenu}
-        />
-      }
-      panel={
-        panelSection === null ? null : (
-          <SidebarHeaderTrailingProvider target={headerTrailing}>
-            <SidebarPanel
-              title={panelTitleBySection[panelSection]}
-              collapsed={isCollapsed}
-              headerTrailing={
-                <div ref={setHeaderTrailing} className="flex items-center" />
-              }
-              onClose={isDesktopViewport ? undefined : closeMobileMenu}
-              closeButtonClassName="transition-colors"
-            >
-              {showWorkspaceSwitcher ? (
-                <div className="mb-4 px-4">
-                  <SidebarWorkspaceSwitcher
-                    collapsed={false}
+    <>
+      <AppSidebar
+        isDesktop={isDesktopViewport}
+        collapsed={isCollapsed}
+        panelHidden={hidePanel}
+        mobileOpen={mobileMenuOpen}
+        onMobileOpenChange={setMobileMenuOpen}
+        asideProps={{ "data-vt": VIEW_TRANSITION_TARGET.sidebar }}
+        mobileTitle={pageTitle}
+        mobileMenuIcon={renderMobileMenuIcon}
+        rail={
+          <VmemSidebarRail
+            layout={layout}
+            pathname={pathname}
+            profileId={activeProfileId}
+            isTeamWorkspace={isTeamWorkspace}
+            unreadCount={unreadCount}
+            proposalsCount={proposalsCount}
+            isCollapsed={isCollapsed}
+            isPanelHidden={hidePanel}
+            isAuthLoading={isAuthLoading}
+            onToggleCollapse={onToggleCollapse}
+            onOpenSearch={onOpenSearch}
+            onUpgrade={openPricing}
+            onNavigate={closeMobileMenu}
+          />
+        }
+        panel={
+          panelSection === null ? null : (
+            <SidebarHeaderTrailingProvider target={headerTrailing}>
+              <SidebarPanel
+                title={panelTitleBySection[panelSection]}
+                collapsed={isCollapsed}
+                headerTrailing={
+                  <div ref={setHeaderTrailing} className="flex items-center" />
+                }
+                onClose={isDesktopViewport ? undefined : closeMobileMenu}
+                closeButtonClassName="transition-colors"
+              >
+                {showWorkspaceSwitcher ? (
+                  <div className="mb-4 px-4">
+                    <SidebarWorkspaceSwitcher
+                      collapsed={false}
+                      onNavigate={closeMobileMenu}
+                    />
+                  </div>
+                ) : null}
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2">
+                  <SidebarNavigation
+                    pathname={pathname}
+                    profileId={activeProfileId}
+                    isMobile={!isDesktopViewport}
                     onNavigate={closeMobileMenu}
                   />
                 </div>
-              ) : null}
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2">
-                <SidebarNavigation
-                  pathname={pathname}
-                  profileId={activeProfileId}
+                <SidebarFooter
                   isMobile={!isDesktopViewport}
-                  onNavigate={closeMobileMenu}
+                  stats={stats ?? { addedToday: 0, total: 0 }}
+                  showStats={showStats && stats !== null}
+                  onUpgrade={openPricing}
                 />
-              </div>
-              <SidebarFooter
-                isMobile={!isDesktopViewport}
-                stats={stats ?? { addedToday: 0, total: 0 }}
-                showStats={showStats && stats !== null}
-              />
-            </SidebarPanel>
-          </SidebarHeaderTrailingProvider>
-        )
-      }
-    />
+              </SidebarPanel>
+            </SidebarHeaderTrailingProvider>
+          )
+        }
+      />
+      {hasPro ? null : (
+        <VProPricingModal
+          open={pricingOpen}
+          onClose={() => setPricingOpen(false)}
+        />
+      )}
+    </>
   );
 }

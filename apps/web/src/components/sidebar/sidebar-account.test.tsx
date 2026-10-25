@@ -16,7 +16,6 @@ const clerk = vi.hoisted(() => ({
   openUserProfile: vi.fn(),
   signOut: vi.fn(async () => undefined),
 }));
-const pricing = vi.hoisted(() => ({ open: false }));
 const theme = vi.hoisted(() => ({ isDark: false, toggleTheme: vi.fn() }));
 
 vi.mock("@clerk/clerk-react", async (importOriginal) => ({
@@ -24,14 +23,6 @@ vi.mock("@clerk/clerk-react", async (importOriginal) => ({
   useUser: () => ({ user: clerk.user }),
   useAuth: () => ({ has: clerk.has, sessionClaims: null }),
   useClerk: () => clerk,
-}));
-// The real modal is pinned in VProPricingModal.test.tsx. Mounting it under the
-// open dropdown makes two Radix focus scopes fight in happy-dom.
-vi.mock("./VProPricingModal", () => ({
-  VProPricingModal: ({ open }: { open: boolean }) => {
-    pricing.open = open;
-    return null;
-  },
 }));
 vi.mock("@/contexts/ThemeContext", () => ({
   useThemeContext: () => theme,
@@ -54,6 +45,7 @@ vi.mock("@tanstack/react-router", () => ({
 
 const { SidebarUserMenu } = await import("./SidebarUserMenu");
 const { VmemSidebarRail } = await import("./SidebarRail");
+const { SidebarFooter } = await import("./SidebarFooter");
 
 function html(): string {
   return document.body.innerHTML.replace(
@@ -104,18 +96,17 @@ afterEach(async () => {
   resetDocument();
   vi.clearAllMocks();
   theme.isDark = false;
-  pricing.open = false;
   clerk.has.mockImplementation(() => false);
 });
 
 describe("SidebarUserMenu", () => {
   it("renders the closed trigger", async () => {
-    mounted = await mount(<SidebarUserMenu />);
+    mounted = await mount(<SidebarUserMenu onUpgrade={vi.fn()} />);
     expect(html()).toMatchSnapshot();
   });
 
   it("renders the open menu in light and dark mode", async () => {
-    mounted = await mount(<SidebarUserMenu />);
+    mounted = await mount(<SidebarUserMenu onUpgrade={vi.fn()} />);
     await openMenu();
     expect(html()).toMatchSnapshot("light");
     await click(button("Dark mode"));
@@ -124,32 +115,33 @@ describe("SidebarUserMenu", () => {
     await mounted.unmount();
     resetDocument();
     theme.isDark = true;
-    mounted = await mount(<SidebarUserMenu />);
+    mounted = await mount(<SidebarUserMenu onUpgrade={vi.fn()} />);
     await openMenu();
     expect(button("Light mode")).toBeTruthy();
     expect(html()).toMatchSnapshot("dark");
   });
 
   it("opens Manage account", async () => {
-    mounted = await mount(<SidebarUserMenu />);
+    mounted = await mount(<SidebarUserMenu onUpgrade={vi.fn()} />);
     await openMenu();
     await click(button("Manage account"));
     expect(clerk.openUserProfile).toHaveBeenCalledTimes(1);
   });
 
-  it("shows Upgrade and opens the pricing modal from it", async () => {
-    mounted = await mount(<SidebarUserMenu />);
+  it("shows Upgrade and calls onUpgrade from it", async () => {
+    const onUpgrade = vi.fn();
+    mounted = await mount(<SidebarUserMenu onUpgrade={onUpgrade} />);
     await openMenu();
-    expect(pricing.open).toBe(false);
+    expect(onUpgrade).not.toHaveBeenCalled();
     await click(button("Upgrade to V Pro"));
-    expect(pricing.open).toBe(true);
+    expect(onUpgrade).toHaveBeenCalledTimes(1);
   });
 
   it.each(["v_pro", "vibot_pro"])(
     "shows V Pro status instead of Upgrade for the %s plan",
     async (plan) => {
       clerk.has.mockImplementation((params) => params.plan === plan);
-      mounted = await mount(<SidebarUserMenu />);
+      mounted = await mount(<SidebarUserMenu onUpgrade={vi.fn()} />);
       await openMenu();
       expect(button("V Pro").getAttribute("aria-disabled")).toBe("true");
       expect(() => button("Upgrade to V Pro")).toThrow();
@@ -160,7 +152,7 @@ describe("SidebarUserMenu", () => {
   // the call stack (two focus scopes). Reproduces on main without this PR.
   // SignOutDialog itself is covered in @vvedantb/ui.
   it.skip("opens the sign out dialog", async () => {
-    mounted = await mount(<SidebarUserMenu />);
+    mounted = await mount(<SidebarUserMenu onUpgrade={vi.fn()} />);
     await openMenu();
     await click(button("Sign out"));
     expect(clerk.signOut).not.toHaveBeenCalled();
@@ -176,6 +168,7 @@ describe("VmemSidebarRail footer", () => {
     layout: "desktop" | "drawer",
     isCollapsed: boolean,
     onToggleCollapse = vi.fn(),
+    onUpgrade = vi.fn(),
   ) {
     return (
       <TooltipProvider>
@@ -191,6 +184,7 @@ describe("VmemSidebarRail footer", () => {
           isAuthLoading={false}
           onToggleCollapse={onToggleCollapse}
           onOpenSearch={vi.fn()}
+          onUpgrade={onUpgrade}
         />
       </TooltipProvider>
     );
@@ -219,5 +213,45 @@ describe("VmemSidebarRail footer", () => {
     await mounted.rerender(rail("desktop", true, onToggleCollapse));
     await click(button("Show sidebar"));
     expect(onToggleCollapse).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the compact upgrade card on the collapsed rail only", async () => {
+    const onUpgrade = vi.fn();
+    mounted = await mount(rail("desktop", true, vi.fn(), onUpgrade));
+    await click(button("Upgrade to Pro"));
+    expect(onUpgrade).toHaveBeenCalledTimes(1);
+
+    await mounted.rerender(rail("desktop", false, vi.fn(), onUpgrade));
+    expect(() => button("Upgrade to Pro")).toThrow();
+  });
+
+  it("hides the rail upgrade card for V Pro users", async () => {
+    clerk.has.mockImplementation((params) => params.plan === "v_pro");
+    mounted = await mount(rail("desktop", true));
+    expect(() => button("Upgrade to Pro")).toThrow();
+  });
+});
+
+describe("SidebarFooter upgrade card", () => {
+  it("opens pricing for free users and hides for V Pro", async () => {
+    const onUpgrade = vi.fn();
+    const footer = (
+      <SidebarFooter
+        isMobile={false}
+        stats={{ addedToday: 0, total: 0 }}
+        showStats={false}
+        onUpgrade={onUpgrade}
+      />
+    );
+    mounted = await mount(footer);
+    expect(document.body.textContent).toContain("Upgrade to Pro");
+    await click(button("Upgrade"));
+    expect(onUpgrade).toHaveBeenCalledTimes(1);
+
+    await mounted.unmount();
+    resetDocument();
+    clerk.has.mockImplementation((params) => params.plan === "v_pro");
+    mounted = await mount(footer);
+    expect(document.body.textContent).not.toContain("Upgrade to Pro");
   });
 });

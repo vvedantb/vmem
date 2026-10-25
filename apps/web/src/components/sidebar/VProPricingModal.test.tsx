@@ -41,6 +41,9 @@ describe("VProPricingModal", () => {
     expect(text).toContain("$10");
     expect(text).toContain("$120");
     expect(text).toContain("Save 33%");
+    expect(text).toContain("Current plan");
+    expect(text).toContain("Get V Pro");
+    expect(text).toContain("Files up to 10 GiB");
     expect(text).toContain("vibot, Verve, Velth, vmem and vhub");
     expect(checkout.props.at(-1)).toEqual({
       planId: "cplan_3LCYu8VRMwyb4BnmxzbFMomCa5R",
