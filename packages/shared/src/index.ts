@@ -32,6 +32,15 @@ export {
 } from "./settings";
 export { browseKey, browseParts, canonicalUrl } from "./browseKey";
 export {
+  applyTagMerges,
+  legacyDomainTag,
+  normalizeTags,
+  planTagMerges,
+  sanitizeTag,
+  type LegacyDomainTag,
+  type TagMerge,
+} from "./tags";
+export {
   handleNativeRangeKeyDown,
   nativeRangeKeyValue,
 } from "./nativeRangeKeys";

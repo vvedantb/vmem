@@ -222,8 +222,17 @@ describe("MCP inbox parity tools (convex-test backend)", () => {
         content: `distinct content ${id}`,
         type: "knowledge",
         source: "api",
-        tags: [...tags],
+        tags: [],
         confidence: 0.9,
+      });
+      // the write path normalises tags, so seed pre-normaliser tags raw
+      await t.run(async (ctx) => {
+        const rows = await ctx.db.query("memories").collect();
+        for (const row of rows) {
+          if (row.memoryId === `${ALICE}_${id}`) {
+            await ctx.db.patch(row._id, { tags: [...tags] });
+          }
+        }
       });
     }
     const run = dreamResultSchema.parse(

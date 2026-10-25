@@ -1,3 +1,4 @@
+import { sanitizeTag } from "@vmem/shared";
 import { truncate } from "es-toolkit/compat";
 import { sendMessage } from "@/lib/messaging";
 import { errorMessage } from "@/lib/error";
@@ -71,7 +72,7 @@ export async function savePageFromTab(
       ? htmlToMarkdownSafe(extraction.html, extraction.content)
       : extraction.content;
 
-    const hostname = new URL(tab.url).hostname;
+    const hostname = sanitizeTag(tab.url);
     const memory = await createMemory({
       title: extraction.ogTitle ?? extraction.title ?? tab.title ?? "Untitled",
       content: truncate(body || extraction.content, {

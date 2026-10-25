@@ -1,3 +1,4 @@
+import { sanitizeTag } from "@vmem/shared";
 import type { CreateMemoryParams } from "@/types/api";
 import { base64 as base64Codec } from "@scure/base";
 import { createMemory, retrieveMemories, saveScreenshot } from "./api-client";
@@ -35,7 +36,7 @@ export function savePageCreateParams(data: {
     content: contentToSave.slice(0, 10000),
     type: "knowledge",
     source: "browser-extension",
-    tags: [new URL(data.url).hostname],
+    tags: [sanitizeTag(data.url)],
     confidence: 1.0,
     url: data.url,
     profileId: data.profileId,
@@ -75,7 +76,7 @@ export function capturePromptCreateParams(data: {
     content: data.prompt.slice(0, 10000),
     type: "knowledge",
     source: "prompt-capture",
-    tags: [new URL(data.url).hostname, data.platform, "prompt"],
+    tags: [...new Set([sanitizeTag(data.url), data.platform, "prompt"])],
     confidence: 0.8,
     url: data.url,
     profileId: data.profileId,
@@ -89,7 +90,7 @@ export function saveSelectionCreateParams(data: {
 }): CreateMemoryParams {
   const trimmed = data.selectedText.trim();
   const title = trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
-  const hostname = new URL(data.pageUrl).hostname;
+  const hostname = sanitizeTag(data.pageUrl);
   return {
     title,
     content: data.selectedText.slice(0, 10000),

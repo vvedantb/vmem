@@ -1,3 +1,4 @@
+import { sanitizeTag } from "../../engine/memory/tags";
 import { z } from "zod";
 import type { MemoryType } from "@vmem/sdk";
 import { internal } from "../_generated/api";
@@ -265,7 +266,9 @@ export const memoryManageToolSpecs = {
       "Rename a tag on every memory in the profile that carries it, like Rename on the web Tags page. newTag is trimmed and lowercased. Fails if newTag already exists (rename does not merge). Returns how many memories changed.",
     errorLabel: "Rename tag failed",
     async run(h, params): Promise<unknown> {
-      const newTag = params.newTag.toLowerCase();
+      const newTag = sanitizeTag(params.newTag);
+      if (newTag.length === 0)
+        throw new Error("newTag has no usable characters");
       return inScope(h, params.profileId, async (scope) => {
         if (newTag === params.tag) {
           return { tag: params.tag, newTag, updated: 0, truncated: false };

@@ -194,7 +194,9 @@ async function loadUnpacked(): Promise<LoadResult> {
     await page.setViewport({ width: 380, height: 525 });
     const consoleLog: string[] = [];
     const pageErrors: string[] = [];
-    page.on("console", (msg) => consoleLog.push(`${msg.type()}: ${msg.text()}`));
+    page.on("console", (msg) =>
+      consoleLog.push(`${msg.type()}: ${msg.text()}`),
+    );
     page.on("pageerror", (err) => {
       pageErrors.push(err instanceof Error ? err.message : String(err));
     });

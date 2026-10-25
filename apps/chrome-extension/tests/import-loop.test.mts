@@ -206,7 +206,7 @@ await test("history params send externalId and sourceType, no visit count", () =
     source: "browsing-history",
     sourceType: "browsing-history",
     externalId: "example.com|example page",
-    tags: ["example.com"],
+    tags: ["example"],
     confidence: 0.6,
     url: "https://www.example.com/a?utm_source=x",
     profileId: "profile-1",
@@ -287,9 +287,29 @@ await test("bookmark params key on the canonical url", () => {
     source: "bookmarks",
     sourceType: "bookmarks",
     externalId: "bookmark|https://example.com/spec",
-    tags: ["Bar"],
+    tags: ["Bar", "example"],
     confidence: 0.8,
     url: "https://www.example.com/spec/?utm_campaign=x#intro",
     profileId: "profile-1",
   });
+});
+
+await test("history params tag the host brand", () => {
+  const params = historyEntryToCreateParams(
+    { url: "https://www.youtube.com/watch?v=1", title: "Clip" },
+    undefined,
+  );
+  assert.deepEqual(params?.tags, ["youtube"]);
+});
+
+await test("bookmark params add the host brand after folder tags", () => {
+  const params = bookmarkToCreateParams(
+    {
+      title: "News",
+      url: "https://www.bbc.co.uk/news",
+      folderPath: ["Reading"],
+    },
+    undefined,
+  );
+  assert.deepEqual(params.tags, ["Reading", "bbc"]);
 });
