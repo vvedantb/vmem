@@ -325,6 +325,21 @@ describe("dreamCleanup apply", () => {
     expect(pick(restored)).toEqual(pick(before));
   });
 
+  it("merges host-name tags when the apply ends, through the shared consolidator", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_apply_tags");
+    const a = await addMemory(t, owner, { tags: ["wwwyoutubecom", "video"] });
+    const b = await addMemory(t, owner, { tags: ["youtubecom", "youtube"] });
+
+    const planId = await dryRun(t, owner);
+    const applyId = await apply(t, planId);
+
+    expect((await getDoc(t, a)).tags).toEqual(["youtube", "video"]);
+    expect((await getDoc(t, a)).searchableText).toContain("youtube");
+    expect((await getDoc(t, b)).tags).toEqual(["youtube"]);
+    expect((await summary(t, applyId)).counts.tagsMerged).toBe(1);
+  });
+
   it("skips groups whose rows changed after the plan", async () => {
     const t = setupT();
     const owner = await addUser(t, "clerk_changed");

@@ -22,7 +22,8 @@ The pass runs per profile, in batches of 100 rows. It reads at most 2,000 rows p
 4. **Skill drafts (AI).** When a row of the change window records something that worked, one Qwen call may draft reusable skills. They wait as `skill` proposals (see [Skill drafts](#skill-drafts)).
 5. **Expire.** Active rows past `expiresAt` become `expired`. Pinned rows are not touched.
 6. **Decay.** Stale browsing rows are archived (see [Decay](#decay)).
-7. **Log.** The run and each change are stored in `dreamRuns` and `dreamActions`. After a nightly run that changed something, you get an inbox notification.
+7. **Tag consolidation.** Tags that are the same web site spelled differently (`wwwyoutubecom`, `youtubecom`) merge into one brand tag (`youtube`). The pass reads the whole profile (up to 50,000 rows) and retags only the memories that carry a merged tag. Then, when `dreamModeUseAi` is on and the deployment has `AI_GATEWAY_API_KEY`, Jev judges a few look-alike tags (`machine-learning`, `machinelearning`) in groups of up to four, with at most 5 calls per run. It merges only tags that Jev rates the same, into the most used one. It skips the AI step when AI is off, no key is set or the daily dream budget is spent; the host-name merge still runs. It cannot be undone; the tag is not stored elsewhere. Running it again merges nothing new. New memories get the brand tag at write time, so `www.youtube.com` is stored as `youtube`.
+8. **Log.** The run and each change are stored in `dreamRuns` and `dreamActions`. After a nightly run that changed something, you get an inbox notification.
 
 ### First run of a profile
 
@@ -106,7 +107,7 @@ Merged rows show where they came from ("merged from") on the memory.
 Nightly runs never read the full history. Duplicates that existed before Dream Mode are handled by a one-off cleanup in two steps:
 
 1. **Dry run.** **Scan for duplicates** on the Dreaming page (your personal profile only), or an operator runs `npx convex run dreamCleanup:dryRunForUser '{"clerkUserId":"user_…"}'`. It pages the profile, groups exact-hash and same-page rows, and asks Jev about a capped number of near-duplicate groups (20 calls by default, at most 200). The web scan skips Jev when `dreamModeUseAi` is off. Nothing changes. The plan is stored in `dreamPlanGroups` for 30 days. A new scan is refused while one runs and within an hour of the last one.
-2. **Apply.** The plan shows as a card above the Dreaming page tabs. Nothing is applied until the owner reviews it and chooses **Clean up**. Deterministic groups merge with undo. Jev-flagged groups go to the Proposals tab.
+2. **Apply.** The plan shows as a card above the Dreaming page tabs. Nothing is applied until the owner reviews it and chooses **Clean up**. Deterministic groups merge with undo. Jev-flagged groups go to the Proposals tab. When the last batch ends, the same tag consolidation as step 7 runs on the profile.
 
 ## Settings
 

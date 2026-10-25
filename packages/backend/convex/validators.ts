@@ -702,6 +702,8 @@ export const dreamRunFields = {
     expired: v.number(),
     archived: v.number(),
     aiFlagged: v.number(),
+    // tag groups merged by tag consolidation (absent on older runs)
+    tagsMerged: v.optional(v.number()),
   }),
   aiCalls: v.number(),
   costUsd: v.number(),

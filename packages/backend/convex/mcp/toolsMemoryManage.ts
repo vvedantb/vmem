@@ -12,6 +12,7 @@ import {
   listMemoriesForClerk,
   listMemoriesForTeamProfile,
 } from "../memoryRuntime";
+import { consolidateProfileTags } from "../tagConsolidate";
 import { readUploadBlob } from "./fileOps";
 import {
   loadMemoryForMcpScope,
@@ -21,7 +22,12 @@ import {
   withMcpMemoryScope,
   type McpResolvedScope,
 } from "./memoryScope";
-import { scopedMemory, toolSpec, type ToolHandlerContext } from "./toolTypes";
+import {
+  requireUserId,
+  scopedMemory,
+  toolSpec,
+  type ToolHandlerContext,
+} from "./toolTypes";
 
 const profileIdParam = z
   .string()
@@ -63,6 +69,8 @@ const memoryTagDeleteSchema = z.object({
     .describe("Must be true: removes the tag from every memory in the profile"),
   profileId: profileIdParam,
 });
+
+const memoryTagsConsolidateSchema = z.object({ profileId: profileIdParam });
 
 const memoryLinkSchema = z.object({
   memoryIdA: z.string().describe("First memory ID"),
@@ -288,6 +296,19 @@ export const memoryManageToolSpecs = {
         );
         return { tag: params.tag, updated, truncated };
       });
+    },
+  }),
+  memory_tags_consolidate: toolSpec({
+    name: "memory_tags_consolidate",
+    schema: memoryTagsConsolidateSchema,
+    description:
+      "Merge duplicate tags in a profile. Host-name spellings merge into one brand tag, e.g. wwwyoutubecom and youtubecom into youtube. Then, when Dream Mode AI is on and a key and budget are available, Jev judges a few look-alike tags (at most 5 calls) and merges those it rates the same tag. Same merge as Dream Mode and the Dreaming page cleanup. Safe to repeat: a second run merges nothing. Returns groupsMerged, aiGroupsMerged, aiCalls, tagsRemoved, memoriesRetagged, scannedRows, truncated and the merges (keeper and losers).",
+    errorLabel: "Consolidate tags failed",
+    async run(h, params): Promise<unknown> {
+      const userId = await requireUserId(h);
+      return inScope(h, params.profileId, (scope) =>
+        consolidateProfileTags(h.ctx, { profileId: scope.profileId, userId }),
+      );
     },
   }),
   memory_link: toolSpec({

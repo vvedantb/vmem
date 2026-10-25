@@ -74,6 +74,7 @@ import {
 import { readOpenRouterApiKey } from "./lib/openRouterKey";
 import { callJsonChatWithUsage } from "./lib/openRouter/jsonChat";
 import { LLM_MODEL, scheduleLog } from "./lib/openRouter/shared";
+import { consolidateProfileTags } from "./tagConsolidate";
 import { runGetOwnerUserIdInternal } from "./teams/auth";
 import { dreamSettingsOf, getSettingsDoc } from "./userSettings";
 import {
@@ -86,7 +87,8 @@ import {
 // Nightly dreaming (plan §3c). Per profile, in bounded batches: exact and
 // source-key dedupe over the rows changed since the last run, then the AI
 // judge over the open write-time candidates (near-dup: Jev; maybe-conflict:
-// Qwen, thinking off), expire, decay (personal profiles only), log. Every
+// Qwen, thinking off), expire, decay (personal profiles only), tag
+// consolidation, log. Every
 // change is a dreamActions row with undo. Manual "Run now" runs the same pass.
 
 const MANUAL_RATE_LIMIT_MS = 60 * 60 * 1000;
@@ -1348,6 +1350,14 @@ async function dreamProfile(
       decayThrough = stopped ? (lastSeen ?? start.decayFrom) : start.decayUntil;
       if (stopped) truncated = true;
     }
+
+    // step 6b: merge duplicate tags (host-name spellings, then Jev look-alikes) (shared with cleanup and MCP);
+    // after the batches above because they rewrite counts without tagsMerged
+    await consolidateProfileTags(ctx, {
+      profileId: args.profileId,
+      runId,
+      userId: args.userId,
+    });
 
     const counts = await ctx.runMutation(
       internal.dreaming.finishProfileRunInternal,

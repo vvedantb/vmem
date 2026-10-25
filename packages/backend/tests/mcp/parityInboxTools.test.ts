@@ -207,6 +207,37 @@ describe("MCP inbox parity tools (convex-test backend)", () => {
     );
   });
 
+  it("dream_run merges host-name tags through the shared consolidator", async () => {
+    const t = createConvexBackend();
+    const alice = await signUp(t, ALICE, "alice@example.com");
+    for (const [id, tags] of [
+      ["tag_a", ["wwwyoutubecom"]],
+      ["tag_b", ["youtubecom", "youtube"]],
+    ] as const) {
+      await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
+        memoryId: `${ALICE}_${id}`,
+        userId: ALICE,
+        profileId: alice.profileId,
+        title: id,
+        content: `distinct content ${id}`,
+        type: "knowledge",
+        source: "api",
+        tags: [...tags],
+        confidence: 0.9,
+      });
+    }
+    const run = dreamResultSchema.parse(
+      await mcpCaller(t, ALICE).call("dream_run"),
+    );
+    const rows = await t.run(async (ctx) => ctx.db.query("memories").collect());
+    expect(rows.flatMap((row) => row.tags)).toEqual(["youtube", "youtube"]);
+    const dreamRun = await t.run(async (ctx) => {
+      const runId = ctx.db.normalizeId("dreamRuns", run.runIds[0] ?? "");
+      return runId === null ? null : await ctx.db.get(runId);
+    });
+    expect(dreamRun?.counts.tagsMerged).toBe(1);
+  });
+
   it("dream_history lists the caller's recent runs with counts only", async () => {
     const t = createConvexBackend();
     const alice = await signUp(t, ALICE, "alice@example.com");

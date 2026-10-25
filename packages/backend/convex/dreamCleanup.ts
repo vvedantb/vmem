@@ -966,7 +966,8 @@ const applyArgs = {
  * Jev-flagged groups then become inbox merge proposals, or merge at once
  * (suppressedBy "dream-ai") when dreamModeAutoAccept is on and aiAsProposals
  * is not set. A group is skipped when any of its rows is gone or no longer
- * visible. Returns the apply run.
+ * visible. The last batch schedules tag consolidation (tagConsolidate.ts) for
+ * the profile. Returns the apply run.
  */
 async function applyPlanBatch(
   ctx: MutationCtx,
@@ -1064,7 +1065,14 @@ async function applyPlanBatch(
     cleanup,
     ...(next === null ? { status: "ok", finishedAt: Date.now() } : {}),
   });
-  if (next !== null) {
+  if (next === null) {
+    // last batch: the same tag merge as nightly dreaming (it needs an action)
+    await ctx.scheduler.runAfter(
+      0,
+      internal.tagConsolidate.consolidateProfileTagsInternal,
+      { profileId, runId: applyRunId, userId: plan.userId },
+    );
+  } else {
     await ctx.scheduler.runAfter(0, internal.dreamCleanup.applyInternal, {
       runId: plan._id,
       includeAi: args.includeAi,

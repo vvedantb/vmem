@@ -404,6 +404,16 @@ Remove a tag from every memory that has it. The memories stay.
 
 ---
 
+## memory_tags_consolidate
+
+Merge duplicate tags. Host-name spellings merge into one brand tag, for example `wwwyoutubecom` and `youtubecom` into `youtube`. Then, when `dreamModeUseAi` is on and the deployment has `AI_GATEWAY_API_KEY` and daily dream budget, Jev judges a few look-alike tags (at most 5 calls) and merges those it rates the same. It is the same merge as Dream Mode and the Dreaming page cleanup. Without AI only the host-name merge runs.
+
+<ParamField body="profileId" type="string" />
+
+**Returns:** `{ groupsMerged, aiGroupsMerged, aiCalls, tagsRemoved, memoriesRetagged, scannedRows, truncated, merges: [{ keeper, losers }] }`. `truncated` is `true` when the profile has more than 50,000 rows and the scan stopped.
+
+---
+
 ## memory_link
 
 Link two memories in the same profile. The link shows in the Connections tab and the graph.
@@ -557,11 +567,11 @@ Approve or reject one pending proposal.
 
 ## dream_run
 
-Personal connector only. Run the nightly [Dream Mode](/concepts/dream-mode) pass now, as the web **Run dream mode** button does: your personal profiles and the team profiles you own. It merges exact and same-page duplicates, sends open write-time candidates to the AI judge (when `dreamModeUseAi` is on and the deployment has `AI_GATEWAY_API_KEY`, within the nightly AI caps and daily budget), expires rows past `expiresAt` and archives stale browsing history. Each change can be undone for 30 days. Limited to one run per hour. No notification.
+Personal connector only. Run the nightly [Dream Mode](/concepts/dream-mode) pass now, as the web **Run dream mode** button does: your personal profiles and the team profiles you own. It merges exact and same-page duplicates, merges duplicate tags (see `memory_tags_consolidate`), sends open write-time candidates to the AI judge (when `dreamModeUseAi` is on and the deployment has `AI_GATEWAY_API_KEY`, within the nightly AI caps and daily budget), expires rows past `expiresAt` and archives stale browsing history. Each change can be undone for 30 days. Limited to one run per hour. No notification.
 
 **Parameters:** none
 
-**Returns:** `{ reason, runIds, counts: { exactMerged, keyMerged, nearDupMerged, superseded, proposals, expired, archived, aiFlagged }, failed }`. `runIds` has one dreaming log row (`dreamRuns` id) per profile; `dream_history` lists the same ids. `failed` counts profiles whose run threw. `reason` is `ok`, `rate-limited` when Dream Mode ran in the last hour, `disabled` when the deployment set `DREAM_DISABLED=1`, or `no-user`.
+**Returns:** `{ reason, runIds, counts: { exactMerged, keyMerged, nearDupMerged, superseded, proposals, expired, archived, aiFlagged, tagsMerged? }, failed }`. `runIds` has one dreaming log row (`dreamRuns` id) per profile; `dream_history` lists the same ids. `failed` counts profiles whose run threw. `reason` is `ok`, `rate-limited` when Dream Mode ran in the last hour, `disabled` when the deployment set `DREAM_DISABLED=1`, or `no-user`.
 
 ---
 
