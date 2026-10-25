@@ -42,9 +42,14 @@ describe("VProPricingModal", () => {
     expect(text).toContain("$120");
     expect(text).toContain("Save 33%");
     expect(text).toContain("Current plan");
-    expect(text).toContain("Upgrade");
     expect(text).toContain("Files up to 10 GiB");
-    expect(text).toContain("vibot, Verve, Velth, vmem and vhub");
+    expect(text).toContain("Pro in vibot, Verve, Velth, vmem and vhub");
+    expect(text).toContain("Higher limits as they launch in vmem");
+    expect(text).not.toContain("Clerk");
+    const upgradeCta = [
+      ...document.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((el) => el.textContent?.trim() === "Upgrade");
+    expect(upgradeCta).toBeTruthy();
     expect(checkout.props.at(-1)).toEqual({
       planId: "cplan_3LCYu8VRMwyb4BnmxzbFMomCa5R",
       planPeriod: "annual",
