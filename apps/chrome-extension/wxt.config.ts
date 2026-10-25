@@ -8,6 +8,12 @@ const root = import.meta.dirname;
 // skip legacy browser downleveling for clerk chunks and esbuild
 const extensionBuildTarget = "chrome120";
 
+// staging hosts ship in development builds only
+const devOnlyHostPermissions = [
+  "https://vmem-git-staging-vedantb.vercel.app/*",
+  "https://allowing-coyote-80.clerk.accounts.dev/*",
+];
+
 export default defineConfig({
   srcDir: "src",
   outDir: "dist",
@@ -16,7 +22,7 @@ export default defineConfig({
   alias: {
     "@": resolve(root, "src"),
   },
-  manifest: {
+  manifest: ({ mode }) => ({
     name: "vmem",
     description: "Memory layer for your browser",
     version: "0.2.0",
@@ -31,21 +37,19 @@ export default defineConfig({
       "history",
       "alarms",
       "scripting",
-      "identity",
       "cookies",
     ],
     host_permissions: [
       "https://vmem.projectv.uk/*",
       "https://vmem.vedantb.com/*",
-      "https://vmem-git-staging-vedantb.vercel.app/*",
       "https://clerk.projectv.uk/*",
-      "https://allowing-coyote-80.clerk.accounts.dev/*",
       "https://chat.openai.com/*",
       "https://chatgpt.com/*",
       "https://claude.ai/*",
       "https://www.youtube.com/*",
       "https://youtube.com/*",
       "<all_urls>",
+      ...(mode === "development" ? devOnlyHostPermissions : []),
     ],
     commands: {
       "save-page": {
@@ -81,7 +85,7 @@ export default defineConfig({
         matches: ["<all_urls>"],
       },
     ],
-  },
+  }),
   vite: () => ({
     plugins: [react(), tailwindcss()],
     build: {
