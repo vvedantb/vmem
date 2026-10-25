@@ -3,6 +3,7 @@ import type { PublicHttpAction, RoutableMethod } from "convex/server";
 import { describe, expect, it } from "vitest";
 import http from "./http";
 import { connectorCallback } from "./http/auth/connectorCallback";
+import { clerkWebhook } from "./http/clerk/webhook";
 import { deleteMemory } from "./http/v1Memories/delete";
 import { retrieveMemories } from "./http/v1Memories/retrieve";
 import { storeMemory } from "./http/v1Memories/store";
@@ -30,6 +31,7 @@ const EXPECTED: Array<[string, RoutableMethod, PublicHttpAction]> = [
   ["/api/v1/memories", "PATCH", updateMemory],
   ["/api/v1/memories", "POST", storeMemory],
   ["/api/v1/memories/retrieve", "POST", retrieveMemories],
+  ["/clerk/webhooks", "POST", clerkWebhook],
   ["/health", "GET", health],
   ["/mcp", "DELETE", mcpHandler],
   ["/mcp", "GET", mcpHandler],

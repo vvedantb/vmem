@@ -54,6 +54,8 @@ const schema = defineSchema({
     fullName: v.optional(v.string()),
     theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
     isAdmin: v.optional(v.boolean()),
+    // Active Clerk Billing plan slugs, synced by the /clerk/webhooks route.
+    planSlugs: v.optional(v.array(v.string())),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"]),
