@@ -62,7 +62,7 @@ export function dreamRunCountParts(
           ]
         : []),
       ...(tagGroups > 0
-        ? [`${plural(tagGroups, "duplicate tag group")}`]
+        ? [plural(tagGroups, "duplicate tag group")]
         : []),
       ...(run.counts.aiFlagged > 0
         ? [`${String(run.counts.aiFlagged)} AI flagged`]
