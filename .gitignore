@@ -68,3 +68,4 @@ packages/backend/eval/e2e-ab/results/
 
 # Desktop app packaging output
 apps/desktop/release
+.tmp-vpro-shot/
