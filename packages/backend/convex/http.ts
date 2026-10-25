@@ -1,6 +1,7 @@
 ﻿import { httpRouter } from "convex/server";
 import { registerMcpRoutes } from "@vvedantb/server";
 import { connectorCallback } from "./http/auth/connectorCallback";
+import { clerkWebhook } from "./http/clerk/webhook";
 import { deleteMemory } from "./http/v1Memories/delete";
 import { retrieveMemories } from "./http/v1Memories/retrieve";
 import { storeMemory } from "./http/v1Memories/store";
@@ -20,6 +21,12 @@ http.route({
   path: "/api/auth/connector/callback",
   method: "GET",
   handler: connectorCallback,
+});
+
+http.route({
+  path: "/clerk/webhooks",
+  method: "POST",
+  handler: clerkWebhook,
 });
 
 http.route({
