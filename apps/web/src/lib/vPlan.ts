@@ -39,7 +39,7 @@ export const V_PRO_COPY = {
 
 // True when the session says the user holds V Pro (current or legacy key).
 // The session token claims are a fallback for when `has` is not ready.
-// Nothing in vmem is gated on this yet, so it only drives the account menu.
+// Nothing in vmem is gated on this yet; it only drives the upgrade card and account menu.
 export function useHasVPlan(): boolean {
   const { has, sessionClaims } = useAuth();
   return (

@@ -51,6 +51,24 @@ describe("VProPricingModal", () => {
     });
   });
 
+  it("switches checkout to monthly when Monthly is pressed", async () => {
+    const { act } = await import("react");
+    mounted = await mount(<VProPricingModal open onClose={vi.fn()} />);
+    const monthly = [
+      ...document.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((el) => el.textContent?.trim() === "Monthly");
+    if (!monthly) throw new Error("no Monthly");
+    await act(async () => {
+      monthly.click();
+    });
+    const text = document.querySelector("[role='dialog']")?.textContent ?? "";
+    expect(text).toContain("$15");
+    expect(checkout.props.at(-1)).toEqual({
+      planId: "cplan_3LCYu8VRMwyb4BnmxzbFMomCa5R",
+      planPeriod: "month",
+    });
+  });
+
   it("renders nothing when closed", async () => {
     mounted = await mount(<VProPricingModal open={false} onClose={vi.fn()} />);
     expect(document.querySelector("[role='dialog']")).toBeNull();
