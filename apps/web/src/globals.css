@@ -48,7 +48,7 @@
 
   /* Eva/vibot shell: always-on icon rail + expandable panel. */
   --vmem-sidebar-rail-width: 4rem;
-  --vmem-sidebar-width: 20rem;
+  --vmem-sidebar-width: 22rem;
 }
 
 @media (width < 48rem) {

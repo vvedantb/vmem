@@ -26,13 +26,11 @@ export const V_PRO_COPY = {
   pro: {
     name: "V Pro",
     price: { month: "$15", year: "$10" },
-    ctaLabel: "Get V Pro",
+    ctaLabel: "Upgrade",
     intro: "Everything in Free, and:",
     benefits: [
-      "Shared V Pro on vibot, Verve, Velth, vmem and vhub",
-      "Manage billing once, on the same Clerk account",
-      "Monthly or yearly billing",
-      "Cancel anytime",
+      "Pro in vibot, Verve, Velth, vmem and vhub",
+      "Higher limits as they launch in vmem",
     ],
   },
 };

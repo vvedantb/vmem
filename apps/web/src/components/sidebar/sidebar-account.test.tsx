@@ -169,6 +169,7 @@ describe("VmemSidebarRail footer", () => {
     isCollapsed: boolean,
     onToggleCollapse = vi.fn(),
     onUpgrade = vi.fn(),
+    isPanelHidden = false,
   ) {
     return (
       <TooltipProvider>
@@ -180,7 +181,7 @@ describe("VmemSidebarRail footer", () => {
           unreadCount={0}
           proposalsCount={0}
           isCollapsed={isCollapsed}
-          isPanelHidden={false}
+          isPanelHidden={isPanelHidden}
           isAuthLoading={false}
           onToggleCollapse={onToggleCollapse}
           onOpenSearch={vi.fn()}
@@ -222,6 +223,11 @@ describe("VmemSidebarRail footer", () => {
     expect(onUpgrade).toHaveBeenCalledTimes(1);
 
     await mounted.rerender(rail("desktop", false, vi.fn(), onUpgrade));
+    expect(() => button("Upgrade to Pro")).toThrow();
+  });
+
+  it("keeps the compact upgrade card off the rail when only the panel is hidden", async () => {
+    mounted = await mount(rail("desktop", false, vi.fn(), vi.fn(), true));
     expect(() => button("Upgrade to Pro")).toThrow();
   });
 

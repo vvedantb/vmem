@@ -122,9 +122,8 @@ export function VmemSidebarRail({
   // sit on the outer edge against the floating main content.
   const showRailPanelDivider =
     !isPanelHidden && !(layout === "desktop" && isCollapsed);
-  // The full card lives in the panel. Without a visible panel, use the rail.
-  const showRailUpgrade =
-    !hasPro && layout === "desktop" && (isCollapsed || isPanelHidden);
+  // The full card lives in the panel. Use the compact card only when the panel is collapsed.
+  const showRailUpgrade = !hasPro && layout === "desktop" && isCollapsed;
 
   return (
     <SidebarRail

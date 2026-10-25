@@ -72,11 +72,7 @@ export function SidebarFooter({
   return (
     <div className={cn("space-y-3 pt-3", isMobile ? "pb-1" : "pb-3")}>
       {showStats ? <StatsCard stats={stats} /> : null}
-      {hasPro ? null : (
-        <div className="px-2">
-          <SidebarUpgradeCard onUpgrade={onUpgrade} />
-        </div>
-      )}
+      {hasPro ? null : <SidebarUpgradeCard onUpgrade={onUpgrade} />}
     </div>
   );
 }
