@@ -1,4 +1,4 @@
-import { sanitizeTag } from "@vmem/shared/tags";
+import { sanitizeTag } from "@vmem/shared";
 import { truncate } from "es-toolkit/compat";
 import { sendMessage } from "@/lib/messaging";
 import { errorMessage } from "@/lib/error";

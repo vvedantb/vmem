@@ -7,4 +7,4 @@ export {
   sanitizeTag,
   type LegacyDomainTag,
   type TagMerge,
-} from "@vmem/shared/tags";
+} from "@vmem/shared";

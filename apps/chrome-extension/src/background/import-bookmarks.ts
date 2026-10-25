@@ -1,5 +1,4 @@
-import { sanitizeTag } from "@vmem/shared/tags";
-import { canonicalUrl } from "@vmem/shared";
+import { canonicalUrl, sanitizeTag } from "@vmem/shared";
 import { createMemory } from "./api-client";
 import { hasActiveClerkSession } from "./auth";
 import { runLockedImportLoop, type ImportResult } from "./import-loop";

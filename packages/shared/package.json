@@ -8,8 +8,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./graph": "./src/graph.ts",
-    "./tags": "./src/tags.ts"
+    "./graph": "./src/graph.ts"
   },
   "devDependencies": {
     "typescript": "catalog:"

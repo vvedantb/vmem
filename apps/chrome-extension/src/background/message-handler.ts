@@ -1,4 +1,4 @@
-import { sanitizeTag } from "@vmem/shared/tags";
+import { sanitizeTag } from "@vmem/shared";
 import type { CreateMemoryParams } from "@/types/api";
 import { base64 as base64Codec } from "@scure/base";
 import { createMemory, retrieveMemories, saveScreenshot } from "./api-client";

@@ -1,5 +1,4 @@
-import { sanitizeTag } from "@vmem/shared/tags";
-import { browseParts } from "@vmem/shared";
+import { browseParts, sanitizeTag } from "@vmem/shared";
 import { runLockedImportLoop, type ImportResult } from "./import-loop";
 import { acquireHistoryLock, releaseHistoryLock } from "./sync-lock";
 import { getSyncProfileId } from "./sync-profile";
