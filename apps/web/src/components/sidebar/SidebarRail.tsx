@@ -2,6 +2,7 @@ import type { MouseEventHandler } from "react";
 import { Link } from "@tanstack/react-router";
 import { IconSearch } from "@tabler/icons-react";
 import {
+  AppMark,
   RailCollapseTile,
   RailDivider,
   RailTile,
@@ -24,7 +25,6 @@ import {
   type SidebarLayout,
 } from "./nav-config";
 import { SidebarUserMenu } from "./SidebarUserMenu";
-import { VmemDrawInIcon } from "../icons/animations";
 
 function RailNavItem({
   item,
@@ -127,7 +127,7 @@ export function VmemSidebarRail({
         <>
           <RailTile asChild label="Home" active={homeActive}>
             <Link to={homePath} onClick={onNavigate}>
-              <VmemDrawInIcon size={22} className="text-current" />
+              <AppMark app="vmem" size={22} className="text-current" />
             </Link>
           </RailTile>
           <RailNavItem

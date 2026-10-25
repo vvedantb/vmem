@@ -1,5 +1,4 @@
-import { cn } from "@vvedantb/ui";
-import { VmemDrawInIcon } from "@/components/icons/animations";
+import { AppMark, cn } from "@vvedantb/ui";
 
 /** Marketing wordmark: Instrument Serif at 400. Do not reuse in the product app. */
 const wordmarkTextClassName =
@@ -14,7 +13,7 @@ export function LandingWordmark({
 }) {
   return (
     <span className={cn("inline-flex flex-row items-center gap-2", className)}>
-      <VmemDrawInIcon size={iconSize} className="text-foreground" />
+      <AppMark app="vmem" size={iconSize} className="text-foreground" />
       <span className={wordmarkTextClassName}>
         v<span className="italic">mem</span>
       </span>

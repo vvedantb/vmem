@@ -5,42 +5,51 @@
  * are written here.
  *
  * - App icons come from apps/web/public/icon.png (white mark on black, 512 px).
- * - Tray icons are drawn from the VmemLogo SVG paths so they stay sharp at 16 px.
+ * - Tray icons are drawn from the shared `@vvedantb/ui/brand` vmem mark so they stay sharp at 16 px.
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { build } from "esbuild";
 import sharp from "sharp";
 
 const root = resolve(import.meta.dirname, "..");
 const source = resolve(root, "../web/public/icon.png");
 const out = join(root, "assets");
 
-// Same paths as apps/chrome-extension/src/popup/_components/VmemLogo.tsx.
-const MARK_PATHS = [
-  "M81.3835 181.779C22.2397 161.586 13.4909 102.411 36.5078 61.7585L25.0687 36.241C-10.1246 81.7999 -19.3022 165.229 71.8802 203.249L81.3835 181.779Z",
-  "M128.109 181.779C187.253 161.586 196.002 102.411 172.985 61.7585L184.424 36.241C219.617 81.7999 228.795 165.229 137.612 203.249L128.109 181.779Z",
-  "M156.866 14.2622C115.857 -4.51398 93.2253 -4.72022 53.5056 13.461L63.1205 36.2163C92.2894 19.6073 110.744 19.1365 147.571 34.774L156.866 14.2622Z",
-];
-// Bounds of the paths, so the mark can fill the tray icon.
-const MARK = { x: -10.6, y: -4.8, width: 241, height: 208 };
+// Node cannot load the TypeScript sources in node_modules, so bundle the shared brand helper first.
+const brand = await build({
+  stdin: {
+    contents: 'export { appMarkSvg } from "@vvedantb/ui/brand";',
+    resolveDir: root,
+  },
+  bundle: true,
+  write: false,
+  format: "esm",
+  platform: "node",
+  jsx: "automatic",
+  external: ["react", "react/jsx-runtime"],
+});
+const { appMarkSvg } = await import(
+  `data:text/javascript;base64,${Buffer.from(brand.outputFiles[0].text).toString("base64")}`
+);
 
-/** The mark as a square SVG of `size` px, with `pad` px around it. */
+/**
+ * The shared vmem mark as a square SVG of `size` px. With a `background` it is
+ * the family tile. Without one, the view box crops to the glyph so a 16 px
+ * menu bar icon stays legible.
+ */
 function markSvg(size, fill, background) {
-  const pad = Math.round(size * 0.12);
-  const scale = Math.min(
-    (size - 2 * pad) / MARK.width,
-    (size - 2 * pad) / MARK.height,
-  );
-  const dx = (size - MARK.width * scale) / 2 - MARK.x * scale;
-  const dy = (size - MARK.height * scale) / 2 - MARK.y * scale;
-  const paths = MARK_PATHS.map((d) => `<path d="${d}" fill="${fill}"/>`).join(
-    "",
-  );
+  const viewBox = background ? "0 0 1024 1024" : "224 224 576 576";
   const bg = background
-    ? `<rect width="${size}" height="${size}" rx="${size * 0.22}" fill="${background}"/>`
+    ? `<rect width="1024" height="1024" rx="224" fill="${background}"/>`
     : "";
   return Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${bg}<g transform="translate(${dx} ${dy}) scale(${scale})">${paths}</g></svg>`,
+    appMarkSvg("vmem", fill)
+      .replace(
+        'viewBox="0 0 1024 1024"',
+        `width="${size}" height="${size}" viewBox="${viewBox}"`,
+      )
+      .replace(/(<svg[^>]*>)/, `$1${bg}`),
   );
 }
 

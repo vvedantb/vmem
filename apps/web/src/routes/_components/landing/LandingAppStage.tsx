@@ -1,6 +1,7 @@
 import { useState, type ComponentType } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import {
+  AppMark,
   BoltIcon,
   Button,
   cn,
@@ -14,7 +15,6 @@ import {
   SettingsIcon,
 } from "@vvedantb/ui";
 import { VmemBrandText } from "@/components/shell/VmemBrand";
-import { VmemDrawInIcon } from "@/components/icons/animations";
 import { landingShellClass } from "./LandingReveal";
 import { LandingHomePreview } from "./LandingHomePreview";
 import { LandingMemoryPreview } from "./LandingMemoryPreview";
@@ -58,7 +58,7 @@ export function LandingAppStage() {
               <div className="flex w-full flex-col items-center gap-1.5 pt-3">
                 <LandingRailTile
                   label="Home"
-                  icon={VmemDrawInIcon}
+                  icon={VmemRailIcon}
                   isActive={view === "home"}
                   onClick={() => setView("home")}
                 />
@@ -104,7 +104,7 @@ export function LandingAppStage() {
                 </h2>
               </div>
               <div className="flex items-center gap-2 px-3">
-                <VmemDrawInIcon size={16} className="text-foreground" />
+                <AppMark app="vmem" size={16} className="text-foreground" />
                 <VmemBrandText className="text-base" />
               </div>
               <div className="mt-auto px-4 py-3">
@@ -166,6 +166,16 @@ function StageBody({
   if (memoriesTab === "list") return <LandingListPreview />;
   if (memoriesTab === "timeline") return <LandingTimelinePreview />;
   return <LandingMemoryPreview />;
+}
+
+function VmemRailIcon({
+  size,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
+  return <AppMark app="vmem" size={size} className={className} />;
 }
 
 function LandingRailTile({
