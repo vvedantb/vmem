@@ -54,7 +54,8 @@ describe("POST /clerk/webhooks", () => {
       type: "subscription.active",
       data: {
         payer: { user_id: "user_a" },
-        items: [item("active", "v_pro"), item("canceled", "old")],
+        // ended (not canceled): cancel-at-period-end still grants until ended
+        items: [item("active", "v_pro"), item("ended", "old")],
       },
     });
     const t = convexTest(schema, modules);
