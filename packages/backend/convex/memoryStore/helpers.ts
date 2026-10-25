@@ -750,7 +750,9 @@ export async function applyMemoryUpdates(
   const nextTitle = updates.title ?? doc.title;
   const nextContent = updates.content ?? doc.content;
   const nextTags =
-    updates.tags === undefined ? doc.tags : normalizeTags(updates.tags);
+    updates.tags === undefined
+      ? doc.tags
+      : normalizeTags(updates.tags, undefined, doc.tags);
   const textChanged =
     updates.title !== undefined || updates.content !== undefined;
   const contentChanged = textChanged || updates.tags !== undefined;

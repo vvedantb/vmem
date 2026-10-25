@@ -162,3 +162,32 @@ describe("AI tier planning", () => {
     ).toBeNull();
   });
 });
+
+describe("normalizeTags write-time merges", () => {
+  it("collapses dotted hosts and strong legacy forms to the brand", () => {
+    expect(normalizeTags(["www.youtube.com"])).toEqual(["youtube"]);
+    expect(normalizeTags(["wwwyoutubecom"])).toEqual(["youtube"]);
+    expect(normalizeTags(["wwwyoutubecom", "youtube.com", "youtube"])).toEqual([
+      "youtube",
+    ]);
+    expect(normalizeTags(["www.bbc.co.uk"])).toEqual(["bbc"]);
+  });
+
+  it("merges a weak legacy tag only next to its brand", () => {
+    expect(normalizeTags(["youtubecom", "youtube"])).toEqual(["youtube"]);
+    expect(normalizeTags(["youtubecom"])).toEqual(["youtubecom"]);
+    expect(normalizeTags(["telecom"])).toEqual(["telecom"]);
+  });
+
+  it("uses existing tags to merge a lone weak legacy tag", () => {
+    expect(normalizeTags(["youtubecom"], 10, ["youtube"])).toEqual(["youtube"]);
+    expect(normalizeTags(["telecom"], 10, ["tele"])).toEqual(["telecom"]);
+  });
+
+  it("caps after merging", () => {
+    expect(normalizeTags(["a1", "wwwyoutubecom", "youtube", "b2"], 2)).toEqual([
+      "a1",
+      "youtube",
+    ]);
+  });
+});

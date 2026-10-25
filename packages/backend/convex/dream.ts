@@ -17,6 +17,7 @@ import {
   memoryMatchesScope,
   type MemoryReadScope,
 } from "../engine/memory/scope";
+import { normalizeTags } from "../engine/memory/tags";
 import { buildSearchableText } from "../engine/memory/searchableText";
 import { UPDATES_LINK_REASON } from "../engine/memory/supersede";
 import { internal } from "./_generated/api";
@@ -182,12 +183,13 @@ export async function patchDreamFields(
   doc: Doc<"memories">,
   patch: Partial<WithoutSystemFields<Doc<"memories">>>,
 ): Promise<void> {
-  const tags = patch.tags;
+  const tags = patch.tags && normalizeTags(patch.tags, undefined, doc.tags);
   const tagsChanged = tags !== undefined && !sameTags(doc.tags, tags);
   const statusChanged =
     patch.status !== undefined && patch.status !== doc.status;
   await ctx.db.patch(doc._id, {
     ...patch,
+    ...(tags === undefined ? {} : { tags }),
     ...(tagsChanged
       ? { searchableText: buildSearchableText(doc.title, doc.content, tags) }
       : {}),

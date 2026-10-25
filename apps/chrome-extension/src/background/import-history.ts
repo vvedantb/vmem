@@ -1,3 +1,4 @@
+import { sanitizeTag } from "@vmem/shared/tags";
 import { browseParts } from "@vmem/shared";
 import { runLockedImportLoop, type ImportResult } from "./import-loop";
 import { acquireHistoryLock, releaseHistoryLock } from "./sync-lock";
@@ -51,7 +52,7 @@ export function historyEntryToCreateParams(
     source: "browsing-history",
     sourceType: "browsing-history",
     externalId: parts.key,
-    tags: parts.host ? [parts.host] : [],
+    tags: parts.host ? [sanitizeTag(parts.host)] : [],
     confidence: 0.6,
     url: entry.url,
     profileId,

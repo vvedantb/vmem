@@ -26,7 +26,7 @@ await test("savePageCreateParams tags the hostname and prefers markdown", () => 
   });
   assert.equal(params.type, "knowledge");
   assert.equal(params.source, "browser-extension");
-  assert.deepEqual(params.tags, ["docs.example.com"]);
+  assert.deepEqual(params.tags, ["example"]);
   assert.equal(params.profileId, "p1");
   assert.match(params.content, /Hello/);
   assert.doesNotMatch(params.content, /plain text fallback/);
@@ -73,7 +73,7 @@ await test("capturePromptCreateParams ellipsizes long titles and tags the platfo
   assert.equal(params.title.length, 81);
   assert.equal(params.title.endsWith("…"), true);
   assert.equal(params.source, "prompt-capture");
-  assert.deepEqual(params.tags, ["chatgpt.com", "chatgpt", "prompt"]);
+  assert.deepEqual(params.tags, ["chatgpt", "prompt"]);
   assert.equal(params.confidence, 0.8);
 });
 
@@ -83,7 +83,7 @@ await test("saveSelectionCreateParams tags hostname and selection", () => {
     pageUrl: "https://news.example.org/story",
   });
   assert.equal(params.title, "highlighted");
-  assert.deepEqual(params.tags, ["news.example.org", "selection"]);
+  assert.deepEqual(params.tags, ["example", "selection"]);
   assert.equal(params.url, "https://news.example.org/story");
 });
 

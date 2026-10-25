@@ -83,6 +83,20 @@ async function add(
   return idSchema.parse(created).id;
 }
 
+// writes bypass the tag normaliser, so a test can seed pre-normaliser tags
+async function setRawTags(
+  t: ConvexTestBackend,
+  memoryId: string,
+  tags: string[],
+): Promise<void> {
+  await t.run(async (ctx) => {
+    const rows = await ctx.db.query("memories").collect();
+    for (const row of rows) {
+      if (row.memoryId === memoryId) await ctx.db.patch(row._id, { tags });
+    }
+  });
+}
+
 function ids(result: unknown): string[] {
   return listSchema
     .parse(result)
@@ -228,12 +242,34 @@ describe("MCP memory parity tools (convex-test backend)", () => {
     );
   });
 
+  it("memory_add and memory_update store host-name tags as the brand", async () => {
+    const { alice } = await twoUsers();
+    const first = await add(alice, { title: "H1", tags: ["www.youtube.com"] });
+    const second = await add(alice, { title: "H2", tags: ["wwwyoutubecom"] });
+    for (const id of [first, second]) {
+      expect(
+        memoryRowSchema.parse(await alice.call("memory_get", { id })).tags,
+      ).toEqual(["youtube"]);
+    }
+    await alice.call("memory_update", {
+      id: first,
+      tags: ["youtubecom", "x1"],
+    });
+    expect(
+      memoryRowSchema.parse(await alice.call("memory_get", { id: first })).tags,
+    ).toEqual(["youtube", "x1"]);
+  });
+
   it("memory_tags_consolidate merges host-name tags in the caller's profile only and is idempotent", async () => {
-    const { alice, bob } = await twoUsers();
-    await add(alice, { title: "Y1", tags: ["wwwyoutubecom", "video"] });
-    await add(alice, { title: "Y2", tags: ["youtubecom"] });
-    await add(alice, { title: "Y3", tags: ["youtube", "wwwyoutubecom"] });
-    const bobMemory = await add(bob, { title: "B1", tags: ["wwwyoutubecom"] });
+    const { t, alice, bob } = await twoUsers();
+    const y1 = await add(alice, { title: "Y1" });
+    const y2 = await add(alice, { title: "Y2" });
+    const y3 = await add(alice, { title: "Y3" });
+    const bobMemory = await add(bob, { title: "B1" });
+    await setRawTags(t, y1, ["wwwyoutubecom", "video"]);
+    await setRawTags(t, y2, ["youtubecom"]);
+    await setRawTags(t, y3, ["youtube", "wwwyoutubecom"]);
+    await setRawTags(t, bobMemory, ["wwwyoutubecom"]);
 
     expect(await alice.call("memory_tags_consolidate", {})).toMatchObject({
       groupsMerged: 1,
