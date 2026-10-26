@@ -14,10 +14,34 @@ export type PlanItem = {
   plan?: { slug: string } | null;
 };
 
-export function userHasVPlan(
-  user: { planSlugs?: readonly string[] } | null,
+type Env = Record<string, string | undefined>;
+
+// Convex env `V_PRO_COMP_USER_IDS`: comma-separated Clerk user ids that get V
+// Pro without a paid plan. Empty or unset means nobody.
+export function parseVProCompUserIds(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0);
+}
+
+export function isVProCompUser(
+  clerkId: string,
+  env: Env = process.env,
 ): boolean {
-  return (user?.planSlugs ?? []).some((slug) => V_PRO_PLAN_KEYS.includes(slug));
+  return parseVProCompUserIds(env.V_PRO_COMP_USER_IDS).includes(clerkId);
+}
+
+// The single V Pro check: a paid plan slug or the complimentary allowlist.
+export function userHasVPlan(
+  user: { clerkId?: string; planSlugs?: readonly string[] } | null,
+  env: Env = process.env,
+): boolean {
+  if (!user) return false;
+  if ((user.planSlugs ?? []).some((slug) => V_PRO_PLAN_KEYS.includes(slug))) {
+    return true;
+  }
+  return user.clerkId !== undefined && isVProCompUser(user.clerkId, env);
 }
 
 // For when the JWT template gains a `pla` claim.

@@ -16,9 +16,14 @@ const clerk = vi.hoisted(() => ({
   openUserProfile: vi.fn(),
   signOut: vi.fn(async () => undefined),
 }));
+const server = vi.hoisted(() => ({ pro: false }));
 const pricing = vi.hoisted(() => ({ open: false }));
 const theme = vi.hoisted(() => ({ isDark: false, toggleTheme: vi.fn() }));
 
+vi.mock("convex/react", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useQuery: () => server.pro,
+}));
 vi.mock("@clerk/clerk-react", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   useUser: () => ({ user: clerk.user }),
@@ -106,6 +111,7 @@ afterEach(async () => {
   theme.isDark = false;
   pricing.open = false;
   clerk.has.mockImplementation(() => false);
+  server.pro = false;
 });
 
 describe("SidebarUserMenu", () => {
@@ -155,6 +161,14 @@ describe("SidebarUserMenu", () => {
       expect(() => button("Upgrade to V Pro")).toThrow();
     },
   );
+
+  it("shows V Pro status for a server Pro user without a paid plan", async () => {
+    server.pro = true;
+    mounted = await mount(<SidebarUserMenu />);
+    await openMenu();
+    expect(button("V Pro").getAttribute("aria-disabled")).toBe("true");
+    expect(() => button("Upgrade to V Pro")).toThrow();
+  });
 
   // happy-dom + Radix: opening SignOutDialog from the open dropdown overflows
   // the call stack (two focus scopes). Reproduces on main without this PR.
