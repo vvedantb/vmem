@@ -17,7 +17,7 @@ const clerk = vi.hoisted(() => ({
   signOut: vi.fn(async () => undefined),
 }));
 const server = vi.hoisted(() => ({ pro: false }));
-const pricing = vi.hoisted(() => ({ open: false }));
+const pricing = vi.hoisted(() => ({ open: vi.fn() }));
 const theme = vi.hoisted(() => ({ isDark: false, toggleTheme: vi.fn() }));
 
 vi.mock("convex/react", async (importOriginal) => ({
@@ -30,13 +30,8 @@ vi.mock("@clerk/clerk-react", async (importOriginal) => ({
   useAuth: () => ({ has: clerk.has, sessionClaims: null }),
   useClerk: () => clerk,
 }));
-// The real modal is pinned in VProPricingModal.test.tsx. Mounting it under the
-// open dropdown makes two Radix focus scopes fight in happy-dom.
-vi.mock("./VProPricingModal", () => ({
-  VProPricingModal: ({ open }: { open: boolean }) => {
-    pricing.open = open;
-    return null;
-  },
+vi.mock("@/lib/pricing-modal", () => ({
+  openPricingModal: pricing.open,
 }));
 vi.mock("@/contexts/ThemeContext", () => ({
   useThemeContext: () => theme,
@@ -59,6 +54,7 @@ vi.mock("@tanstack/react-router", () => ({
 
 const { SidebarUserMenu } = await import("./SidebarUserMenu");
 const { VmemSidebarRail } = await import("./SidebarRail");
+const { SidebarFooter } = await import("./SidebarFooter");
 
 function html(): string {
   return document.body.innerHTML.replace(
@@ -109,7 +105,6 @@ afterEach(async () => {
   resetDocument();
   vi.clearAllMocks();
   theme.isDark = false;
-  pricing.open = false;
   clerk.has.mockImplementation(() => false);
   server.pro = false;
 });
@@ -146,9 +141,9 @@ describe("SidebarUserMenu", () => {
   it("shows Upgrade and opens the pricing modal from it", async () => {
     mounted = await mount(<SidebarUserMenu />);
     await openMenu();
-    expect(pricing.open).toBe(false);
+    expect(pricing.open).not.toHaveBeenCalled();
     await click(button("Upgrade to V Pro"));
-    expect(pricing.open).toBe(true);
+    expect(pricing.open).toHaveBeenCalledTimes(1);
   });
 
   it.each(["v_pro", "vibot_pro"])(
@@ -190,6 +185,7 @@ describe("VmemSidebarRail footer", () => {
     layout: "desktop" | "drawer",
     isCollapsed: boolean,
     onToggleCollapse = vi.fn(),
+    isPanelHidden = false,
   ) {
     return (
       <TooltipProvider>
@@ -201,7 +197,7 @@ describe("VmemSidebarRail footer", () => {
           unreadCount={0}
           proposalsCount={0}
           isCollapsed={isCollapsed}
-          isPanelHidden={false}
+          isPanelHidden={isPanelHidden}
           isAuthLoading={false}
           onToggleCollapse={onToggleCollapse}
           onOpenSearch={vi.fn()}
@@ -233,5 +229,47 @@ describe("VmemSidebarRail footer", () => {
     await mounted.rerender(rail("desktop", true, onToggleCollapse));
     await click(button("Show sidebar"));
     expect(onToggleCollapse).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the compact upgrade card on the collapsed rail only", async () => {
+    mounted = await mount(rail("desktop", true));
+    await click(button("Upgrade to Pro"));
+    expect(pricing.open).toHaveBeenCalledTimes(1);
+
+    await mounted.rerender(rail("desktop", false));
+    expect(() => button("Upgrade to Pro")).toThrow();
+  });
+
+  it("keeps the compact upgrade card off the rail when only the panel is hidden", async () => {
+    mounted = await mount(rail("desktop", false, vi.fn(), true));
+    expect(() => button("Upgrade to Pro")).toThrow();
+  });
+
+  it("hides the rail upgrade card for V Pro users", async () => {
+    clerk.has.mockImplementation((params) => params.plan === "v_pro");
+    mounted = await mount(rail("desktop", true));
+    expect(() => button("Upgrade to Pro")).toThrow();
+  });
+});
+
+describe("SidebarFooter upgrade card", () => {
+  it("opens pricing for free users and hides for V Pro", async () => {
+    const footer = (
+      <SidebarFooter
+        isMobile={false}
+        stats={{ addedToday: 0, total: 0 }}
+        showStats={false}
+      />
+    );
+    mounted = await mount(footer);
+    expect(document.body.textContent).toContain("Upgrade to Pro");
+    await click(button("Upgrade"));
+    expect(pricing.open).toHaveBeenCalledTimes(1);
+
+    await mounted.unmount();
+    resetDocument();
+    clerk.has.mockImplementation((params) => params.plan === "v_pro");
+    mounted = await mount(footer);
+    expect(document.body.textContent).not.toContain("Upgrade to Pro");
   });
 });

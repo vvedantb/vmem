@@ -17,7 +17,7 @@ import {
 } from "@tabler/icons-react";
 import { CLERK_SYNC_HOST } from "@/lib/constants";
 import {
-  AppMark,
+  IconVmem,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -155,7 +155,7 @@ export function App() {
     <div className="flex h-full flex-col overflow-hidden bg-background font-sans text-foreground">
       <header className="flex items-center justify-between bg-surface px-5 py-3.5">
         <span className="flex items-center gap-2">
-          <AppMark app="vmem" size={18} className="text-foreground" />
+          <IconVmem size={22} className="text-foreground" />
           <span className="text-lg font-semibold leading-none tracking-tight">
             v<span className="italic">mem</span>
           </span>

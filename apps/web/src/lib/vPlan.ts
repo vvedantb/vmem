@@ -13,20 +13,28 @@ import { FREE_MEMORY_LIMIT } from "@vmem/shared";
 export const V_PRO_CLERK_PLAN_ID = "cplan_3LCYu8VRMwyb4BnmxzbFMomCa5R";
 
 export const V_PRO_COPY = {
-  title: "V Pro",
-  description: "One Pro plan for all V apps",
-  tagline: "One plan for vibot, Verve, Velth, vmem and vhub.",
-  pricePerMonth: "$15",
-  yearly: { pricePerMonth: "$10", total: "$120", saveLabel: "Save 33%" },
-  features: [
-    `Unlimited memories (Free is capped at ${String(FREE_MEMORY_LIMIT)})`,
-    "One subscription for vibot, Verve, Velth, vmem and vhub",
-    "Shared Pro across every V app on the same Clerk account",
-    "Manage billing once, in your account",
-    "Monthly or yearly billing",
-    "Cancel anytime",
-  ],
+  headline: "One plan. Every V app.",
+  finePrint: "Cancel anytime. $120 billed yearly. Save 33%.",
+  free: {
+    name: "Free",
+    price: { month: "$0", year: "$0" },
+    benefits: [
+      `${String(FREE_MEMORY_LIMIT)} memories`,
+      "Universal memory graph (list, graph, timeline)",
+      "MCP and HTTP API access",
+      "Connectors: Drive, Gmail, Notion, Figma, GitHub",
+      "Skills, Dream Mode and teams",
+      "Files up to 10 GiB",
+    ],
+  },
+  pro: {
+    name: "V Pro",
+    price: { month: "$15", year: "$10" },
+    ctaLabel: "Upgrade",
+    intro: "Everything in Free, and:",
+  },
 };
+
 // True when the user holds V Pro. The server query wins: it covers paid plans
 // and the complimentary allowlist. The session checks cover paid users while
 // the query loads. Free is capped at FREE_MEMORY_LIMIT memories (enforced in

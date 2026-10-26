@@ -7,6 +7,12 @@ import { mount, resetDocument, type Mounted } from "@/test/dom";
 const checkout = vi.hoisted(() => ({
   props: [] as Array<{ planId: string; planPeriod: string }>,
 }));
+const plan = vi.hoisted(() => ({ pro: false }));
+
+vi.mock("@/lib/vPlan", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useHasVPlan: () => plan.pro,
+}));
 
 vi.mock("@clerk/clerk-react", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -32,6 +38,7 @@ afterEach(async () => {
   mounted = null;
   resetDocument();
   checkout.props = [];
+  plan.pro = false;
 });
 
 describe("VProPricingModal", () => {
@@ -41,11 +48,46 @@ describe("VProPricingModal", () => {
     expect(text).toContain("$10");
     expect(text).toContain("$120");
     expect(text).toContain("Save 33%");
-    expect(text).toContain("vibot, Verve, Velth, vmem and vhub");
+    expect(text).toContain("Current plan");
+    expect(text).toContain("500 memories");
+    expect(text).toContain("Files up to 10 GiB");
+    expect(text).toContain("Everything in Free, and:");
+    expect(text).toContain("Unlimited memories");
+    expect(text).not.toContain("Clerk");
+    const upgradeCta = [
+      ...document.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((el) => el.textContent?.trim() === "Upgrade");
+    expect(upgradeCta).toBeTruthy();
     expect(checkout.props.at(-1)).toEqual({
       planId: "cplan_3LCYu8VRMwyb4BnmxzbFMomCa5R",
       planPeriod: "annual",
     });
+  });
+
+  it("switches checkout to monthly when Monthly is pressed", async () => {
+    const { act } = await import("react");
+    mounted = await mount(<VProPricingModal open onClose={vi.fn()} />);
+    const monthly = [
+      ...document.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((el) => el.textContent?.trim() === "Monthly");
+    if (!monthly) throw new Error("no Monthly");
+    await act(async () => {
+      monthly.click();
+    });
+    const text = document.querySelector("[role='dialog']")?.textContent ?? "";
+    expect(text).toContain("$15");
+    expect(checkout.props.at(-1)).toEqual({
+      planId: "cplan_3LCYu8VRMwyb4BnmxzbFMomCa5R",
+      planPeriod: "month",
+    });
+  });
+
+  it("marks V Pro as the current plan and skips checkout for Pro users", async () => {
+    plan.pro = true;
+    mounted = await mount(<VProPricingModal open onClose={vi.fn()} />);
+    const text = document.querySelector("[role='dialog']")?.textContent ?? "";
+    expect(text.match(/Current plan/g)).toHaveLength(1);
+    expect(checkout.props).toEqual([]);
   });
 
   it("renders nothing when closed", async () => {

@@ -1,7 +1,7 @@
 import { useState, type ComponentType } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import {
-  AppMark,
+  IconVmem,
   BoltIcon,
   Button,
   cn,
@@ -104,7 +104,7 @@ export function LandingAppStage() {
                 </h2>
               </div>
               <div className="flex items-center gap-2 px-3">
-                <AppMark app="vmem" size={16} className="text-foreground" />
+                <IconVmem size={16} className="text-foreground" />
                 <VmemBrandText className="text-base" />
               </div>
               <div className="mt-auto px-4 py-3">
@@ -175,7 +175,7 @@ function VmemRailIcon({
   size?: number;
   className?: string;
 }) {
-  return <AppMark app="vmem" size={size} className={className} />;
+  return <IconVmem size={size} className={className} />;
 }
 
 function LandingRailTile({

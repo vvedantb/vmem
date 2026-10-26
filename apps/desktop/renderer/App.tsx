@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 import {
-  AppMark,
+  IconVmem,
   Button,
   Card,
   Input,
@@ -95,7 +95,7 @@ export function App() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col gap-5 p-5">
       <header className="flex items-center gap-3">
-        <AppMark app="vmem" size={28} className="text-foreground" />
+        <IconVmem size={28} className="text-foreground" />
         <h1 className="text-xl font-semibold">vmem</h1>
       </header>
 

@@ -4,7 +4,6 @@ import { IconSparkles, IconUserCog } from "@tabler/icons-react";
 import { useThemeContext } from "@/contexts/ThemeContext";
 import { useHasVPlan } from "@/lib/vPlan";
 import { openPricingModal } from "@/lib/pricing-modal";
-import { PricingModalHost } from "./PricingModalHost";
 
 export function SidebarUserMenu() {
   const { user } = useUser();
@@ -18,32 +17,29 @@ export function SidebarUserMenu() {
   const name = user.fullName ?? email ?? "Account";
 
   return (
-    <>
-      <SidebarAccountMenu
-        name={name}
-        imageUrl={user.imageUrl}
-        themeToggle={{ isDark, onToggle: toggleTheme }}
-        signOut={{
-          onSignOut: () => signOut(),
-          description: "You'll need to sign back in to access your memories.",
-        }}
-      >
-        {hasPro ? (
-          <DropdownMenuItem disabled>
-            <IconSparkles />V Pro
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem onSelect={() => openPricingModal()}>
-            <IconSparkles />
-            Upgrade to V Pro
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem onSelect={() => openUserProfile()}>
-          <IconUserCog />
-          Manage account
+    <SidebarAccountMenu
+      name={name}
+      imageUrl={user.imageUrl}
+      themeToggle={{ isDark, onToggle: toggleTheme }}
+      signOut={{
+        onSignOut: () => signOut(),
+        description: "You'll need to sign back in to access your memories.",
+      }}
+    >
+      {hasPro ? (
+        <DropdownMenuItem disabled>
+          <IconSparkles />V Pro
         </DropdownMenuItem>
-      </SidebarAccountMenu>
-      {hasPro ? null : <PricingModalHost />}
-    </>
+      ) : (
+        <DropdownMenuItem onSelect={() => openPricingModal()}>
+          <IconSparkles />
+          Upgrade to V Pro
+        </DropdownMenuItem>
+      )}
+      <DropdownMenuItem onSelect={() => openUserProfile()}>
+        <IconUserCog />
+        Manage account
+      </DropdownMenuItem>
+    </SidebarAccountMenu>
   );
 }
