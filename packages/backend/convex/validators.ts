@@ -172,6 +172,13 @@ export const memoryStatsMetaFields = {
   ready: v.boolean(),
 };
 
+// One row per clerk userId: all memory rows (every status, every profile).
+// Backs the O(1) Free plan cap check.
+export const userMemoryCountFields = {
+  userId: v.string(),
+  count: v.number(),
+};
+
 export const memoryLinkOriginValidator = v.union(
   v.literal("manual"),
   v.literal("entity"),

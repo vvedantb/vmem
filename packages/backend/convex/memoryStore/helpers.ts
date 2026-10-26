@@ -57,6 +57,7 @@ import { trackMemoryChange, trackMemoryChanges } from "./stats";
 import { deleteMemoryUsage, loadUsageHits } from "./usage";
 import type { MemoryVersion } from "../validators";
 import { assertCanCreateMemory } from "../lib/memoryLimit";
+import { bumpUserMemoryCount } from "../lib/userMemoryCount";
 import { truncateWellFormed } from "../lib/wellFormed";
 
 export interface CreateMemoryStoreParams {
@@ -600,6 +601,7 @@ export async function createMemory(
       : {}),
   });
 
+  await bumpUserMemoryCount(ctx, params.userId, 1);
   const created = await ctx.db.get(id);
   if (!created) throw new Error("Failed to create memory");
   await trackMemoryChange(ctx, null, created);
@@ -1080,6 +1082,7 @@ async function deleteMemoryDoc(
   await trackMemoryChange(ctx, doc, null);
   await deleteMemoryUsage(ctx, doc.memoryId);
   await ctx.db.delete(doc._id);
+  await bumpUserMemoryCount(ctx, doc.userId, -1);
   await ctx.db.insert("memoryTombstones", {
     userId: doc.userId,
     ...(doc.profileId === undefined ? {} : { profileId: doc.profileId }),
