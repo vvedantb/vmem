@@ -1,6 +1,7 @@
 import { useState, type ComponentType } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import {
+  AppWordmark,
   IconVmem,
   BoltIcon,
   Button,
@@ -14,7 +15,6 @@ import {
   railTileStateClass,
   SettingsIcon,
 } from "@vvedantb/ui";
-import { VmemBrandText } from "@/components/shell/VmemBrand";
 import { landingShellClass } from "./LandingReveal";
 import { LandingHomePreview } from "./LandingHomePreview";
 import { LandingMemoryPreview } from "./LandingMemoryPreview";
@@ -104,8 +104,7 @@ export function LandingAppStage() {
                 </h2>
               </div>
               <div className="flex items-center gap-2 px-3">
-                <IconVmem size={20} className="text-foreground" />
-                <VmemBrandText className="text-base" />
+                <AppWordmark app="vmem" size={16} />
               </div>
               <div className="mt-auto px-4 py-3">
                 <p className="text-[11px] text-muted">
