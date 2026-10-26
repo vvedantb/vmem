@@ -95,15 +95,20 @@ describe("memory cap", () => {
     expect(again.id).toBe("seed_0");
   });
 
-  it.each(["v_pro", "vibot_pro"])(
-    "lets a %s user create at the cap",
-    async (slug) => {
-      const t = newHarness();
-      await seed(t, FREE_MEMORY_LIMIT + 1, [slug]);
-      const created = await t.mutation(create, createArgs("new_1"));
-      expect(created.id).toBe("new_1");
-    },
-  );
+  it("lets a v_pro user create at the cap", async () => {
+    const t = newHarness();
+    await seed(t, FREE_MEMORY_LIMIT + 1, ["v_pro"]);
+    const created = await t.mutation(create, createArgs("new_1"));
+    expect(created.id).toBe("new_1");
+  });
+
+  it("blocks a vibot_pro user at the cap (removed plan)", async () => {
+    const t = newHarness();
+    await seed(t, FREE_MEMORY_LIMIT, ["vibot_pro"]);
+    await expect(t.mutation(create, createArgs("new_1"))).rejects.toThrow(
+      MEMORY_LIMIT_CODE,
+    );
+  });
 
   it("lets an allowlisted Free user create past the cap", async () => {
     vi.stubEnv("V_PRO_COMP_USER_IDS", `other_user, ${USER}`);

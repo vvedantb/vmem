@@ -146,16 +146,13 @@ describe("SidebarUserMenu", () => {
     expect(pricing.open).toHaveBeenCalledTimes(1);
   });
 
-  it.each(["v_pro", "vibot_pro"])(
-    "shows V Pro status instead of Upgrade for the %s plan",
-    async (plan) => {
-      clerk.has.mockImplementation((params) => params.plan === plan);
-      mounted = await mount(<SidebarUserMenu />);
-      await openMenu();
-      expect(button("V Pro").getAttribute("aria-disabled")).toBe("true");
-      expect(() => button("Upgrade to V Pro")).toThrow();
-    },
-  );
+  it("shows V Pro status instead of Upgrade for the v_pro plan", async () => {
+    clerk.has.mockImplementation((params) => params.plan === "v_pro");
+    mounted = await mount(<SidebarUserMenu />);
+    await openMenu();
+    expect(button("V Pro").getAttribute("aria-disabled")).toBe("true");
+    expect(() => button("Upgrade to V Pro")).toThrow();
+  });
 
   it("shows V Pro status for a server Pro user without a paid plan", async () => {
     server.pro = true;

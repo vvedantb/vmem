@@ -1,11 +1,7 @@
 import { useAuth } from "@clerk/clerk-react";
 import { api } from "@vmem/backend";
 import { useQuery } from "convex/react";
-import {
-  hasVPlan,
-  V_PRO_LEGACY_PLAN_KEY,
-  V_PRO_PLAN_KEY,
-} from "@vvedantb/server";
+import { hasVPlan, V_PRO_PLAN_KEY } from "@vvedantb/server";
 import { FREE_MEMORY_LIMIT } from "@vmem/shared";
 
 // V Pro is one Clerk Billing plan shared by vibot, Verve, Velth, vmem and vhub.
@@ -46,7 +42,6 @@ export function useHasVPlan(): boolean {
   return (
     serverPro === true ||
     Boolean(has?.({ plan: V_PRO_PLAN_KEY })) ||
-    Boolean(has?.({ plan: V_PRO_LEGACY_PLAN_KEY })) ||
     hasVPlan(sessionClaims)
   );
 }
