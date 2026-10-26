@@ -4,6 +4,7 @@ import {
   V_PRO_LEGACY_PLAN_KEY,
   V_PRO_PLAN_KEY,
 } from "@vvedantb/server";
+import { FREE_MEMORY_LIMIT } from "@vmem/shared";
 
 // V Pro is one Clerk Billing plan shared by vibot, Verve, Velth, vmem and vhub.
 // Staging uses the same Project V Clerk Billing plan, so one id covers both.
@@ -16,6 +17,7 @@ export const V_PRO_COPY = {
     name: "Free",
     price: { month: "$0", year: "$0" },
     benefits: [
+      `${String(FREE_MEMORY_LIMIT)} memories`,
       "Universal memory graph (list, graph, timeline)",
       "MCP and HTTP API access",
       "Connectors: Drive, Gmail, Notion, Figma, GitHub",
@@ -28,16 +30,13 @@ export const V_PRO_COPY = {
     price: { month: "$15", year: "$10" },
     ctaLabel: "Upgrade",
     intro: "Everything in Free, and:",
-    benefits: [
-      "Pro in vibot, Verve, Velth, vmem and vhub",
-      "Higher limits as they launch in vmem",
-    ],
   },
 };
 
 // True when the session says the user holds V Pro (current or legacy key).
 // The session token claims are a fallback for when `has` is not ready.
-// Nothing in vmem is gated on this yet; it only drives the upgrade card and account menu.
+// Free is capped at FREE_MEMORY_LIMIT memories (enforced in Convex). V Pro has
+// no cap. This hook drives the upgrade UI.
 export function useHasVPlan(): boolean {
   const { has, sessionClaims } = useAuth();
   return (

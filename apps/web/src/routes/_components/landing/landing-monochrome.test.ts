@@ -45,7 +45,7 @@ describe("landing wordmark", () => {
     const wordmark = read("LandingWordmark.tsx");
     expect(wordmark).toContain("landing-wordmark-text");
     expect(wordmark).not.toMatch(/font-semibold|font-bold/);
-    expect(wordmark).toContain('<AppMark app="vmem"');
+    expect(wordmark).toContain("<IconVmem");
 
     const css = readFileSync(landingCssPath, "utf8");
     expect(css).toMatch(/\.landing-wordmark-text[\s\S]*font-weight:\s*400/);

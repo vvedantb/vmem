@@ -17,7 +17,7 @@ import {
   type SidebarStats,
 } from "@/components/sidebar/SidebarFooter";
 import { SidebarWorkspaceSwitcher } from "@/components/sidebar/SidebarWorkspaceSwitcher";
-import { VProPricingModal } from "@/components/sidebar/VProPricingModal";
+import { PricingModalHost } from "@/components/sidebar/PricingModalHost";
 import { VmemSidebarRail } from "@/components/sidebar/SidebarRail";
 import {
   panelTitleBySection,
@@ -53,9 +53,7 @@ export default function Sidebar({
   const hidePanel = railSectionHidesPanel(section);
   const panelSection = hidePanel ? null : section;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [pricingOpen, setPricingOpen] = useState(false);
   const hasPro = useHasVPlan();
-  const openPricing = () => setPricingOpen(true);
   const [headerTrailing, setHeaderTrailing] = useState<HTMLDivElement | null>(
     null,
   );
@@ -162,7 +160,6 @@ export default function Sidebar({
             isAuthLoading={isAuthLoading}
             onToggleCollapse={onToggleCollapse}
             onOpenSearch={onOpenSearch}
-            onUpgrade={openPricing}
             onNavigate={closeMobileMenu}
           />
         }
@@ -198,19 +195,13 @@ export default function Sidebar({
                   isMobile={!isDesktopViewport}
                   stats={stats ?? { addedToday: 0, total: 0 }}
                   showStats={showStats && stats !== null}
-                  onUpgrade={openPricing}
                 />
               </SidebarPanel>
             </SidebarHeaderTrailingProvider>
           )
         }
       />
-      {hasPro ? null : (
-        <VProPricingModal
-          open={pricingOpen}
-          onClose={() => setPricingOpen(false)}
-        />
-      )}
+      {hasPro ? null : <PricingModalHost />}
     </>
   );
 }

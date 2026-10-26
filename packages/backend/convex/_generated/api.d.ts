@@ -81,6 +81,7 @@ import type * as lib_runConnectorProviderSync from "../lib/runConnectorProviderS
 import type * as lib_scopedTree from "../lib/scopedTree.js";
 import type * as lib_systemOneKey from "../lib/systemOneKey.js";
 import type * as lib_userFacingError from "../lib/userFacingError.js";
+import type * as lib_userMemoryCount from "../lib/userMemoryCount.js";
 import type * as lib_versionSnapshot from "../lib/versionSnapshot.js";
 import type * as lib_vPlan from "../lib/vPlan.js";
 import type * as lib_wellFormed from "../lib/wellFormed.js";
@@ -165,6 +166,7 @@ import type * as teams_handlers from "../teams/handlers.js";
 import type * as teams_lifecycle from "../teams/lifecycle.js";
 import type * as teams_membership from "../teams/membership.js";
 import type * as timelineApi from "../timelineApi.js";
+import type * as userMemoryCounts from "../userMemoryCounts.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
@@ -250,6 +252,7 @@ declare const fullApi: ApiFromModules<{
   "lib/scopedTree": typeof lib_scopedTree;
   "lib/systemOneKey": typeof lib_systemOneKey;
   "lib/userFacingError": typeof lib_userFacingError;
+  "lib/userMemoryCount": typeof lib_userMemoryCount;
   "lib/versionSnapshot": typeof lib_versionSnapshot;
   "lib/vPlan": typeof lib_vPlan;
   "lib/wellFormed": typeof lib_wellFormed;
@@ -334,6 +337,7 @@ declare const fullApi: ApiFromModules<{
   "teams/lifecycle": typeof teams_lifecycle;
   "teams/membership": typeof teams_membership;
   timelineApi: typeof timelineApi;
+  userMemoryCounts: typeof userMemoryCounts;
   userSettings: typeof userSettings;
   users: typeof users;
   validators: typeof validators;

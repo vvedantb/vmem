@@ -27,6 +27,7 @@ import {
   embeddingRefFields,
   memoryStatCounterFields,
   memoryStatsMetaFields,
+  userMemoryCountFields,
   memoryLinkFields,
   graphSnapshotFields,
   memoryTombstoneFields,
@@ -272,6 +273,10 @@ const schema = defineSchema({
     .index("by_profile_kind_key", ["profileId", "kind", "key"]),
 
   memoryStatsMeta: defineTable(memoryStatsMetaFields),
+
+  userMemoryCounts: defineTable(userMemoryCountFields).index("by_user", [
+    "userId",
+  ]),
 
   memoryLinks: defineTable(memoryLinkFields)
     .index("by_user", ["userId"])

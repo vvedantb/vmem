@@ -18,6 +18,7 @@ export function VProPricingModal({
       open={open}
       onClose={onClose}
       title="V plans"
+      currentApp="vmem"
       apps={["vibot", "verve", "velth", "vmem", "vhub"]}
       headline={V_PRO_COPY.headline}
       finePrint={V_PRO_COPY.finePrint}
@@ -37,7 +38,6 @@ export function VProPricingModal({
           featured: true,
           ctaLabel: pro.ctaLabel,
           intro: pro.intro,
-          benefits: pro.benefits.map((label) => ({ label })),
         },
       ]}
       renderCheckout={(button, plan, period) =>

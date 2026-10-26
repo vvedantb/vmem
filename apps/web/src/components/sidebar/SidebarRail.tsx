@@ -2,7 +2,7 @@ import type { MouseEventHandler } from "react";
 import { Link } from "@tanstack/react-router";
 import { IconSearch } from "@tabler/icons-react";
 import {
-  AppMark,
+  IconVmem,
   RailCollapseTile,
   RailDivider,
   RailTile,
@@ -12,6 +12,7 @@ import {
   Skeleton,
   railBadgeClass,
 } from "@vvedantb/ui";
+import { openPricingModal } from "@/lib/pricing-modal";
 import { useHasVPlan } from "@/lib/vPlan";
 import type { NavHref, NavItem } from "./types";
 import {
@@ -89,7 +90,6 @@ export type VmemSidebarRailProps = {
   isAuthLoading: boolean;
   onToggleCollapse: () => void;
   onOpenSearch: () => void;
-  onUpgrade: () => void;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 };
 
@@ -105,7 +105,6 @@ export function VmemSidebarRail({
   isAuthLoading,
   onToggleCollapse,
   onOpenSearch,
-  onUpgrade,
   onNavigate,
 }: VmemSidebarRailProps) {
   const hasPro = useHasVPlan();
@@ -134,7 +133,7 @@ export function VmemSidebarRail({
         <>
           <RailTile asChild label="Home" active={homeActive}>
             <Link to={homePath} onClick={onNavigate}>
-              <AppMark app="vmem" size={22} className="text-current" />
+              <IconVmem size={22} className="text-current" />
             </Link>
           </RailTile>
           <RailNavItem
@@ -160,12 +159,12 @@ export function VmemSidebarRail({
             <IconSearch className="size-[22px]" />
           </RailTile>
           {showRailUpgrade ? (
-            <SidebarUpgradeCard collapsed onUpgrade={onUpgrade} />
+            <SidebarUpgradeCard collapsed onUpgrade={openPricingModal} />
           ) : null}
           {isAuthLoading ? (
             <Skeleton className="size-11 rounded-lg" />
           ) : (
-            <SidebarUserMenu onUpgrade={onUpgrade} />
+            <SidebarUserMenu />
           )}
           <RailTile
             asChild

@@ -3,8 +3,8 @@
 import { useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import {
-  AppMark,
   Button,
+  IconVmem,
   PricingModal,
   RailTile,
   SidebarUpgradeCard,
@@ -28,7 +28,7 @@ function Preview() {
     <TooltipProvider>
       <div className="min-h-dvh bg-background text-foreground">
         <div className="flex items-center gap-3 border-b border-separator px-4 py-3">
-          <AppMark app="vmem" size={22} className="text-foreground" />
+          <IconVmem size={22} className="text-foreground" />
           <span className="text-lg font-semibold leading-none">vmem</span>
           <div className="ml-auto flex gap-2">
             <Button
@@ -68,7 +68,7 @@ function Preview() {
               data-testid="collapsed-rail"
             >
               <RailTile label="Home" active>
-                <AppMark app="vmem" size={22} className="text-current" />
+                <IconVmem size={22} className="text-current" />
               </RailTile>
               <div className="mt-auto flex flex-col items-center gap-2">
                 <SidebarUpgradeCard
@@ -89,7 +89,7 @@ function Preview() {
                 style={{ width: "var(--vmem-sidebar-rail-width)" }}
               >
                 <RailTile label="Home" active>
-                  <AppMark app="vmem" size={22} className="text-current" />
+                  <IconVmem size={22} className="text-current" />
                 </RailTile>
                 <span className="mt-auto pb-2 text-xs">A</span>
               </div>
@@ -108,6 +108,7 @@ function Preview() {
           open={pricingOpen}
           onClose={() => setPricingOpen(false)}
           title="V plans"
+          currentApp="vmem"
           apps={["vibot", "verve", "velth", "vmem", "vhub"]}
           headline={V_PRO_COPY.headline}
           finePrint={V_PRO_COPY.finePrint}
@@ -129,7 +130,6 @@ function Preview() {
               featured: true,
               ctaLabel: pro.ctaLabel,
               intro: pro.intro,
-              benefits: pro.benefits.map((label) => ({ label })),
             },
           ]}
         />

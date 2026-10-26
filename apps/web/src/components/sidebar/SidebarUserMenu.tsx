@@ -3,8 +3,9 @@ import { useUser, useClerk } from "@clerk/clerk-react";
 import { IconSparkles, IconUserCog } from "@tabler/icons-react";
 import { useThemeContext } from "@/contexts/ThemeContext";
 import { useHasVPlan } from "@/lib/vPlan";
+import { openPricingModal } from "@/lib/pricing-modal";
 
-export function SidebarUserMenu({ onUpgrade }: { onUpgrade: () => void }) {
+export function SidebarUserMenu() {
   const { user } = useUser();
   const { openUserProfile, signOut } = useClerk();
   const { isDark, toggleTheme } = useThemeContext();
@@ -30,7 +31,7 @@ export function SidebarUserMenu({ onUpgrade }: { onUpgrade: () => void }) {
           <IconSparkles />V Pro
         </DropdownMenuItem>
       ) : (
-        <DropdownMenuItem onSelect={onUpgrade}>
+        <DropdownMenuItem onSelect={() => openPricingModal()}>
           <IconSparkles />
           Upgrade to V Pro
         </DropdownMenuItem>

@@ -42,9 +42,11 @@ describe("VProPricingModal", () => {
     expect(text).toContain("$120");
     expect(text).toContain("Save 33%");
     expect(text).toContain("Current plan");
+    expect(text).toContain("500 memories");
     expect(text).toContain("Files up to 10 GiB");
-    expect(text).toContain("Pro in vibot, Verve, Velth, vmem and vhub");
-    expect(text).toContain("Higher limits as they launch in vmem");
+    expect(text).toContain("Everything in Free, and:");
+    // Pro perks for vmem come from the package V_PRO_APP_BENEFITS default.
+    expect(text).toContain("Unlimited memories");
     expect(text).not.toContain("Clerk");
     const upgradeCta = [
       ...document.querySelectorAll<HTMLButtonElement>("button"),
