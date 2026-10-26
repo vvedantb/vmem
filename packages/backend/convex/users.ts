@@ -1,6 +1,7 @@
 import { query, internalQuery } from "./_generated/server";
 import { authQuery, getUserByClerkId } from "./auth";
 import { v } from "convex/values";
+import { userHasVPlan } from "./lib/vPlan";
 
 export const getMe = query({
   args: {},
@@ -8,6 +9,20 @@ export const getMe = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity?.subject) return null;
     return getUserByClerkId(ctx, identity.subject);
+  },
+});
+
+// Server V Pro status (paid plan or complimentary allowlist) for the UI.
+export const hasVPlan = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity?.subject) return false;
+    const user = await getUserByClerkId(ctx, identity.subject);
+    return userHasVPlan({
+      clerkId: identity.subject,
+      planSlugs: user?.planSlugs,
+    });
   },
 });
 

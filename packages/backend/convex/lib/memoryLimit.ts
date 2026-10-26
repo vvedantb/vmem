@@ -20,7 +20,7 @@ export async function assertCanCreateMemory(
   clerkId: string,
 ): Promise<void> {
   const user = await getUserByClerkId(ctx, clerkId);
-  if (userHasVPlan(user)) return;
+  if (userHasVPlan({ clerkId, planSlugs: user?.planSlugs })) return;
 
   const existing = await getUserMemoryCountRow(ctx, clerkId);
   if (existing !== null) {

@@ -1,4 +1,6 @@
 import { useAuth } from "@clerk/clerk-react";
+import { api } from "@vmem/backend";
+import { useQuery } from "convex/react";
 import {
   hasVPlan,
   V_PRO_LEGACY_PLAN_KEY,
@@ -25,13 +27,16 @@ export const V_PRO_COPY = {
     "Cancel anytime",
   ],
 };
-// True when the session says the user holds V Pro (current or legacy key).
-// The session token claims are a fallback for when `has` is not ready.
-// Free is capped at FREE_MEMORY_LIMIT memories (enforced in Convex). V Pro has
-// no cap. This hook drives the account menu and upgrade prompts.
+// True when the user holds V Pro. The server query wins: it covers paid plans
+// and the complimentary allowlist. The session checks cover paid users while
+// the query loads. Free is capped at FREE_MEMORY_LIMIT memories (enforced in
+// Convex). V Pro has no cap. This hook drives the account menu and upgrade
+// prompts.
 export function useHasVPlan(): boolean {
   const { has, sessionClaims } = useAuth();
+  const serverPro = useQuery(api.users.hasVPlan);
   return (
+    serverPro === true ||
     Boolean(has?.({ plan: V_PRO_PLAN_KEY })) ||
     Boolean(has?.({ plan: V_PRO_LEGACY_PLAN_KEY })) ||
     hasVPlan(sessionClaims)
