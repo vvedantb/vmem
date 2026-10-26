@@ -1,7 +1,7 @@
 import { SignedIn } from "@clerk/clerk-react";
 import { CheckoutButton } from "@clerk/clerk-react/experimental";
 import { PricingModal } from "@vvedantb/ui";
-import { V_PRO_CLERK_PLAN_ID, V_PRO_COPY } from "@/lib/vPlan";
+import { useHasVPlan, V_PRO_CLERK_PLAN_ID, V_PRO_COPY } from "@/lib/vPlan";
 
 const PRO_PLAN_ID = "pro";
 
@@ -13,6 +13,7 @@ export function VProPricingModal({
   onClose: () => void;
 }) {
   const { free, pro } = V_PRO_COPY;
+  const hasPro = useHasVPlan();
   return (
     <PricingModal
       open={open}
@@ -28,20 +29,21 @@ export function VProPricingModal({
           id: "free",
           name: free.name,
           price: free.price,
-          current: true,
+          current: !hasPro,
           benefits: free.benefits.map((label) => ({ label })),
         },
         {
           id: PRO_PLAN_ID,
           name: pro.name,
           price: pro.price,
+          current: hasPro,
           featured: true,
           ctaLabel: pro.ctaLabel,
           intro: pro.intro,
         },
       ]}
       renderCheckout={(button, plan, period) =>
-        plan.id === PRO_PLAN_ID ? (
+        plan.id === PRO_PLAN_ID && !hasPro ? (
           <SignedIn>
             <CheckoutButton
               planId={V_PRO_CLERK_PLAN_ID}

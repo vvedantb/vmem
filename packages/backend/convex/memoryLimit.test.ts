@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { FREE_MEMORY_LIMIT, MEMORY_LIMIT_CODE } from "@vmem/shared";
 import { internal } from "./_generated/api";
 import schema from "./schema";
@@ -68,6 +68,10 @@ async function readCount(t: Harness): Promise<number> {
 
 const create = internal.memoryStore.functions.createMemoryInternal;
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe("memory cap", () => {
   it("lets a Free user create under the cap", async () => {
     const t = newHarness();
@@ -100,6 +104,23 @@ describe("memory cap", () => {
       expect(created.id).toBe("new_1");
     },
   );
+
+  it("lets an allowlisted Free user create past the cap", async () => {
+    vi.stubEnv("V_PRO_COMP_USER_IDS", `other_user, ${USER}`);
+    const t = newHarness();
+    await seed(t, FREE_MEMORY_LIMIT + 1, []);
+    const created = await t.mutation(create, createArgs("new_1"));
+    expect(created.id).toBe("new_1");
+  });
+
+  it("still blocks an unlisted Free user when the allowlist is set", async () => {
+    vi.stubEnv("V_PRO_COMP_USER_IDS", "other_user");
+    const t = newHarness();
+    await seed(t, FREE_MEMORY_LIMIT, []);
+    await expect(t.mutation(create, createArgs("new_1"))).rejects.toThrow(
+      MEMORY_LIMIT_CODE,
+    );
+  });
 
   it("lets a Free user over the cap update and delete", async () => {
     const t = newHarness();

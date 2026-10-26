@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   applyItemToPlanSlugs,
   identityHasVPlan,
+  isVProCompUser,
+  parseVProCompUserIds,
   planSlugsFromItems,
   userHasVPlan,
 } from "./vPlan";
@@ -17,6 +19,49 @@ describe("userHasVPlan", () => {
   it("is true for v_pro and the legacy vibot_pro slug", () => {
     expect(userHasVPlan({ planSlugs: ["v_pro"] })).toBe(true);
     expect(userHasVPlan({ planSlugs: ["other", "vibot_pro"] })).toBe(true);
+  });
+});
+
+describe("parseVProCompUserIds", () => {
+  it("trims and drops empties", () => {
+    expect(parseVProCompUserIds(" user_a, ,user_b ,")).toEqual([
+      "user_a",
+      "user_b",
+    ]);
+  });
+
+  it("is empty for unset or blank", () => {
+    expect(parseVProCompUserIds(undefined)).toEqual([]);
+    expect(parseVProCompUserIds("  ")).toEqual([]);
+  });
+});
+
+describe("isVProCompUser and the allowlist in userHasVPlan", () => {
+  const env = { V_PRO_COMP_USER_IDS: "user_a, user_b" };
+
+  it("matches listed ids only", () => {
+    expect(isVProCompUser("user_b", env)).toBe(true);
+    expect(isVProCompUser("user_c", env)).toBe(false);
+  });
+
+  it("makes a listed user Pro without a plan slug", () => {
+    expect(userHasVPlan({ clerkId: "user_a" }, env)).toBe(true);
+    expect(userHasVPlan({ clerkId: "user_a", planSlugs: [] }, env)).toBe(true);
+  });
+
+  it("keeps an unlisted user Free unless a paid slug exists", () => {
+    expect(userHasVPlan({ clerkId: "user_c", planSlugs: [] }, env)).toBe(false);
+    expect(userHasVPlan({ clerkId: "user_c", planSlugs: ["v_pro"] }, env)).toBe(
+      true,
+    );
+    expect(userHasVPlan({ planSlugs: [] }, env)).toBe(false);
+  });
+
+  it("grants nobody when the env is unset or empty", () => {
+    expect(userHasVPlan({ clerkId: "user_a" }, {})).toBe(false);
+    expect(
+      userHasVPlan({ clerkId: "user_a" }, { V_PRO_COMP_USER_IDS: "" }),
+    ).toBe(false);
   });
 });
 
