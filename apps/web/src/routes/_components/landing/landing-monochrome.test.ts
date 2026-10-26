@@ -60,14 +60,18 @@ describe("landing wordmark", () => {
     }
   });
 
-  it("keeps italic out of the hero title", () => {
-    expect(read("LandingHero.tsx")).not.toMatch(/\bitalic\b/);
+  it("keeps italic out of every landing source file", () => {
+    for (const name of readdirSync(here)) {
+      if (!/\.(tsx|ts)$/.test(name) || name.includes(".test.")) continue;
+      expect(read(name), name).not.toMatch(/\bitalic\b/);
+    }
   });
 
-  it("leaves the in-app preview on Instrument Sans VmemBrandText", () => {
+  it("uses AppWordmark in the in-app preview", () => {
     const stage = read("LandingAppStage.tsx");
-    expect(stage).toContain("VmemBrandText");
-    expect(stage).not.toContain("AppWordmark");
+    expect(stage).toContain("AppWordmark");
+    expect(stage).not.toContain("VmemBrandText");
     expect(stage).not.toContain("LandingWordmark");
+    expect(stage).not.toMatch(/\bitalic\b/);
   });
 });
