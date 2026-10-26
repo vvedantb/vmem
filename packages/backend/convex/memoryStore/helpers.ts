@@ -56,6 +56,7 @@ import {
 import { trackMemoryChange, trackMemoryChanges } from "./stats";
 import { deleteMemoryUsage, loadUsageHits } from "./usage";
 import type { MemoryVersion } from "../validators";
+import { assertCanCreateMemory } from "../lib/memoryLimit";
 import { truncateWellFormed } from "../lib/wellFormed";
 
 export interface CreateMemoryStoreParams {
@@ -548,6 +549,7 @@ export async function createMemory(
     nowMs: now,
   });
 
+  await assertCanCreateMemory(ctx, params.userId);
   const id = await ctx.db.insert("memories", {
     memoryId,
     userId: params.userId,

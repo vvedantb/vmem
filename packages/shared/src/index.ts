@@ -72,3 +72,9 @@ export {
   type GraphSnapshotGraph,
   type GraphSnapshotNode,
 } from "./graphSnapshot";
+export {
+  FREE_MEMORY_LIMIT,
+  isMemoryLimitMessage,
+  MEMORY_LIMIT_CODE,
+  MEMORY_LIMIT_MESSAGE,
+} from "./memoryLimit";

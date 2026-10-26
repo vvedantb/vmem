@@ -16,6 +16,7 @@ export const V_PRO_COPY = {
   pricePerMonth: "$15",
   yearly: { pricePerMonth: "$10", total: "$120", saveLabel: "Save 33%" },
   features: [
+    "Unlimited memories (Free is capped at 500)",
     "One subscription for vibot, Verve, Velth, vmem and vhub",
     "Shared Pro across every V app on the same Clerk account",
     "Manage billing once, in your account",
@@ -25,7 +26,8 @@ export const V_PRO_COPY = {
 };
 // True when the session says the user holds V Pro (current or legacy key).
 // The session token claims are a fallback for when `has` is not ready.
-// Nothing in vmem is gated on this yet, so it only drives the account menu.
+// Free is capped at FREE_MEMORY_LIMIT memories (enforced in Convex). V Pro has
+// no cap. This hook only drives the account menu and upgrade prompts.
 export function useHasVPlan(): boolean {
   const { has, sessionClaims } = useAuth();
   return (
