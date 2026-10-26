@@ -16,9 +16,13 @@ describe("userHasVPlan", () => {
     expect(userHasVPlan({ planSlugs: ["other"] })).toBe(false);
   });
 
-  it("is true for v_pro and the legacy vibot_pro slug", () => {
+  it("is true for v_pro", () => {
     expect(userHasVPlan({ planSlugs: ["v_pro"] })).toBe(true);
-    expect(userHasVPlan({ planSlugs: ["other", "vibot_pro"] })).toBe(true);
+    expect(userHasVPlan({ planSlugs: ["other", "v_pro"] })).toBe(true);
+  });
+
+  it("is false for the removed vibot_pro slug", () => {
+    expect(userHasVPlan({ planSlugs: ["vibot_pro"] })).toBe(false);
   });
 });
 
