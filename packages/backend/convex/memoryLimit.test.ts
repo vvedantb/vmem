@@ -165,4 +165,18 @@ describe("memory cap", () => {
     }
     vi.useRealTimers();
   });
+
+  it("blocks at the cap when the counter row is missing (lazy recount)", async () => {
+    const t = newHarness();
+    await seed(t, FREE_MEMORY_LIMIT, []);
+    await t.run(async (ctx) => {
+      const row = await ctx.db.query("userMemoryCounts").first();
+      if (row) await ctx.db.delete(row._id);
+    });
+    await expect(t.mutation(create, createArgs("new_1"))).rejects.toThrow(
+      MEMORY_LIMIT_CODE,
+    );
+    // throw rolls back any in-tx counter write; backfill restores O(1) checks
+    expect(await readCount(t)).toBe(0);
+  });
 });

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
-import { getUserMemoryCountRow } from "./lib/userMemoryCount";
+import { setUserMemoryCount } from "./lib/userMemoryCount";
 
 const BACKFILL_BATCH = 100;
 
@@ -65,12 +65,7 @@ export const backfillUserMemoryCountStepInternal = internalMutation({
       });
       return { done: false };
     }
-    const row = await getUserMemoryCountRow(ctx, user);
-    if (row === null) {
-      await ctx.db.insert("userMemoryCounts", { userId: user, count: running });
-    } else {
-      await ctx.db.patch(row._id, { count: running });
-    }
+    await setUserMemoryCount(ctx, user, running);
     await ctx.scheduler.runAfter(0, next, { lastUser: user });
     return { done: false };
   },
