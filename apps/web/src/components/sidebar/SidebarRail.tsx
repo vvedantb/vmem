@@ -133,7 +133,7 @@ export function VmemSidebarRail({
         <>
           <RailTile asChild label="Home" active={homeActive}>
             <Link to={homePath} onClick={onNavigate}>
-              <IconVmem size={22} className="text-current" />
+              <IconVmem size={26} className="text-current" />
             </Link>
           </RailTile>
           <RailNavItem

@@ -95,7 +95,7 @@ export function App() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col gap-5 p-5">
       <header className="flex items-center gap-3">
-        <IconVmem size={28} className="text-foreground" />
+        <IconVmem size={32} className="text-foreground" />
         <h1 className="text-xl font-semibold">vmem</h1>
       </header>
 

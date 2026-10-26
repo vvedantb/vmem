@@ -19,7 +19,8 @@ const out = join(root, "assets");
 // Node cannot load the TypeScript sources in node_modules, so bundle the shared brand helper first.
 const brand = await build({
   stdin: {
-    contents: 'export { appMarkSvg, appTileSvg } from "@vvedantb/ui/brand";',
+    contents:
+      'export { appMarkSvg, appTileSvg, markBBox } from "@vvedantb/ui/brand";',
     resolveDir: root,
   },
   bundle: true,
@@ -29,17 +30,36 @@ const brand = await build({
   jsx: "automatic",
   external: ["react", "react/jsx-runtime"],
 });
-const { appMarkSvg, appTileSvg } = await import(
+const { appMarkSvg, appTileSvg, markBBox } = await import(
   `data:text/javascript;base64,${Buffer.from(brand.outputFiles[0].text).toString("base64")}`
 );
 
 /**
+ * Square view box centred on the tight glyph box of the vmem mark, with no
+ * family padding. The shared `appMarkSvg` crop adds about 4% padding so app
+ * glyphs match across Icon* components. A menu bar icon stands alone, so
+ * templates use this tight box and the glyph fills the 16 px canvas.
+ */
+function tightViewBox() {
+  const [minX, minY, maxX, maxY] = markBBox("vmem");
+  const side = Math.max(maxX - minX, maxY - minY);
+  const x = (minX + maxX) / 2 - side / 2;
+  const y = (minY + maxY) / 2 - side / 2;
+  return `${x} ${y} ${side} ${side}`;
+}
+
+/**
  * The shared vmem mark as a square SVG of `size` px. With `tile` it is the
  * black family tile with a white glyph. Without it, the glyph is black on
- * transparent and the tight view box keeps a 16 px menu bar icon legible.
+ * transparent in the tight box (see `tightViewBox`). Tiles keep the family tile.
  */
 function markSvg(size, tile) {
-  const svg = tile ? appTileSvg("vmem") : appMarkSvg("vmem", "#000");
+  const svg = tile
+    ? appTileSvg("vmem")
+    : appMarkSvg("vmem", "#000").replace(
+        /viewBox="[^"]*"/,
+        `viewBox="${tightViewBox()}"`,
+      );
   return Buffer.from(
     svg.replace("<svg ", `<svg width="${size}" height="${size}" `),
   );

@@ -104,7 +104,7 @@ export function LandingAppStage() {
                 </h2>
               </div>
               <div className="flex items-center gap-2 px-3">
-                <IconVmem size={16} className="text-foreground" />
+                <IconVmem size={20} className="text-foreground" />
                 <VmemBrandText className="text-base" />
               </div>
               <div className="mt-auto px-4 py-3">

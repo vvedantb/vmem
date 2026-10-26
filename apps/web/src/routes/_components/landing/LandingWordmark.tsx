@@ -5,7 +5,7 @@ const wordmarkTextClassName =
   "landing-wordmark-text text-lg leading-none tracking-tight text-foreground";
 
 export function LandingWordmark({
-  iconSize = 22,
+  iconSize = 26,
   className,
 }: {
   iconSize?: number;
