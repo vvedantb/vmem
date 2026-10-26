@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { toast } from "sonner";
-import { convexErrorMessage } from "@/lib/convex-error";
+import { toastMemoryError } from "@/lib/pricing-modal";
 
 /**
- * wraps async actions with submitting state and toast on failure.
+ * wraps async actions with submitting state and toast on failure (opens the V Pro modal on the memory cap).
  * avoids duplicating try/catch in every form handler.
  */
 export function useAsyncSubmit() {
@@ -16,7 +15,7 @@ export function useAsyncSubmit() {
     try {
       await fn();
     } catch (err: unknown) {
-      toast.error(convexErrorMessage(err, fallbackMessage));
+      toastMemoryError(err, fallbackMessage);
     }
     setSubmitting(false);
   };

@@ -2,10 +2,14 @@ import { useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@vmem/backend";
 import { Button, SettingsSection } from "@vvedantb/ui";
+import { ConvexError } from "convex/values";
 import { toast } from "sonner";
+import { isMemoryLimitMessage, MEMORY_LIMIT_MESSAGE } from "@vmem/shared";
 import UploadImportModal from "./UploadImportModal";
 import SelectImportRowsModal from "./SelectImportRowsModal";
 import { importProviders, type ImportProvider } from "./importProviders";
+import { convexErrorMessage } from "@/lib/convex-error";
+import { toastMemoryError } from "@/lib/pricing-modal";
 import type { ExportImportRow } from "@/lib/chat-export/importRows";
 
 type ImportStep =
@@ -109,22 +113,31 @@ export default function ImportPageClient() {
       ),
     );
     let ok = 0;
+    let capped = false;
     for (let i = 0; i < results.length; i++) {
       const result = results.at(i);
       const row = selected.at(i);
       if (result?.status === "fulfilled") {
         ok += 1;
-      } else if (row) {
-        toast.error(`Failed to import: ${row.title}`);
+      } else if (result?.status === "rejected") {
+        if (isMemoryLimitMessage(convexErrorMessage(result.reason, ""))) {
+          capped = true;
+        } else if (row) {
+          toast.error(`Failed to import: ${row.title}`);
+        }
       }
     }
     setImporting(false);
     closeSelect();
-    toast.success(
-      ok === 1
-        ? "Saved 1 conversation to your library."
-        : `Saved ${String(ok)} conversations to your library.`,
-    );
+    // one upgrade prompt for the whole batch, not one per row
+    if (capped) toastMemoryError(new ConvexError(MEMORY_LIMIT_MESSAGE), "");
+    if (ok > 0) {
+      toast.success(
+        ok === 1
+          ? "Saved 1 conversation to your library."
+          : `Saved ${String(ok)} conversations to your library.`,
+      );
+    }
   };
 
   const uploadProvider =

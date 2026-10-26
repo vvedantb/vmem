@@ -30,6 +30,7 @@ import { ProfileDropdown } from "@/components/profiles/ProfileDropdown";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { buildTagStats } from "@/lib/memories";
 import { formatFileSize } from "@/components/files/_utils";
+import { toastMemoryError } from "@/lib/pricing-modal";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
@@ -153,9 +154,7 @@ export default function AddMemoryModal({
       resetForm();
       setOpen(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to save memory",
-      );
+      toastMemoryError(error, "Failed to save memory");
     }
   };
 

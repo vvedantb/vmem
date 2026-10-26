@@ -1,17 +1,16 @@
-import { useState } from "react";
 import { DropdownMenuItem, SidebarAccountMenu } from "@vvedantb/ui";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { IconSparkles, IconUserCog } from "@tabler/icons-react";
 import { useThemeContext } from "@/contexts/ThemeContext";
 import { useHasVPlan } from "@/lib/vPlan";
-import { VProPricingModal } from "./VProPricingModal";
+import { openPricingModal } from "@/lib/pricing-modal";
+import { PricingModalHost } from "./PricingModalHost";
 
 export function SidebarUserMenu() {
   const { user } = useUser();
   const { openUserProfile, signOut } = useClerk();
   const { isDark, toggleTheme } = useThemeContext();
   const hasPro = useHasVPlan();
-  const [pricingOpen, setPricingOpen] = useState(false);
 
   if (!user) return null;
 
@@ -34,7 +33,7 @@ export function SidebarUserMenu() {
             <IconSparkles />V Pro
           </DropdownMenuItem>
         ) : (
-          <DropdownMenuItem onSelect={() => setPricingOpen(true)}>
+          <DropdownMenuItem onSelect={() => openPricingModal()}>
             <IconSparkles />
             Upgrade to V Pro
           </DropdownMenuItem>
@@ -44,12 +43,7 @@ export function SidebarUserMenu() {
           Manage account
         </DropdownMenuItem>
       </SidebarAccountMenu>
-      {hasPro ? null : (
-        <VProPricingModal
-          open={pricingOpen}
-          onClose={() => setPricingOpen(false)}
-        />
-      )}
+      {hasPro ? null : <PricingModalHost />}
     </>
   );
 }
