@@ -19,7 +19,7 @@ const out = join(root, "assets");
 // Node cannot load the TypeScript sources in node_modules, so bundle the shared brand helper first.
 const brand = await build({
   stdin: {
-    contents: 'export { appMarkSvg } from "@vvedantb/ui/brand";',
+    contents: 'export { appMarkSvg, appTileSvg } from "@vvedantb/ui/brand";',
     resolveDir: root,
   },
   bundle: true,
@@ -29,27 +29,19 @@ const brand = await build({
   jsx: "automatic",
   external: ["react", "react/jsx-runtime"],
 });
-const { appMarkSvg } = await import(
+const { appMarkSvg, appTileSvg } = await import(
   `data:text/javascript;base64,${Buffer.from(brand.outputFiles[0].text).toString("base64")}`
 );
 
 /**
- * The shared vmem mark as a square SVG of `size` px. With a `background` it is
- * the family tile. Without one, the view box crops to the glyph so a 16 px
- * menu bar icon stays legible.
+ * The shared vmem mark as a square SVG of `size` px. With `tile` it is the
+ * black family tile with a white glyph. Without it, the glyph is black on
+ * transparent and the tight view box keeps a 16 px menu bar icon legible.
  */
-function markSvg(size, fill, background) {
-  const viewBox = background ? "0 0 1024 1024" : "224 224 576 576";
-  const bg = background
-    ? `<rect width="1024" height="1024" rx="224" fill="${background}"/>`
-    : "";
+function markSvg(size, tile) {
+  const svg = tile ? appTileSvg("vmem") : appMarkSvg("vmem", "#000");
   return Buffer.from(
-    appMarkSvg("vmem", fill)
-      .replace(
-        'viewBox="0 0 1024 1024"',
-        `width="${size}" height="${size}" viewBox="${viewBox}"`,
-      )
-      .replace(/(<svg[^>]*>)/, `$1${bg}`),
+    svg.replace("<svg ", `<svg width="${size}" height="${size}" `),
   );
 }
 
@@ -142,18 +134,12 @@ await writeFile(
 );
 
 // Windows and Linux tray: white mark on a black tile, readable on light and dark bars.
-await writeFile(join(out, "tray.png"), await png(markSvg(16, "#fff", "#000")));
-await writeFile(
-  join(out, "tray@2x.png"),
-  await png(markSvg(32, "#fff", "#000")),
-);
+await writeFile(join(out, "tray.png"), await png(markSvg(16, true)));
+await writeFile(join(out, "tray@2x.png"), await png(markSvg(32, true)));
 // macOS menu bar: black on transparent. The `Template` suffix and
 // setTemplateImage(true) let macOS recolour it for light and dark bars.
-await writeFile(
-  join(out, "trayTemplate.png"),
-  await png(markSvg(16, "#000", null)),
-);
+await writeFile(join(out, "trayTemplate.png"), await png(markSvg(16, false)));
 await writeFile(
   join(out, "trayTemplate@2x.png"),
-  await png(markSvg(32, "#000", null)),
+  await png(markSvg(32, false)),
 );
