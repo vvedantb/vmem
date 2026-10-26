@@ -52,6 +52,7 @@ describe("VProPricingModal", () => {
     expect(text).toContain("500 memories");
     expect(text).toContain("Files up to 10 GiB");
     expect(text).toContain("Everything in Free, and:");
+    expect(text).toContain("Unlimited memories");
     expect(text).not.toContain("Clerk");
     const upgradeCta = [
       ...document.querySelectorAll<HTMLButtonElement>("button"),
