@@ -3,10 +3,6 @@ import { VProPricingModal } from "./VProPricingModal";
 
 // Mount once. Opened through `openPricingModal` from anywhere in the app.
 export function PricingModalHost() {
-  return (
-    <VProPricingModal
-      open={usePricingModalOpen()}
-      onClose={closePricingModal}
-    />
-  );
+  const open = usePricingModalOpen();
+  return <VProPricingModal open={open} onClose={closePricingModal} />;
 }

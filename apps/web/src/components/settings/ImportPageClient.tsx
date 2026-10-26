@@ -129,13 +129,15 @@ export default function ImportPageClient() {
     }
     setImporting(false);
     closeSelect();
-    // one prompt for the whole batch, not one per row
+    // one upgrade prompt for the whole batch, not one per row
     if (capped) toastMemoryError(new ConvexError(MEMORY_LIMIT_MESSAGE), "");
-    toast.success(
-      ok === 1
-        ? "Saved 1 conversation to your library."
-        : `Saved ${String(ok)} conversations to your library.`,
-    );
+    if (ok > 0) {
+      toast.success(
+        ok === 1
+          ? "Saved 1 conversation to your library."
+          : `Saved ${String(ok)} conversations to your library.`,
+      );
+    }
   };
 
   const uploadProvider =

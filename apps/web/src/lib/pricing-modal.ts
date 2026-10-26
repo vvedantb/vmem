@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { isMemoryLimitMessage } from "@vmem/shared";
+import { FREE_MEMORY_LIMIT, isMemoryLimitMessage } from "@vmem/shared";
 import { convexErrorMessage } from "./convex-error";
 
 // One shared open flag so any surface can open the single mounted V Pro modal.
@@ -42,7 +42,7 @@ export function toastMemoryError(err: unknown, fallback: string): boolean {
   const capped = isMemoryLimitMessage(message);
   toast.error(
     capped
-      ? "You have reached the Free limit of 500 memories. Upgrade to V Pro for unlimited memories."
+      ? `You have reached the Free limit of ${String(FREE_MEMORY_LIMIT)} memories. Upgrade to V Pro for unlimited memories.`
       : message,
   );
   if (capped) openPricingModal();
