@@ -1,15 +1,14 @@
 import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 import { IconBrandGithub } from "@tabler/icons-react";
-import { Button } from "@vvedantb/ui";
+import { AppWordmark, Button } from "@vvedantb/ui";
 import { LANDING_NAV_LINKS, VMEM_GITHUB_URL } from "./landingContent";
 import { LandingNavMenu } from "./LandingNavMenu";
 import { KitLandingNav } from "./LandingReveal";
-import { LandingWordmark } from "./LandingWordmark";
 
 export function LandingNav() {
   return (
     <KitLandingNav
-      brand={<LandingWordmark />}
+      brand={<AppWordmark app="vmem" />}
       homeLabel="vmem home"
       links={LANDING_NAV_LINKS}
       github={{

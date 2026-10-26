@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -41,27 +41,33 @@ describe("landing is monochrome", () => {
 describe("landing wordmark", () => {
   const read = (name: string) => readFileSync(path.join(here, name), "utf8");
 
-  it("shares one Instrument Serif regular wordmark in header and footer", () => {
-    const wordmark = read("LandingWordmark.tsx");
-    expect(wordmark).toContain("landing-wordmark-text");
-    expect(wordmark).not.toMatch(/font-semibold|font-bold/);
-    expect(wordmark).toContain("<IconVmem");
-
-    const css = readFileSync(landingCssPath, "utf8");
-    expect(css).toMatch(/\.landing-wordmark-text[\s\S]*font-weight:\s*400/);
-    expect(css).toMatch(/\.landing-wordmark-text[\s\S]*font-synthesis:\s*none/);
-
+  it("uses AppWordmark in header and footer", () => {
     const nav = read("LandingNav.tsx");
     const footer = read("LandingFooter.tsx");
-    expect(nav).toContain("LandingWordmark");
-    expect(footer).toContain("LandingWordmark");
+    expect(nav).toContain('<AppWordmark app="vmem" />');
+    expect(footer).toContain('<AppWordmark app="vmem" />');
+    expect(nav).not.toContain("LandingWordmark");
+    expect(footer).not.toContain("LandingWordmark");
     expect(nav).not.toContain("VmemBrand");
     expect(footer).not.toContain("VmemBrand");
+  });
+
+  it("removes the local LandingWordmark", () => {
+    expect(existsSync(path.join(here, "LandingWordmark.tsx"))).toBe(false);
+    for (const name of readdirSync(here)) {
+      if (!/\.(tsx|ts)$/.test(name) || name.includes(".test.")) continue;
+      expect(read(name), name).not.toContain("LandingWordmark");
+    }
+  });
+
+  it("keeps italic out of the hero title", () => {
+    expect(read("LandingHero.tsx")).not.toMatch(/\bitalic\b/);
   });
 
   it("leaves the in-app preview on Instrument Sans VmemBrandText", () => {
     const stage = read("LandingAppStage.tsx");
     expect(stage).toContain("VmemBrandText");
+    expect(stage).not.toContain("AppWordmark");
     expect(stage).not.toContain("LandingWordmark");
   });
 });

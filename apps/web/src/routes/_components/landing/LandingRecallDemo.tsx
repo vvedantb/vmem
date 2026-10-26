@@ -205,7 +205,7 @@ function RecallHit({
                 />
               ) : null}
             </div>
-            <p className="mt-3 text-[11px] italic leading-snug text-muted">
+            <p className="mt-3 text-[11px] leading-snug text-muted">
               {hit.trace.reason}
             </p>
           </motion.div>

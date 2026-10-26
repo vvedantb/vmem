@@ -11,7 +11,9 @@ export function LandingHero() {
       title={
         <>
           Memory your agents can{" "}
-          <span className="italic text-foreground/85">actually use</span>
+          <span className="font-medium tracking-tight text-foreground/85">
+            actually use
+          </span>
         </>
       }
       description="Store context from chats and tools, connect it in a graph, and retrieve the slice that matters — with a Context Trace that shows why each memory matched."
