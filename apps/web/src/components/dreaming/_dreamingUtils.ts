@@ -61,9 +61,7 @@ export function dreamRunCountParts(
             `${plural(run.cleanup.rowsToSuppress, "duplicate row")} in ${plural(run.cleanup.groups, "group")}`,
           ]
         : []),
-      ...(tagGroups > 0
-        ? [plural(tagGroups, "duplicate tag group")]
-        : []),
+      ...(tagGroups > 0 ? [plural(tagGroups, "duplicate tag group")] : []),
       ...(run.counts.aiFlagged > 0
         ? [`${String(run.counts.aiFlagged)} AI flagged`]
         : []),
@@ -99,7 +97,7 @@ export function canUndoDreamAction(
 // what the card reads from a run (tests pass plain ids)
 type CleanupRun<Id extends string> = Pick<
   DreamRun,
-  "dryRun" | "status" | "sample" | "cleanup"
+  "dryRun" | "status" | "sample" | "cleanup" | "counts"
 > & { _id: Id };
 
 export type CleanupCardState<Id extends string = DreamRun["_id"]> =
@@ -112,7 +110,10 @@ export type CleanupCardState<Id extends string = DreamRun["_id"]> =
       groups: number;
       deterministic: DreamSampleGroup[];
       tags: DreamSampleGroup[];
+      // the sample shows at most 50 AI groups; aiFlagged counts them all
       ai: DreamSampleGroup[];
+      aiFlagged: number;
+      stopNote: string | null;
     }
   | { kind: "applying" };
 
@@ -133,7 +134,8 @@ export function cleanupCardState<Id extends string>(
   const ai = sample.filter((group) => group.rule === "near_dup");
   const tags = sample.filter((group) => group.rule === "tag");
   const groups = run.cleanup?.groups ?? 0;
-  if (groups === 0 && ai.length === 0 && tags.length === 0) {
+  const aiFlagged = run.counts.aiFlagged;
+  if (groups === 0 && aiFlagged === 0 && tags.length === 0) {
     return { kind: "none" };
   }
   return {
@@ -146,7 +148,25 @@ export function cleanupCardState<Id extends string>(
     ),
     tags,
     ai,
+    aiFlagged,
+    stopNote: cleanupStopNote(run),
   };
+}
+
+/**
+ * Why a finished dry run left candidate groups unchecked: the AI call limit
+ * per scan or today's AI budget. The next scan continues with them.
+ */
+export function cleanupStopNote(
+  run: Pick<DreamRun, "status" | "cleanup">,
+): string | null {
+  const cleanup = run.cleanup;
+  if (run.status === "running" || cleanup === undefined) return null;
+  if (cleanup.aiSkipped === 0) return null;
+  const checked = `${(cleanup.aiCandidates - cleanup.aiSkipped).toLocaleString()} of ${plural(cleanup.aiCandidates, "possible duplicate group")}`;
+  return cleanup.aiStopReason === "budget"
+    ? `The AI reached its daily limit after it checked ${checked}. Scan again tomorrow to check the rest.`
+    : `The AI checked ${checked}. Scan again later to check the rest.`;
 }
 
 // Must match WEB_DRY_RUN_GAP_MS in packages/backend/convex/dreamCleanup.ts

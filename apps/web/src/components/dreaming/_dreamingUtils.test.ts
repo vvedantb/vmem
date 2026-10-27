@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   canUndoDreamAction,
   cleanupCardState,
+  cleanupStopNote,
   dreamRunCountParts,
   formatScanAgainAt,
   scanCooldownUntil,
@@ -71,7 +72,12 @@ describe("cleanupCardState", () => {
 
   it("shows a finished dry run as a pending plan, AI groups apart", () => {
     const state = cleanupCardState(
-      run({ dryRun: true, cleanup: CLEANUP, sample }),
+      run({
+        dryRun: true,
+        cleanup: CLEANUP,
+        sample,
+        counts: { ...ZERO_COUNTS, aiFlagged: 1 },
+      }),
     );
     expect(state).toMatchObject({
       kind: "pending",
@@ -80,6 +86,33 @@ describe("cleanupCardState", () => {
       groups: 2,
       deterministic: [{ keeperTitle: "vhub" }],
       ai: [{ keeperTitle: "Uses pnpm" }],
+      aiFlagged: 1,
+      stopNote: null,
+    });
+  });
+
+  it("counts every AI suggestion, not just the sample, and says why a scan stopped", () => {
+    const state = cleanupCardState(
+      run({
+        dryRun: true,
+        status: "partial",
+        cleanup: {
+          ...CLEANUP,
+          groups: 0,
+          rowsToSuppress: 0,
+          aiCandidates: 1_200,
+          aiSkipped: 700,
+          aiStopReason: "cap",
+        },
+        sample: sample.slice(1),
+        counts: { ...ZERO_COUNTS, aiFlagged: 80 },
+      }),
+    );
+    expect(state).toMatchObject({
+      kind: "pending",
+      aiFlagged: 80,
+      stopNote:
+        "The AI checked 500 of 1,200 possible duplicate groups. Scan again later to check the rest.",
     });
   });
 
@@ -131,6 +164,34 @@ describe("cleanupCardState", () => {
       cleanupCardState(run({ dryRun: true, status: "running" })).kind,
     ).toBe("scanning");
     expect(cleanupCardState(run({ status: "running" })).kind).toBe("applying");
+  });
+});
+
+describe("cleanupStopNote", () => {
+  const capped = { ...CLEANUP, aiCandidates: 3, aiSkipped: 2 };
+
+  it("is empty when the AI checked every group or is still checking", () => {
+    expect(cleanupStopNote(run({ dryRun: true }))).toBeNull();
+    expect(cleanupStopNote(run({ dryRun: true, cleanup: CLEANUP }))).toBeNull();
+    expect(
+      cleanupStopNote(
+        run({ dryRun: true, status: "running", cleanup: capped }),
+      ),
+    ).toBeNull();
+  });
+
+  it("names the daily budget when that stopped the scan", () => {
+    expect(
+      cleanupStopNote(
+        run({
+          dryRun: true,
+          status: "partial",
+          cleanup: { ...capped, aiStopReason: "budget" },
+        }),
+      ),
+    ).toBe(
+      "The AI reached its daily limit after it checked 1 of 3 possible duplicate groups. Scan again tomorrow to check the rest.",
+    );
   });
 });
 
@@ -229,6 +290,22 @@ describe("dreaming surfaces", () => {
       expect(read(file)).not.toContain("RunDreamModeButton");
       expect(read(file)).not.toContain("ScanForDuplicatesButton");
     }
+  });
+
+  it("confirms before it starts a full scan", () => {
+    const panel = read("DreamingPanel.tsx");
+    const button = panel.slice(
+      panel.indexOf("function ScanForDuplicatesButton"),
+      panel.indexOf("function RunRow"),
+    );
+    expect(button).toContain("ConfirmDialog.Root");
+    expect(button).toContain("Scan all memories?");
+    expect(button).toContain("Start scan");
+    expect(button).toContain("onClick={() => setConfirmOpen(true)}");
+    // the scan starts from the dialog's action, not from the header button
+    expect(button.indexOf("startDryRun({")).toBeGreaterThan(
+      button.indexOf("<ConfirmDialog.Action"),
+    );
   });
 
   it("confirms before applying the cleanup and uses the auth-checked wrapper", () => {

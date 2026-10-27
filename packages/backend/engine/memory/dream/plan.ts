@@ -11,6 +11,7 @@ export const PLAN_LOSER_TITLES = 5;
 export const AI_GROUP_MAX_MEMBERS = 6;
 export const NEIGHBOUR_MIN_SCORE = 0.9;
 export const SAMPLE_DETERMINISTIC_GROUPS = 50;
+export const SAMPLE_AI_GROUPS = 50;
 
 // the slim row the planner keeps per memory (no content)
 export interface PlanRow<M extends string> {
@@ -377,4 +378,41 @@ export function pickCandidateGroups<G>(
     if (group !== undefined) picked.push(group);
   }
   return picked;
+}
+
+// the same for any member order
+function memberSetKey(memberIds: readonly string[]): string {
+  return [...memberIds].sort().join(",");
+}
+
+/**
+ * Splits this scan's candidate groups into the ones an earlier plan already
+ * judged (same member set, verdict flagged or not_duplicate) and the ones Jev
+ * still has to judge. Errors and unjudged groups go back in the queue. Both
+ * lists keep candidate order.
+ */
+export function reusePriorVerdicts<
+  G extends { memberIds: readonly string[] },
+  V extends { memberIds: readonly string[]; aiStatus?: string },
+>(
+  groups: readonly G[],
+  verdicts: readonly V[],
+): { reused: { group: G; verdict: V }[]; unjudged: G[] } {
+  const byKey = new Map<string, V>();
+  for (const verdict of verdicts) {
+    if (
+      verdict.aiStatus === "flagged" ||
+      verdict.aiStatus === "not_duplicate"
+    ) {
+      byKey.set(memberSetKey(verdict.memberIds), verdict);
+    }
+  }
+  const reused: { group: G; verdict: V }[] = [];
+  const unjudged: G[] = [];
+  for (const group of groups) {
+    const verdict = byKey.get(memberSetKey(group.memberIds));
+    if (verdict === undefined) unjudged.push(group);
+    else reused.push({ group, verdict });
+  }
+  return { reused, unjudged };
 }

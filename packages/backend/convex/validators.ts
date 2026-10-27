@@ -681,8 +681,8 @@ const dreamCleanupCountsFields = {
 };
 
 // one dreaming pass (nightly, manual or the one-off backfill) per user and
-// profile. `sample` holds the top groups for review: at most 50, each with at
-// most 20 memory ids (the writer caps both).
+// profile. `sample` holds the top groups for review: at most 50 per rule, each
+// with at most 20 memory ids (the writer caps both).
 export const dreamRunFields = {
   userId: v.id("users"),
   profileId: v.optional(v.id("profiles")),

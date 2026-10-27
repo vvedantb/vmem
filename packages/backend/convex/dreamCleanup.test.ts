@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import type * as Ai from "ai";
 import { convexTest } from "convex-test";
+import type { WithoutSystemFields } from "convex/server";
 import { ConvexError } from "convex/values";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MEMORY_EMBEDDING_DIMENSIONS } from "../engine/memory/searchableText";
@@ -90,33 +91,41 @@ type Owner = Awaited<ReturnType<typeof addUser>>;
 
 let seq = 0;
 
+// a distinct memory row; later rows are newer
+function memoryFields(
+  owner: Owner,
+  fields: Partial<Doc<"memories">> = {},
+): WithoutSystemFields<Doc<"memories">> {
+  seq += 1;
+  const memoryId = `mem_${String(seq)}`;
+  return {
+    memoryId,
+    userId: owner.clerkId,
+    profileId: owner.profileId,
+    title: `Title ${memoryId}`,
+    content: `Content ${memoryId}`,
+    type: "knowledge",
+    source: "mcp",
+    confidence: 1,
+    status: "active",
+    tags: [],
+    createdAt: NOW - DAY_MS + seq,
+    updatedAt: NOW - DAY_MS + seq,
+    contentHash: `hash_${memoryId}`,
+    visitCount: 1,
+    firstVisitAt: NOW - DAY_MS,
+    lastVisitAt: NOW - DAY_MS,
+    ...fields,
+  };
+}
+
 async function addMemory(
   t: T,
   owner: Owner,
   fields: Partial<Doc<"memories">> = {},
 ): Promise<Id<"memories">> {
-  seq += 1;
-  const memoryId = `mem_${String(seq)}`;
   return await t.run(async (ctx) =>
-    ctx.db.insert("memories", {
-      memoryId,
-      userId: owner.clerkId,
-      profileId: owner.profileId,
-      title: `Title ${memoryId}`,
-      content: `Content ${memoryId}`,
-      type: "knowledge",
-      source: "mcp",
-      confidence: 1,
-      status: "active",
-      tags: [],
-      createdAt: NOW - DAY_MS + seq,
-      updatedAt: NOW - DAY_MS + seq,
-      contentHash: `hash_${memoryId}`,
-      visitCount: 1,
-      firstVisitAt: NOW - DAY_MS,
-      lastVisitAt: NOW - DAY_MS,
-      ...fields,
-    }),
+    ctx.db.insert("memories", memoryFields(owner, fields)),
   );
 }
 
@@ -517,6 +526,82 @@ describe("dreamCleanup Jev pass", () => {
     });
   });
 
+  // convex-test pages slowly over thousands of rows (about 7 s alone)
+  it("pages every row and judges every candidate group by default", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_full_scan");
+    // 25 near-duplicate pairs (more than the old 20-call default), the oldest
+    // rows, so the scan meets them after 3,000 newer ones
+    for (let i = 0; i < 25; i += 1) {
+      const a = await addMemory(t, owner, { title: `Fact ${String(i)}` });
+      const b = await addMemory(t, owner, { title: `Same fact ${String(i)}` });
+      await embed(t, owner, a, vector(3 * i));
+      await embed(t, owner, b, vector(3 * i, 0.1));
+    }
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 3_000; i += 1) {
+        await ctx.db.insert("memories", memoryFields(owner));
+      }
+    });
+
+    const run = await summary(t, await dryRun(t, owner));
+
+    expect(evaluate).toHaveBeenCalledTimes(25);
+    expect(run).toMatchObject({
+      status: "ok",
+      aiCalls: 25,
+      counts: { aiFlagged: 25 },
+      cleanup: { scannedRows: 3_050, aiCandidates: 25, aiSkipped: 0 },
+    });
+    expect(run.cleanup?.aiStopReason).toBeUndefined();
+  }, 30_000);
+
+  it("continues a capped scan with the groups it left unjudged", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_continue");
+    await seedJev(t, owner);
+    const judged = () =>
+      evaluatedStates().map((state) =>
+        state.memories
+          .map((m) => m.title)
+          .sort()
+          .join(" | "),
+      );
+
+    const first = await summary(t, await dryRun(t, owner, { jevMaxCalls: 1 }));
+    expect(first).toMatchObject({
+      status: "partial",
+      aiCalls: 1,
+      counts: { aiFlagged: 1 },
+      cleanup: { aiCandidates: 2, aiSkipped: 1, aiStopReason: "cap" },
+    });
+
+    // the next scan judges only the group the first one skipped and keeps
+    // the first verdict, so its plan holds both
+    const secondId = await dryRun(t, owner, { jevMaxCalls: 1 });
+    const second = await summary(t, secondId);
+    expect(judged()).toHaveLength(2);
+    expect(new Set(judged()).size).toBe(2);
+    expect(second).toMatchObject({
+      status: "ok",
+      aiCalls: 1,
+      counts: { aiFlagged: 2 },
+      cleanup: { aiCandidates: 2, aiSkipped: 0 },
+    });
+    expect(second.sample?.filter((s) => s.rule === "near_dup")).toHaveLength(2);
+
+    // applying it proposes both; verdicts carry across the apply
+    const applyId = await apply(t, secondId, true);
+    expect((await summary(t, applyId)).counts.proposals).toBe(2);
+    const third = await summary(t, await dryRun(t, owner));
+    expect(evaluate).toHaveBeenCalledTimes(2);
+    expect(third).toMatchObject({
+      status: "ok",
+      aiCalls: 0,
+      counts: { aiFlagged: 2 },
+    });
+  });
+
   it("stops at the daily budget", async () => {
     const t = setupT();
     const owner = await addUser(t, "clerk_budget");
@@ -571,6 +656,10 @@ describe("dreamCleanup Jev pass", () => {
     });
     await apply(t, planId, true);
     expect((await getDoc(t, n2)).status).toBe("active");
+
+    // errors are not reused: the next scan asks again
+    await dryRun(t, owner);
+    expect(evaluate).toHaveBeenCalledTimes(4);
   });
 
   it("turns Jev groups into proposals; approval suppresses with undo", async () => {

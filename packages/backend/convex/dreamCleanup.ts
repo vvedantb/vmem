@@ -14,6 +14,8 @@ import {
   pickCandidateGroups,
   planTitle,
   PLAN_LOSER_TITLES,
+  reusePriorVerdicts,
+  SAMPLE_AI_GROUPS,
   SAMPLE_DETERMINISTIC_GROUPS,
   toPlanRow,
   type CandidateEdge,
@@ -43,6 +45,7 @@ import { userFacingError } from "./lib/userFacingError";
 import { resolveSystemOneApiKey } from "./lib/systemOneKey";
 import { scheduleLog } from "./lib/openRouter/shared";
 import {
+  memoryDocIdsForEmbeddings,
   memoryReadScopeFromArgs,
   paginateScopedDocs,
 } from "./memoryStore/helpers";
@@ -57,22 +60,29 @@ import {
 } from "./validators";
 
 // One-off duplicate cleanup (dreaming plan §3b). planInternal is a dry run:
-// it pages the profile, buckets rows by exact hash and browse key (rules A/B),
-// then asks Jev about a capped number of candidate groups (rule J, vector
-// neighbours / shared entity). Memories are untouched; the plan lives in
-// dreamPlanGroups. applyInternal merges the A/B groups with undo and turns
-// Jev-flagged groups into inbox proposals.
+// it pages the whole profile, buckets rows by exact hash and browse key
+// (rules A/B), then finds candidate groups (rule J, vector neighbours / shared
+// entity) over every eligible row, 50 embeddings at a time. Jev judges each
+// candidate group in scheduled chunks, up to JEV_MAX_CALLS per scan; the scan
+// is partial past that. The next scan reuses the verdicts of the last plan
+// for groups with the same members, so it continues with the unjudged ones.
+// Memories are untouched; the plan lives in dreamPlanGroups. applyInternal
+// merges the A/B groups with undo and turns Jev-flagged groups into inbox
+// proposals.
 
 const PAGE_SIZE = 200;
-const MAX_PLAN_ROWS = 20_000;
+// rules A/B hold every slim row (about 0.5 KB) at once in a 64 MiB action
+const MAX_PLAN_ROWS = 50_000;
 const GROUP_WRITE_CHUNK = 100;
 const EMBEDDING_BATCH = 50;
 const MENTION_BATCH = 100;
 // the row itself plus about four neighbours
 const NEIGHBOUR_LIMIT = 5;
-const MAX_AI_SCAN_ROWS = 3_000;
-const JEV_DEFAULT_CALLS = 20;
-const JEV_MAX_CALLS = 200;
+// Jev calls per scan, default and ceiling
+const JEV_MAX_CALLS = 500;
+// earlier cleanup runs of the profile searched for a plan to continue
+const PRIOR_PLAN_LOOKBACK = 20;
+const PRIOR_GROUP_PAGE = 500;
 const JUDGE_CHUNK = 10;
 const JUDGE_CONTENT_CHARS = 600;
 const APPLY_GROUPS = 100;
@@ -264,26 +274,38 @@ export const embeddingsForInternal = internalQuery({
   args: { ids: v.array(v.id("memories")) },
   returns: v.array(
     v.object({
+      embeddingId: v.id("memoryEmbeddings"),
       memoryDocId: v.id("memories"),
       embedding: v.array(v.float64()),
     }),
   ),
   handler: async (ctx, args) => {
-    const out: { memoryDocId: MemoryId; embedding: number[] }[] = [];
+    const out: {
+      embeddingId: Id<"memoryEmbeddings">;
+      memoryDocId: MemoryId;
+      embedding: number[];
+    }[] = [];
     for (const id of args.ids) {
       const row = await ctx.db
         .query("memoryEmbeddings")
         .withIndex("by_memory_doc", (q) => q.eq("memoryDocId", id))
         .first();
-      if (row) out.push({ memoryDocId: id, embedding: row.embedding });
+      if (row) {
+        out.push({
+          embeddingId: row._id,
+          memoryDocId: id,
+          embedding: row.embedding,
+        });
+      }
     }
     return out;
   },
 });
 
-// memory doc ids behind vector hits, only inside the profile
+// memory doc ids behind vector hits from the slim embeddingRefs rows; the
+// search already filters by profile and callers keep only eligible rows
 export const embeddingOwnersInternal = internalQuery({
-  args: { ids: v.array(v.id("memoryEmbeddings")), profileId: v.string() },
+  args: { ids: v.array(v.id("memoryEmbeddings")) },
   returns: v.array(
     v.object({
       embeddingId: v.id("memoryEmbeddings"),
@@ -291,16 +313,11 @@ export const embeddingOwnersInternal = internalQuery({
     }),
   ),
   handler: async (ctx, args) => {
-    const out: {
-      embeddingId: Id<"memoryEmbeddings">;
-      memoryDocId: MemoryId;
-    }[] = [];
-    for (const id of args.ids) {
-      const row = await ctx.db.get(id);
-      if (row?.profileId !== args.profileId) continue;
-      out.push({ embeddingId: id, memoryDocId: row.memoryDocId });
-    }
-    return out;
+    const owners = await memoryDocIdsForEmbeddings(ctx, args.ids);
+    return args.ids.flatMap((embeddingId, i) => {
+      const memoryDocId = owners[i] ?? null;
+      return memoryDocId === null ? [] : [{ embeddingId, memoryDocId }];
+    });
   },
 });
 
@@ -366,6 +383,104 @@ export const recordScanInternal = internalMutation({
   },
 });
 
+/**
+ * The plan a new scan continues: the profile's newest earlier dry run that
+ * finished with candidate groups. Apply runs and scans without an AI pass
+ * are passed over, so verdicts carry across them.
+ */
+export const priorPlanInternal = internalQuery({
+  args: { runId: v.id("dreamRuns") },
+  returns: v.union(v.id("dreamRuns"), v.null()),
+  handler: async (ctx, args) => {
+    const run = await ctx.db.get(args.runId);
+    if (!run?.profileId) return null;
+    const earlier = await ctx.db
+      .query("dreamRuns")
+      .withIndex("by_user_trigger_started", (q) =>
+        q
+          .eq("userId", run.userId)
+          .eq("trigger", "backfill")
+          .lte("startedAt", run.startedAt),
+      )
+      .order("desc")
+      .filter((q) => q.eq(q.field("profileId"), run.profileId))
+      .take(PRIOR_PLAN_LOOKBACK);
+    const plan = earlier.find(
+      (prior) =>
+        prior._creationTime < run._creationTime &&
+        prior.dryRun &&
+        (prior.status === "ok" || prior.status === "partial") &&
+        (prior.cleanup?.aiCandidates ?? 0) > 0,
+    );
+    return plan?._id ?? null;
+  },
+});
+
+// what a new scan copies from an earlier plan's AI group
+const priorAiGroupValidator = v.object({
+  memberIds: v.array(v.id("memories")),
+  aiStatus: dreamPlanGroupInputFields.aiStatus,
+  keeperId: v.optional(v.id("memories")),
+  loserIds: v.array(v.id("memories")),
+  keeperTitle: v.string(),
+  loserTitles: v.array(v.string()),
+  reason: v.string(),
+  aiConfidence: v.optional(v.number()),
+});
+
+// one page of a plan's AI groups, in plan order
+export const priorAiGroupsInternal = internalQuery({
+  args: { runId: v.id("dreamRuns"), afterSeq: v.number() },
+  returns: v.object({
+    groups: v.array(priorAiGroupValidator),
+    lastSeq: v.number(),
+    isDone: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("dreamPlanGroups")
+      .withIndex("by_run_tier_seq", (q) =>
+        q.eq("runId", args.runId).eq("tier", "ai").gt("seq", args.afterSeq),
+      )
+      .take(PRIOR_GROUP_PAGE);
+    return {
+      groups: rows.map((row) => ({
+        memberIds: row.memberIds,
+        aiStatus: row.aiStatus,
+        keeperId: row.keeperId,
+        loserIds: row.loserIds,
+        keeperTitle: row.keeperTitle,
+        loserTitles: row.loserTitles,
+        reason: row.reason,
+        aiConfidence: row.aiConfidence,
+      })),
+      lastSeq: rows.at(-1)?.seq ?? args.afterSeq,
+      isDone: rows.length < PRIOR_GROUP_PAGE,
+    };
+  },
+});
+
+async function priorAiGroups(
+  ctx: ActionCtx,
+  runId: RunId,
+): Promise<Infer<typeof priorAiGroupValidator>[]> {
+  const planId = await ctx.runQuery(internal.dreamCleanup.priorPlanInternal, {
+    runId,
+  });
+  const groups: Infer<typeof priorAiGroupValidator>[] = [];
+  if (planId === null) return groups;
+  let afterSeq = -1;
+  for (;;) {
+    const page = await ctx.runQuery(
+      internal.dreamCleanup.priorAiGroupsInternal,
+      { runId: planId, afterSeq },
+    );
+    groups.push(...page.groups);
+    if (page.isDone) return groups;
+    afterSeq = page.lastSeq;
+  }
+}
+
 async function chunked<T>(
   items: readonly T[],
   size: number,
@@ -405,12 +520,16 @@ async function scanRows(
   return { rows, truncated };
 }
 
+// the rule J input: an eligible row without the fields rules A/B needed
+type EligibleRow = { _id: MemoryId; memoryId: string; title: string };
+
 // rule J candidate edges: vector neighbours at cosine >= 0.90 and rows that
-// share a narrow entity, both only between eligible rows
+// share a narrow entity, both only between eligible rows. Each embedding is
+// read once; hits resolve through the slim embeddingRefs rows.
 async function candidateEdges(
   ctx: ActionCtx,
   profileId: string,
-  rows: readonly PlanRow<MemoryId>[],
+  rows: readonly EligibleRow[],
 ): Promise<CandidateEdge<MemoryId>[]> {
   const eligible = new Set(rows.map((row) => row._id));
   const edges: CandidateEdge<MemoryId>[] = [];
@@ -428,15 +547,19 @@ async function candidateEdges(
             limit: NEIGHBOUR_LIMIT,
             filter: (q) => q.eq("profileId", profileId),
           })
-        ).filter((hit) => hit._score >= NEIGHBOUR_MIN_SCORE),
+        ).filter(
+          (hit) =>
+            hit._id !== row.embeddingId && hit._score >= NEIGHBOUR_MIN_SCORE,
+        ),
       })),
     );
+    const hitIds = [
+      ...new Set(hits.flatMap((row) => row.hits.map((h) => h._id))),
+    ];
+    if (hitIds.length === 0) return;
     const owners = await ctx.runQuery(
       internal.dreamCleanup.embeddingOwnersInternal,
-      {
-        ids: [...new Set(hits.flatMap((row) => row.hits.map((h) => h._id)))],
-        profileId,
-      },
+      { ids: hitIds },
     );
     const ownerOf = new Map(
       owners.map((owner) => [owner.embeddingId, owner.memoryDocId]),
@@ -468,22 +591,24 @@ async function candidateEdges(
 }
 
 function clampCalls(value: number | undefined): number {
-  const calls = Math.floor(value ?? JEV_DEFAULT_CALLS);
+  const calls = Math.floor(value ?? JEV_MAX_CALLS);
   return Math.max(0, Math.min(JEV_MAX_CALLS, calls));
 }
 
 const planArgs = {
   userId: v.id("users"),
   profileId: v.id("profiles"),
-  // Jev calls for this run: default 20, at most 200
+  // Jev calls for this run: default and at most 500
   jevMaxCalls: v.optional(v.number()),
-  // judge an even spread of the candidate groups instead of the top ones
+  // past the call cap, judge an even spread of the unjudged groups instead
+  // of the top ones
   jevSample: v.optional(v.boolean()),
 };
 
 /**
  * Dry run. Writes the plan (dreamPlanGroups) and the run summary, never a
- * memory. Rule J needs AI_GATEWAY_API_KEY; without it J is skipped.
+ * memory. Rule J needs AI_GATEWAY_API_KEY and jevMaxCalls above 0; otherwise
+ * J is skipped and no embedding is read.
  */
 export const planInternal = internalAction({
   args: { ...planArgs, runId: v.optional(v.id("dreamRuns")) },
@@ -530,70 +655,24 @@ async function planRun(
     jevSample?: boolean;
   },
 ): Promise<void> {
-  const { rows, truncated } = await scanRows(ctx, args.scope);
-  const groups = buildDeterministicGroups(rows);
-  const deterministic = groups.map(toPlanGroup);
-  await chunked(
-    deterministic.map((group, seq) => ({ ...group, seq })),
-    GROUP_WRITE_CHUNK,
-    async (chunk) => {
-      await ctx.runMutation(internal.dreamCleanup.insertPlanGroupsInternal, {
-        runId: args.runId,
-        groups: chunk,
-      });
-    },
-  );
-
-  const cleanup: CleanupCounts = {
-    ...emptyCleanup(),
-    ...deterministicStats(groups),
-    scannedRows: rows.length,
-  };
+  const scan = await planDeterministic(ctx, args);
+  const cleanup = scan.cleanup;
+  const calls = clampCalls(args.jevMaxCalls);
   const apiKey = resolveSystemOneApiKey();
-  let picked = 0;
+  let queued = 0;
   if (apiKey === undefined) {
     cleanup.aiStopReason = "no_key";
-  } else {
-    const eligible = aiEligibleRows(rows, groups).slice(0, MAX_AI_SCAN_ROWS);
-    const candidates = buildCandidateGroups(
-      await candidateEdges(ctx, args.scope.profileId, eligible),
-    );
-    const chosen = pickCandidateGroups(
-      candidates,
-      clampCalls(args.jevMaxCalls),
-      args.jevSample ?? false,
-    );
-    const titleOf = new Map(eligible.map((row) => [row._id, row.title]));
-    const title = (id: MemoryId | undefined) =>
-      planTitle((id && titleOf.get(id)) ?? "");
-    await chunked(
-      chosen.map(
-        (group, seq): PlanGroupInput => ({
-          tier: "ai",
-          seq,
-          rules: ["jev"],
-          memberIds: group.memberIds,
-          loserIds: [],
-          keeperTitle: title(group.memberIds[0]),
-          loserTitles: group.memberIds
-            .slice(1, PLAN_LOSER_TITLES + 1)
-            .map(title),
-          reason: "Jev candidate",
-          aiStatus: "pending",
-          score: group.score,
-        }),
-      ),
-      GROUP_WRITE_CHUNK,
-      async (chunk) => {
-        await ctx.runMutation(internal.dreamCleanup.insertPlanGroupsInternal, {
-          runId: args.runId,
-          groups: chunk,
-        });
-      },
-    );
-    picked = chosen.length;
-    cleanup.aiCandidates = candidates.length;
-    cleanup.aiSkipped = candidates.length - chosen.length;
+  } else if (calls > 0) {
+    const ai = await planAiGroups(ctx, {
+      runId: args.runId,
+      profileId: args.scope.profileId,
+      rows: scan.eligible,
+      calls,
+      spread: args.jevSample ?? false,
+    });
+    queued = ai.queued;
+    cleanup.aiCandidates = ai.candidates;
+    cleanup.aiSkipped = ai.candidates - ai.reused - ai.queued;
     if (cleanup.aiSkipped > 0) cleanup.aiStopReason = "cap";
   }
 
@@ -615,15 +694,12 @@ async function planRun(
   await ctx.runMutation(internal.dreamCleanup.recordScanInternal, {
     runId: args.runId,
     cleanup,
-    sample: [
-      ...groups.slice(0, SAMPLE_DETERMINISTIC_GROUPS).map(deterministicSample),
-      ...tagSample,
-    ],
-    ...(truncated
+    sample: [...scan.sample, ...tagSample],
+    ...(scan.truncated
       ? { error: `scan stopped at ${String(MAX_PLAN_ROWS)} rows` }
       : {}),
   });
-  if (picked > 0) {
+  if (queued > 0) {
     await ctx.scheduler.runAfter(0, internal.dreamCleanup.judgeInternal, {
       runId: args.runId,
       afterSeq: -1,
@@ -633,6 +709,116 @@ async function planRun(
       runId: args.runId,
     });
   }
+}
+
+async function insertPlanGroups(
+  ctx: ActionCtx,
+  runId: RunId,
+  groups: readonly PlanGroupInput[],
+): Promise<void> {
+  await chunked(groups, GROUP_WRITE_CHUNK, async (chunk) => {
+    await ctx.runMutation(internal.dreamCleanup.insertPlanGroupsInternal, {
+      runId,
+      groups: chunk,
+    });
+  });
+}
+
+// Rules A/B over every visible row. Returns only what rule J needs, so the
+// full rows are not held during the vector pass.
+async function planDeterministic(
+  ctx: ActionCtx,
+  args: {
+    runId: RunId;
+    scope: { kind: "personal" | "team"; userId: string; profileId: string };
+  },
+): Promise<{
+  eligible: EligibleRow[];
+  cleanup: CleanupCounts;
+  sample: SampleItem[];
+  truncated: boolean;
+}> {
+  const { rows, truncated } = await scanRows(ctx, args.scope);
+  const groups = buildDeterministicGroups(rows);
+  await insertPlanGroups(
+    ctx,
+    args.runId,
+    groups.map((group, seq) => ({ ...toPlanGroup(group), seq })),
+  );
+  return {
+    eligible: aiEligibleRows(rows, groups).map((row) => ({
+      _id: row._id,
+      memoryId: row.memoryId,
+      title: planTitle(row.title),
+    })),
+    cleanup: {
+      ...emptyCleanup(),
+      ...deterministicStats(groups),
+      scannedRows: rows.length,
+    },
+    sample: groups
+      .slice(0, SAMPLE_DETERMINISTIC_GROUPS)
+      .map(deterministicSample),
+    truncated,
+  };
+}
+
+/**
+ * Rule J over every eligible row. A candidate group that the prior plan
+ * already judged keeps its verdict; the others queue for Jev, up to `calls`.
+ * Queued groups come first (seq 0..), reused verdicts after them, so the
+ * judge chain stops at the first group that is not pending.
+ */
+async function planAiGroups(
+  ctx: ActionCtx,
+  args: {
+    runId: RunId;
+    profileId: string;
+    rows: readonly EligibleRow[];
+    calls: number;
+    spread: boolean;
+  },
+): Promise<{ candidates: number; reused: number; queued: number }> {
+  const candidates = buildCandidateGroups(
+    await candidateEdges(ctx, args.profileId, args.rows),
+  );
+  const { reused, unjudged } = reusePriorVerdicts(
+    candidates,
+    await priorAiGroups(ctx, args.runId),
+  );
+  const queued = pickCandidateGroups(unjudged, args.calls, args.spread);
+  const titleOf = new Map(args.rows.map((row) => [row._id, row.title]));
+  const title = (id: MemoryId | undefined) => (id && titleOf.get(id)) ?? "";
+  await insertPlanGroups(ctx, args.runId, [
+    ...queued.map(
+      (group, seq): PlanGroupInput => ({
+        tier: "ai",
+        seq,
+        rules: ["jev"],
+        memberIds: group.memberIds,
+        loserIds: [],
+        keeperTitle: title(group.memberIds[0]),
+        loserTitles: group.memberIds.slice(1, PLAN_LOSER_TITLES + 1).map(title),
+        reason: "Jev candidate",
+        aiStatus: "pending",
+        score: group.score,
+      }),
+    ),
+    ...reused.map(
+      ({ group, verdict }, i): PlanGroupInput => ({
+        ...verdict,
+        tier: "ai",
+        seq: queued.length + i,
+        rules: ["jev"],
+        score: group.score,
+      }),
+    ),
+  ]);
+  return {
+    candidates: candidates.length,
+    reused: reused.length,
+    queued: queued.length,
+  };
 }
 
 // ------------------------------------------------------------ Jev pass
@@ -645,7 +831,9 @@ const judgeMemberValidator = v.object({
   createdAt: v.number(),
 });
 
-// next pending AI groups with their visible members, plus today's dream spend
+// Next pending AI groups with their visible members, plus today's dream
+// spend. Pending groups lead the plan, so `done` once a page runs short or
+// reaches a reused verdict.
 export const pendingAiGroupsInternal = internalQuery({
   args: { runId: v.id("dreamRuns"), afterSeq: v.number(), limit: v.number() },
   returns: v.object({
@@ -659,6 +847,7 @@ export const pendingAiGroupsInternal = internalQuery({
         members: v.array(judgeMemberValidator),
       }),
     ),
+    done: v.boolean(),
   }),
   handler: async (ctx, args) => {
     const run = await ctx.db.get(args.runId);
@@ -669,8 +858,9 @@ export const pendingAiGroupsInternal = internalQuery({
         q.eq("runId", args.runId).eq("tier", "ai").gt("seq", args.afterSeq),
       )
       .take(args.limit);
+    const pending = rows.filter((row) => row.aiStatus === "pending");
     const groups = [];
-    for (const row of rows) {
+    for (const row of pending) {
       const members = [];
       for (const id of row.memberIds) {
         const doc = await ctx.db.get(id);
@@ -690,6 +880,7 @@ export const pendingAiGroupsInternal = internalQuery({
       profileId: run.profileId,
       spentTodayUsd: await dreamSpentTodayUsd(ctx),
       groups,
+      done: rows.length < args.limit || pending.length < rows.length,
     };
   },
 });
@@ -847,7 +1038,7 @@ export const judgeInternal = internalAction({
         costUsd: result.costUsd,
       });
     }
-    if (stop === undefined && batch.groups.length === JUDGE_CHUNK) {
+    if (stop === undefined && !batch.done) {
       await ctx.scheduler.runAfter(0, internal.dreamCleanup.judgeInternal, {
         runId: args.runId,
         afterSeq: lastSeq,
@@ -863,9 +1054,10 @@ export const judgeInternal = internalAction({
 });
 
 /**
- * Closes the dry run: verdict counts, sample = top deterministic groups plus
- * every Jev-flagged group, status "partial" when anything was capped, failed
- * or left unjudged.
+ * Closes the dry run: verdict counts (reused verdicts included), sample = top
+ * deterministic groups plus the first 50 Jev-flagged groups (apply reads the
+ * plan, not the sample), status "partial" when anything was capped, failed or
+ * left unjudged.
  */
 export const finishPlanInternal = internalMutation({
   args: { runId: v.id("dreamRuns"), stop: v.optional(stopReasonValidator) },
@@ -891,22 +1083,24 @@ export const finishPlanInternal = internalMutation({
         ? {}
         : { aiStopReason: args.stop ?? base.aiStopReason }),
     };
-    const aiSample = flagged.flatMap((group): SampleItem[] =>
-      group.keeperId === undefined
-        ? []
-        : [
-            {
-              rule: "near_dup",
-              rules: ["jev"],
-              keeperId: group.keeperId,
-              keeperTitle: group.keeperTitle,
-              loserTitles: group.loserTitles,
-              count: group.loserIds.length + 1,
-              memoryIds: [group.keeperId, ...group.loserIds],
-              reason: group.reason,
-            },
-          ],
-    );
+    const aiSample = flagged
+      .flatMap((group): SampleItem[] =>
+        group.keeperId === undefined
+          ? []
+          : [
+              {
+                rule: "near_dup",
+                rules: ["jev"],
+                keeperId: group.keeperId,
+                keeperTitle: group.keeperTitle,
+                loserTitles: group.loserTitles,
+                count: group.loserIds.length + 1,
+                memoryIds: [group.keeperId, ...group.loserIds],
+                reason: group.reason,
+              },
+            ],
+      )
+      .slice(0, SAMPLE_AI_GROUPS);
     const partial =
       run.error !== undefined ||
       cleanup.aiErrors > 0 ||
@@ -1115,6 +1309,7 @@ export const applyInternal = internalMutation({
 /**
  * Starts a dry run for one user; returns the run id at once (the plan runs
  * in the background). Defaults to the user's default personal profile.
+ * jevMaxCalls defaults to 500, the ceiling; pass less for a smaller run.
  *   npx convex run dreamCleanup:dryRunForUser '{"clerkUserId":"user_…","jevMaxCalls":20}'
  */
 export const dryRunForUser = internalMutation({
@@ -1238,9 +1433,10 @@ export const latestForProfile = authQuery({
 });
 
 /**
- * "Scan for duplicates" on the Dreaming page: a dry run of the caller's own
- * personal profile. Jev runs only when dreamModeUseAi is on. Refused while a
- * cleanup runs and within an hour of the last one.
+ * "Scan for duplicates" on the Dreaming page: a dry run over every memory of
+ * the caller's own personal profile. Jev runs only when dreamModeUseAi is on,
+ * up to 500 calls; a later scan continues with the groups left unjudged.
+ * Refused while a cleanup runs and within an hour of the last one.
  */
 export const startDryRun = authMutation({
   args: { profileId: v.id("profiles") },
