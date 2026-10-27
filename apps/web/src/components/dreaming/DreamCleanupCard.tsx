@@ -68,10 +68,11 @@ function PendingCleanupBody({ state }: { state: PendingCleanup }) {
   const shown = reviewing
     ? state.deterministic
     : state.deterministic.slice(0, COLLAPSED_GROUPS);
+  const aiShown = reviewing ? state.ai : state.ai.slice(0, COLLAPSED_GROUPS);
 
   const hasMemories = state.groups > 0;
   const doneMessage =
-    state.ai.length > 0
+    state.aiFlagged > 0
       ? "Cleaning up. AI suggestions are on the Proposals tab."
       : hasMemories
         ? "Cleaning up. You can undo each group on the History tab."
@@ -94,13 +95,16 @@ function PendingCleanupBody({ state }: { state: PendingCleanup }) {
           ? `Found ${plural(state.rows, "duplicate row")} in ${plural(state.groups, "group")}.`
           : state.tags.length > 0
             ? `Found ${plural(state.tags.length, "duplicate tag group")} to merge.`
-            : state.ai.length > 0
-              ? `Found ${plural(state.ai.length, "AI suggestion")}.`
+            : state.aiFlagged > 0
+              ? `Found ${plural(state.aiFlagged, "AI suggestion")}.`
               : null}
         {hasMemories && state.tags.length > 0
           ? ` Plus ${plural(state.tags.length, "duplicate tag group")} to merge.`
           : ""}
       </p>
+      {state.stopNote ? (
+        <p className="text-xs text-muted">{state.stopNote}</p>
+      ) : null}
       {shown.length > 0 ? (
         <ul className="space-y-1.5">
           {shown.map((group) => (
@@ -123,14 +127,14 @@ function PendingCleanupBody({ state }: { state: PendingCleanup }) {
           ))}
         </ul>
       ) : null}
-      {state.ai.length > 0 ? (
+      {aiShown.length > 0 ? (
         <div className="space-y-1.5">
           <p className="flex items-center gap-1.5 text-xs font-medium text-muted">
             <IconSparkles size={14} stroke={1.5} />
             AI suggests — needs your approval
           </p>
           <ul className="space-y-1.5">
-            {state.ai.map((group) => (
+            {aiShown.map((group) => (
               <SampleGroupRow
                 key={group.keeperId ?? group.keeperTitle}
                 group={group}
@@ -169,8 +173,8 @@ function PendingCleanupBody({ state }: { state: PendingCleanup }) {
               {state.tags.length > 0
                 ? `${hasMemories ? " " : ""}Merges ${plural(state.tags.length, "duplicate tag group")} into one tag each. You cannot undo a tag merge.`
                 : ""}
-              {state.ai.length > 0
-                ? ` ${plural(state.ai.length, "AI suggestion")} go to the Proposals tab for approval.`
+              {state.aiFlagged > 0
+                ? ` ${plural(state.aiFlagged, "AI suggestion")} go to the Proposals tab for approval.`
                 : ""}
             </ConfirmDialog.Description>
           </ConfirmDialog.Header>

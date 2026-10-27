@@ -19,11 +19,13 @@ import {
 import { api } from "@vmem/backend";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { convexErrorMessage } from "@/lib/convex-error";
 import RunDreamModeButton from "@/components/proposals/RunDreamModeButton";
 import { formatCostUsd, formatLogTime } from "../activity/_aiLogsUtils";
 import {
   canUndoDreamAction,
+  cleanupStopNote,
   dreamActionKindLabel,
   dreamRunCountParts,
   dreamTriggerLabel,
@@ -86,28 +88,66 @@ function ScanForDuplicatesButton() {
   const latest = useQuery(api.dreamCleanup.latestForProfile, {
     profileId: profile._id,
   });
+  // UI-only: confirm dialog
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  // the sidebar's cached stats entry; read only while the dialog is open
+  const stats = useDashboardStats(profile._id, confirmOpen);
   const { submitting, run } = useAsyncSubmit();
   if (profile.teamId !== undefined) return null;
   const until = latest ? scanCooldownUntil(latest.startedAt, Date.now()) : null;
   const hint =
     until === null ? null : `You can scan again at ${formatScanAgainAt(until)}`;
   const coolingDown = until !== null || latest?.status === "running";
+  const total = stats.data?.totalMemories;
   return (
-    <Button
-      type="button"
-      size="sm"
-      variant="outline"
-      title={hint ?? undefined}
-      disabled={submitting || coolingDown}
-      onClick={() => {
-        void run(async () => {
-          await startDryRun({ profileId: profile._id });
-          toast.message("Scanning for duplicates. Nothing changes yet.");
-        }, "Scan failed to start");
-      }}
-    >
-      {hint ?? "Scan for duplicates"}
-    </Button>
+    <>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        title={hint ?? undefined}
+        disabled={submitting || coolingDown}
+        onClick={() => setConfirmOpen(true)}
+      >
+        {hint ?? "Scan for duplicates"}
+      </Button>
+      <ConfirmDialog.Root
+        alert={false}
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        pending={submitting}
+      >
+        <ConfirmDialog.Content className="sm:max-w-md">
+          <ConfirmDialog.Header>
+            <ConfirmDialog.Title>Scan all memories?</ConfirmDialog.Title>
+            <ConfirmDialog.Description>
+              {total === undefined
+                ? "This goes through all of your memories"
+                : `This goes through all ${total.toLocaleString()} of your memories`}{" "}
+              to find duplicates and conflicts. It can take a few minutes.
+            </ConfirmDialog.Description>
+          </ConfirmDialog.Header>
+          <ConfirmDialog.Footer>
+            <ConfirmDialog.Cancel className="text-muted" />
+            <ConfirmDialog.Action
+              onClick={() => {
+                void run(async () => {
+                  await startDryRun({ profileId: profile._id });
+                  setConfirmOpen(false);
+                  toast.message(
+                    "Scanning for duplicates. Nothing changes yet.",
+                  );
+                }, "Scan failed to start");
+              }}
+              pendingLabel="Starting…"
+              spinnerSize={14}
+            >
+              Start scan
+            </ConfirmDialog.Action>
+          </ConfirmDialog.Footer>
+        </ConfirmDialog.Content>
+      </ConfirmDialog.Root>
+    </>
   );
 }
 
@@ -167,9 +207,11 @@ function RunRow({
 
 function RunDetail({ run }: { run: DreamRun }) {
   if (run.dryRun) {
+    const stopNote = cleanupStopNote(run);
     return (
       <p className="px-4 pb-3 text-xs text-muted">
         A dry run changes nothing. Review and apply it in the cleanup card.
+        {stopNote ? ` ${stopNote}` : ""}
       </p>
     );
   }

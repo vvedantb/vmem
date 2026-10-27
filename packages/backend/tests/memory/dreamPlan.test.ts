@@ -12,6 +12,7 @@ import {
   deterministicStats,
   entityEdges,
   pickCandidateGroups,
+  reusePriorVerdicts,
   sourceKeyOf,
   type PlanRow,
 } from "../../engine/memory/dream/plan";
@@ -184,6 +185,32 @@ describe("rule J candidates", () => {
     expect(pickCandidateGroups(all, 2, false)).toEqual([1, 2]);
     expect(pickCandidateGroups(all, 2, true)).toEqual([1, 4]);
     expect(pickCandidateGroups(all, 10, true)).toEqual(all);
+  });
+
+  it("reuses earlier verdicts for the same member set, in any order", () => {
+    const groups = [
+      { memberIds: ["a", "b"], score: 0.99 },
+      { memberIds: ["c", "d", "e"], score: 0.95 },
+      { memberIds: ["f", "g"], score: 0.93 },
+      { memberIds: ["h", "i"], score: 0.91 },
+      { memberIds: ["j", "k"], score: 0 },
+    ];
+    const { reused, unjudged } = reusePriorVerdicts(groups, [
+      { memberIds: ["b", "a"], aiStatus: "flagged" },
+      { memberIds: ["e", "c", "d"], aiStatus: "not_duplicate" },
+      // errors and unjudged groups are judged again
+      { memberIds: ["f", "g"], aiStatus: "error" },
+      { memberIds: ["h", "i"], aiStatus: "pending" },
+      // a different member set is a different group
+      { memberIds: ["j", "k", "l"], aiStatus: "flagged" },
+    ]);
+    expect(
+      reused.map(({ group, verdict }) => [group.score, verdict.aiStatus]),
+    ).toEqual([
+      [0.99, "flagged"],
+      [0.95, "not_duplicate"],
+    ]);
+    expect(unjudged.map((group) => group.score)).toEqual([0.93, 0.91, 0]);
   });
 });
 

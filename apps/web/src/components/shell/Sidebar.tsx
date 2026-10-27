@@ -9,6 +9,10 @@ import { api } from "@vmem/backend";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useProposals } from "@/hooks/useProposals";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
+import {
+  DASHBOARD_STATS_STALE_MS,
+  dashboardStatsQueryKey,
+} from "@/hooks/useDashboardStats";
 import { MorphingMenuIcon } from "@/components/icons/animations";
 import { SidebarNavigation } from "@/components/sidebar/SidebarNavigation";
 import { SidebarHeaderTrailingProvider } from "@/components/sidebar/SidebarHeaderTrailing";
@@ -72,18 +76,17 @@ export default function Sidebar({
   const isTeamWorkspace =
     profiles?.find((p) => p._id === activeProfileId)?.teamId !== undefined;
 
-  // shares the ["dashboard-stats", profileId] cache entry with the dashboard
-  // page, so the sidebar and dashboard reuse one whole-table stats walk
-  // (in-flight dedupe + 30s staleTime) instead of each running their own
+  // shares the dashboard stats cache entry (useDashboardStats), so the
+  // sidebar and dashboard reuse one stats read instead of each running their own
   const refreshStats = useCallback(
     async (fresh: boolean) => {
       const args = fresh
         ? { fresh: true, profileId: activeProfileId }
         : { profileId: activeProfileId };
-      const staleTime = fresh ? 0 : 30_000;
+      const staleTime = fresh ? 0 : DASHBOARD_STATS_STALE_MS;
       try {
         const data = await queryClient.fetchQuery({
-          queryKey: ["dashboard-stats", activeProfileId],
+          queryKey: dashboardStatsQueryKey(activeProfileId),
           queryFn: async () => await getStats(args),
           staleTime,
         });

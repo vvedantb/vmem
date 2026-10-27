@@ -1,25 +1,15 @@
 import { Button } from "@vvedantb/ui";
-import { useConvexAuth, useAction } from "convex/react";
-import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { IconAlertCircle, IconRefresh } from "@tabler/icons-react";
-import { api } from "@vmem/backend";
 import { useActiveProfile } from "@/components/workspace/active-profile";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { DashboardLoadingSkeleton } from "./DashboardLoadingSkeleton";
 import { DashboardStatCards } from "./DashboardStatCards";
 import { DreamPortraitCard } from "./DreamPortraitCard";
 import { MemoryGrowthChart } from "./MemoryGrowthChart";
 
 export default function Dashboard() {
-  const { isAuthenticated } = useConvexAuth();
   const activeProfile = useActiveProfile();
-  const getStats = useAction(api.dashboardApi.getStats);
-
-  const statsQuery = useTanstackQuery({
-    queryKey: ["dashboard-stats", activeProfile._id],
-    enabled: isAuthenticated,
-    staleTime: 30_000,
-    queryFn: async () => getStats({ profileId: activeProfile._id }),
-  });
+  const statsQuery = useDashboardStats(activeProfile._id);
 
   if (statsQuery.isError) {
     const error =
