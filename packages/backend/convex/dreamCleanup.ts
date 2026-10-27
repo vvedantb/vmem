@@ -13,7 +13,8 @@ import {
   deterministicReason,
   deterministicStats,
   entityEdges,
-  NEIGHBOUR_MIN_SCORE,
+  MANUAL_NEIGHBOUR_LIMIT,
+  MANUAL_NEIGHBOUR_MIN_SCORE,
   pickCandidateGroups,
   planTitle,
   PLAN_LOSER_TITLES,
@@ -80,8 +81,6 @@ const MAX_PLAN_ROWS = 50_000;
 const GROUP_WRITE_CHUNK = 100;
 const EMBEDDING_BATCH = 50;
 const MENTION_BATCH = 100;
-// the row itself plus about four neighbours
-const NEIGHBOUR_LIMIT = 5;
 // AI calls per scan, default and ceiling
 const JEV_MAX_CALLS = 500;
 // earlier cleanup runs of the profile searched for a plan to continue
@@ -530,9 +529,10 @@ async function scanRows(
 // the rule J input: an eligible row without the fields rules A/B needed
 type EligibleRow = { _id: MemoryId; memoryId: string; title: string };
 
-// rule J candidate edges: vector neighbours at cosine >= 0.90 and rows that
-// share a narrow entity, both only between eligible rows. Each embedding is
-// read once; hits resolve through the slim embeddingRefs rows.
+// rule J candidate edges: vector neighbours at cosine >= 0.85 (the
+// MANUAL_NEIGHBOUR_* constants, not the nightly ones) and rows that share a
+// narrow entity, both only between eligible rows. Each embedding is read
+// once; hits resolve through the slim embeddingRefs rows.
 async function candidateEdges(
   ctx: ActionCtx,
   profileId: string,
@@ -551,12 +551,13 @@ async function candidateEdges(
         hits: (
           await ctx.vectorSearch("memoryEmbeddings", "by_embedding", {
             vector: row.embedding,
-            limit: NEIGHBOUR_LIMIT,
+            limit: MANUAL_NEIGHBOUR_LIMIT,
             filter: (q) => q.eq("profileId", profileId),
           })
         ).filter(
           (hit) =>
-            hit._id !== row.embeddingId && hit._score >= NEIGHBOUR_MIN_SCORE,
+            hit._id !== row.embeddingId &&
+            hit._score >= MANUAL_NEIGHBOUR_MIN_SCORE,
         ),
       })),
     );
@@ -732,7 +733,31 @@ async function insertPlanGroups(
 }
 
 // Rules A/B over every visible row. Returns only what rule J needs, so the
-// full rows are not held during the vector pass.
+// full rows are not held during the vector pass. Writes nothing.
+async function scanDeterministic(
+  ctx: ActionCtx,
+  scope: { kind: "personal" | "team"; userId: string; profileId: string },
+): Promise<{
+  groups: DeterministicGroup<MemoryId>[];
+  eligible: EligibleRow[];
+  scannedRows: number;
+  truncated: boolean;
+}> {
+  const { rows, truncated } = await scanRows(ctx, scope);
+  const groups = buildDeterministicGroups(rows);
+  return {
+    groups,
+    eligible: aiEligibleRows(rows, groups).map((row) => ({
+      _id: row._id,
+      memoryId: row.memoryId,
+      title: planTitle(row.title),
+    })),
+    scannedRows: rows.length,
+    truncated,
+  };
+}
+
+// scanDeterministic, with the A/B groups written to the plan
 async function planDeterministic(
   ctx: ActionCtx,
   args: {
@@ -745,28 +770,23 @@ async function planDeterministic(
   sample: SampleItem[];
   truncated: boolean;
 }> {
-  const { rows, truncated } = await scanRows(ctx, args.scope);
-  const groups = buildDeterministicGroups(rows);
+  const scan = await scanDeterministic(ctx, args.scope);
   await insertPlanGroups(
     ctx,
     args.runId,
-    groups.map((group, seq) => ({ ...toPlanGroup(group), seq })),
+    scan.groups.map((group, seq) => ({ ...toPlanGroup(group), seq })),
   );
   return {
-    eligible: aiEligibleRows(rows, groups).map((row) => ({
-      _id: row._id,
-      memoryId: row.memoryId,
-      title: planTitle(row.title),
-    })),
+    eligible: scan.eligible,
     cleanup: {
       ...emptyCleanup(),
-      ...deterministicStats(groups),
-      scannedRows: rows.length,
+      ...deterministicStats(scan.groups),
+      scannedRows: scan.scannedRows,
     },
-    sample: groups
+    sample: scan.groups
       .slice(0, SAMPLE_DETERMINISTIC_GROUPS)
       .map(deterministicSample),
-    truncated,
+    truncated: scan.truncated,
   };
 }
 
@@ -1322,6 +1342,37 @@ export const applyInternal = internalMutation({
 
 // ------------------------------------------------------- CLI entry points
 
+// the user (userId or clerkUserId) and profile a CLI entry point reads
+const cliTargetArgs = {
+  clerkUserId: v.optional(v.string()),
+  userId: v.optional(v.id("users")),
+  profileId: v.optional(v.id("profiles")),
+};
+
+// profileId defaults to the user's default personal profile
+async function cliTarget(
+  ctx: QueryCtx,
+  args: ObjectType<typeof cliTargetArgs>,
+): Promise<{ userId: Id<"users">; profileId: Id<"profiles"> }> {
+  const user =
+    args.userId !== undefined
+      ? await ctx.db.get(args.userId)
+      : args.clerkUserId !== undefined
+        ? await getUserByClerkId(ctx, args.clerkUserId)
+        : null;
+  if (!user) throw new Error("User not found");
+  const profileId =
+    args.profileId ?? (await defaultPersonalProfile(ctx, user._id));
+  if (!profileId) throw new Error("No personal profile");
+  return { userId: user._id, profileId };
+}
+
+export const cliTargetInternal = internalQuery({
+  args: cliTargetArgs,
+  returns: v.object({ userId: v.id("users"), profileId: v.id("profiles") }),
+  handler: async (ctx, args) => await cliTarget(ctx, args),
+});
+
 /**
  * Starts a dry run for one user; returns the run id at once (the plan runs
  * in the background). Defaults to the user's default personal profile.
@@ -1330,33 +1381,19 @@ export const applyInternal = internalMutation({
  */
 export const dryRunForUser = internalMutation({
   args: {
-    clerkUserId: v.optional(v.string()),
-    userId: v.optional(v.id("users")),
-    profileId: v.optional(v.id("profiles")),
+    ...cliTargetArgs,
     jevMaxCalls: v.optional(v.number()),
     jevSample: v.optional(v.boolean()),
   },
   returns: v.id("dreamRuns"),
-  handler: async (ctx, args) => {
-    const user =
-      args.userId !== undefined
-        ? await ctx.db.get(args.userId)
-        : args.clerkUserId !== undefined
-          ? await getUserByClerkId(ctx, args.clerkUserId)
-          : null;
-    if (!user) throw new Error("User not found");
-    const profileId =
-      args.profileId ?? (await defaultPersonalProfile(ctx, user._id));
-    if (!profileId) throw new Error("No personal profile");
-    return await startPlan(ctx, {
-      userId: user._id,
-      profileId,
+  handler: async (ctx, args) =>
+    await startPlan(ctx, {
+      ...(await cliTarget(ctx, args)),
       ...(args.jevMaxCalls === undefined
         ? {}
         : { jevMaxCalls: args.jevMaxCalls }),
       ...(args.jevSample === undefined ? {} : { jevSample: args.jevSample }),
-    });
-  },
+    }),
 });
 
 // inserts the dry-run row and schedules the plan in the background
@@ -1382,7 +1419,7 @@ async function startPlan(
 }
 
 async function defaultPersonalProfile(
-  ctx: MutationCtx,
+  ctx: QueryCtx,
   userId: Id<"users">,
 ): Promise<Id<"profiles"> | null> {
   const profiles = (
@@ -1418,6 +1455,74 @@ export const getRunSummary = internalQuery({
     return {
       run,
       costPerCallUsd: priced > 0 ? run.costUsd / priced : null,
+    };
+  },
+});
+
+const COUNT_TOP_SCORES = 10;
+
+const candidateCountValidator = v.object({
+  scannedRows: v.number(),
+  // the scan stopped at MAX_PLAN_ROWS
+  truncated: v.boolean(),
+  deterministicGroups: v.number(),
+  eligibleRows: v.number(),
+  // candidate groups (clusters): one AI call each on a scan
+  aiCandidates: v.number(),
+  // groups with a vector edge (score > 0) and entity-only groups (score 0)
+  vectorGroups: v.number(),
+  entityOnlyGroups: v.number(),
+  // rows inside the candidate groups
+  candidateRows: v.number(),
+  // best vector score of the first groups, 3 decimals
+  topScores: v.array(v.number()),
+});
+
+/**
+ * Counts the candidate groups a scan would send to the AI, with the same
+ * rules as the plan: A/B, eligible rows, rule J edges (MANUAL_NEIGHBOUR_*)
+ * and the cluster split. Read only: no AI call, no AI_GATEWAY_API_KEY, no
+ * dreamRuns row and no plan groups. It does not apply the 500-call cap or
+ * the verdict reuse of a real scan. Defaults to the user's default personal
+ * profile.
+ *   npx convex run dreamCleanup:countCandidatesForUser '{"clerkUserId":"user_…"}'
+ */
+export const countCandidatesForUser = internalAction({
+  args: cliTargetArgs,
+  returns: candidateCountValidator,
+  handler: async (
+    ctx,
+    args,
+  ): Promise<Infer<typeof candidateCountValidator>> => {
+    const target = await ctx.runQuery(
+      internal.dreamCleanup.cliTargetInternal,
+      args,
+    );
+    const context = await ctx.runQuery(
+      internal.dreamCleanup.planContextInternal,
+      target,
+    );
+    const scan = await scanDeterministic(ctx, {
+      kind: context.kind,
+      userId: context.clerkId,
+      profileId: target.profileId,
+    });
+    const groups = buildCandidateGroups(
+      await candidateEdges(ctx, target.profileId, scan.eligible),
+    );
+    const vectorGroups = groups.filter((group) => group.score > 0).length;
+    return {
+      scannedRows: scan.scannedRows,
+      truncated: scan.truncated,
+      deterministicGroups: scan.groups.length,
+      eligibleRows: scan.eligible.length,
+      aiCandidates: groups.length,
+      vectorGroups,
+      entityOnlyGroups: groups.length - vectorGroups,
+      candidateRows: groups.reduce((n, group) => n + group.memberIds.length, 0),
+      topScores: groups
+        .slice(0, COUNT_TOP_SCORES)
+        .map((group) => Math.round(group.score * 1000) / 1000),
     };
   },
 });

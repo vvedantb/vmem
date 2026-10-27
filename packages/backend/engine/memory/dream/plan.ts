@@ -9,7 +9,12 @@ import { chooseKeeper, keeperOrder } from "./merge";
 export const PLAN_TITLE_CHARS = 80;
 export const PLAN_LOSER_TITLES = 5;
 export const AI_GROUP_MAX_MEMBERS = 6;
-export const NEIGHBOUR_MIN_SCORE = 0.9;
+// Scan for duplicates only (nightly uses candidates.ts): cosine floor for
+// vector edges, looser than the nightly near_dup floor; the AI still decides
+export const MANUAL_NEIGHBOUR_MIN_SCORE = 0.85;
+// Scan for duplicates only: vectorSearch limit per memory; the memory's own
+// hit is one of them and is filtered out
+export const MANUAL_NEIGHBOUR_LIMIT = 8;
 export const SAMPLE_DETERMINISTIC_GROUPS = 50;
 export const SAMPLE_AI_GROUPS = 50;
 

@@ -6,11 +6,20 @@ import {
   type JevGroupMember,
 } from "../../engine/memory/dream/jevDuplicate";
 import {
+  CANDIDATE_NEIGHBOUR_LIMIT,
+  classifyCandidate,
+  MAYBE_CONFLICT_MIN_SCORE,
+  NEAR_DUP_MIN_SCORE,
+} from "../../engine/memory/dream/candidates";
+import {
+  AI_GROUP_MAX_MEMBERS,
   aiEligibleRows,
   buildCandidateGroups,
   buildDeterministicGroups,
   deterministicStats,
   entityEdges,
+  MANUAL_NEIGHBOUR_LIMIT,
+  MANUAL_NEIGHBOUR_MIN_SCORE,
   pickCandidateGroups,
   reusePriorVerdicts,
   sourceKeyOf,
@@ -205,6 +214,12 @@ describe("rule J candidates", () => {
     }
   });
 
+  it("makes a vector edge at 0.86 a group on the manual scan", () => {
+    expect(buildCandidateGroups([{ a: "a", b: "b", score: 0.86 }])).toEqual([
+      { memberIds: ["a", "b"], score: 0.86 },
+    ]);
+  });
+
   it("skips entities too broad for one group", () => {
     const narrow = ["a", "b"].map((rowId) => ({ rowId, entityId: "e1" }));
     const broad = ["a", "b", "c", "d", "e", "f", "g"].map((rowId) => ({
@@ -269,6 +284,29 @@ describe("rule J candidates", () => {
         [verdict],
       ).unjudged,
     ).toHaveLength(1);
+  });
+});
+
+describe("vector thresholds", () => {
+  it("loosens only the manual scan", () => {
+    expect(MANUAL_NEIGHBOUR_MIN_SCORE).toBe(0.85);
+    expect(MANUAL_NEIGHBOUR_LIMIT).toBe(8);
+    expect(AI_GROUP_MAX_MEMBERS).toBe(6);
+    // nightly write-time candidates keep their own values
+    expect(CANDIDATE_NEIGHBOUR_LIMIT).toBe(3);
+    expect(NEAR_DUP_MIN_SCORE).toBe(0.97);
+    expect(MAYBE_CONFLICT_MIN_SCORE).toBe(0.88);
+  });
+
+  it("keeps the nightly bands: a manual 0.86 edge is no nightly candidate", () => {
+    const rule = (score: number, sameType: boolean, sharedEntity: boolean) =>
+      classifyCandidate({ score, sameType, sharedEntity });
+    expect(rule(0.86, true, false)).toBeNull();
+    expect(rule(0.86, true, true)).toBeNull();
+    expect(rule(0.9, true, false)).toBeNull();
+    expect(rule(0.9, true, true)).toBe("maybe_conflict");
+    expect(rule(0.96, true, false)).toBeNull();
+    expect(rule(0.97, true, false)).toBe("near_dup");
   });
 });
 

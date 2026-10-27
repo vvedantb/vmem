@@ -169,6 +169,11 @@ function vector(axis: number, tilt = 0): number[] {
   return out.map((x) => x / norm);
 }
 
+// unit vector whose cosine with vector(axis) is `cosine`
+function atCosine(axis: number, cosine: number): number[] {
+  return vector(axis, Math.sqrt(1 / (cosine * cosine) - 1));
+}
+
 async function embed(
   t: T,
   owner: Owner,
@@ -1000,6 +1005,62 @@ describe("dreamCleanup AI pass", () => {
       status: "ok",
       cleanup: { aiCandidates: 0, aiStopReason: "no_key" },
     });
+  });
+
+  it("counts candidate groups at cosine >= 0.85 without AI or writes; a scan agrees", async () => {
+    vi.stubEnv("AI_GATEWAY_API_KEY", "");
+    const t = setupT();
+    const owner = await addUser(t, "clerk_count");
+    await seedPairs(t, owner);
+    // 0.86 is a manual edge (no nightly candidate); 0.84 is no edge
+    const looseA = await addMemory(t, owner, { title: "Loose A" });
+    const looseB = await addMemory(t, owner, { title: "Loose B" });
+    const apartA = await addMemory(t, owner, { title: "Apart A" });
+    const apartB = await addMemory(t, owner, { title: "Apart B" });
+    await embed(t, owner, looseA, vector(20));
+    await embed(t, owner, looseB, atCosine(20, 0.86));
+    await embed(t, owner, apartA, vector(30));
+    await embed(t, owner, apartB, atCosine(30, 0.84));
+    // an exact pair: one A/B group; its loser is not eligible
+    await addMemory(t, owner, { contentHash: "same" });
+    await addMemory(t, owner, { contentHash: "same" });
+
+    const count = await t.action(internal.dreamCleanup.countCandidatesForUser, {
+      clerkUserId: owner.clerkId,
+    });
+
+    expect(count).toEqual({
+      scannedRows: 12,
+      truncated: false,
+      deterministicGroups: 1,
+      // web is low-prior, one exact row is a loser
+      eligibleRows: 10,
+      aiCandidates: 3,
+      vectorGroups: 2,
+      entityOnlyGroups: 1,
+      candidateRows: 6,
+      topScores: [0.995, 0.86, 0],
+    });
+    expect(generateText).not.toHaveBeenCalled();
+    expect(
+      await t.run(async (ctx) => ({
+        runs: (await ctx.db.query("dreamRuns").collect()).length,
+        groups: (await ctx.db.query("dreamPlanGroups").collect()).length,
+      })),
+    ).toEqual({ runs: 0, groups: 0 });
+
+    // the real scan finds the same groups
+    vi.stubEnv("AI_GATEWAY_API_KEY", "test-key");
+    const run = await summary(t, await dryRun(t, owner));
+    expect(run.cleanup).toMatchObject({
+      scannedRows: 12,
+      groups: 1,
+      aiCandidates: 3,
+    });
+    expect(judgedTitles()).toEqual(
+      expect.arrayContaining([["Loose A", "Loose B"]]),
+    );
+    expect(judgedTitles().flat()).not.toContain("Apart A");
   });
 
   it("ignores malformed AI output", async () => {
