@@ -28,7 +28,7 @@ Instruction **update** (`PATCH { instruction }` / SDK `update()`) extracts facts
 - `update`: the conflict judge says the newer row replaces the older one. It applies at once only with auto-accept, confidence ≥ 0.9 and the same source family.
 - `contradiction`: the rows disagree. It always waits for you. On approve, pass `winnerMemoryId`; the other rows are superseded by it.
 
-Approving a dream `merge` or `update` runs under the dream run that proposed it, so you can undo it on the Dreaming page History tab for 30 days. Dream Mode does not create a proposal when a pending proposal already covers one of the rows. The one-off cleanup also sends its Jev-flagged groups here as `merge` proposals. `listProposedUpdates` / `resolveProposal` persist in the `proposedUpdates` table.
+Approving a dream `merge` or `update` runs under the dream run that proposed it, so you can undo it on the Dreaming page History tab for 30 days. Dream Mode does not create a proposal when a pending proposal already covers one of the rows. The one-off cleanup also sends its AI-flagged clusters here as `merge` proposals: one proposal per cluster, with every memory in `sourceMemoryIds` and the merged text in `proposedTitle` / `proposedContent`. On approve, pass `selectedSourceMemoryIds` to merge only some of them; the kept memory (`memoryId`) always stays. `listProposedUpdates` / `resolveProposal` persist in the `proposedUpdates` table.
 
 The types below describe the proposal shape.
 

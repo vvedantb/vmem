@@ -1,8 +1,11 @@
 import { ConvexError, v, type Infer, type ObjectType } from "convex/values";
 import {
-  judgeDuplicateGroup,
-  type JevDuplicateVerdict,
-} from "../engine/memory/dream/jevDuplicate";
+  buildClusterMergePrompt,
+  CLUSTER_MERGE_CONTENT_CHARS,
+  CLUSTER_MERGE_ROLE,
+  parseClusterMergeReply,
+  type ClusterMergeVerdict,
+} from "../engine/memory/dream/clusterMerge";
 import {
   aiEligibleRows,
   buildCandidateGroups,
@@ -27,7 +30,6 @@ import {
   DREAM_DAILY_BUDGET_USD,
   emptyDreamCounts,
 } from "../engine/memory/dream/nightly";
-import { SYSTEMONE_DEFAULT_MODEL } from "../engine/llm/systemOneClient";
 import { isVisibleStatus } from "../engine/memory/scope";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -42,8 +44,9 @@ import {
 import { authMutation, authQuery, getUserByClerkId } from "./auth";
 import { dreamSpentTodayUsd, mergeGroup, proposeDreamChange } from "./dream";
 import { userFacingError } from "./lib/userFacingError";
-import { resolveSystemOneApiKey } from "./lib/systemOneKey";
-import { scheduleLog } from "./lib/openRouter/shared";
+import { callJsonChatWithUsage } from "./lib/openRouter/jsonChat";
+import { LLM_MODEL } from "./lib/openRouter/shared";
+import { readOpenRouterApiKey } from "./lib/openRouterKey";
 import {
   memoryDocIdsForEmbeddings,
   memoryReadScopeFromArgs,
@@ -61,14 +64,15 @@ import {
 
 // One-off duplicate cleanup (dreaming plan §3b). planInternal is a dry run:
 // it pages the whole profile, buckets rows by exact hash and browse key
-// (rules A/B), then finds candidate groups (rule J, vector neighbours / shared
-// entity) over every eligible row, 50 embeddings at a time. Jev judges each
-// candidate group in scheduled chunks, up to JEV_MAX_CALLS per scan; the scan
-// is partial past that. The next scan reuses the verdicts of the last plan
-// for groups with the same members, so it continues with the unjudged ones.
-// Memories are untouched; the plan lives in dreamPlanGroups. applyInternal
-// merges the A/B groups with undo and turns Jev-flagged groups into inbox
-// proposals.
+// (rules A/B), then clusters near-duplicates (rule J, vector neighbours /
+// shared entity, transitive) over every eligible row, 50 embeddings at a
+// time. One AI call per cluster (clusterMerge.ts) picks the duplicates, the
+// row to keep and the one merged text, in scheduled chunks, up to
+// JEV_MAX_CALLS per scan; the scan is partial past that. The next scan reuses
+// the verdicts of the last plan for clusters with the same members, so it
+// continues with the unjudged ones. Memories are untouched; the plan lives in
+// dreamPlanGroups. applyInternal merges the A/B groups with undo and turns
+// AI-flagged clusters into inbox merge proposals.
 
 const PAGE_SIZE = 200;
 // rules A/B hold every slim row (about 0.5 KB) at once in a 64 MiB action
@@ -78,13 +82,12 @@ const EMBEDDING_BATCH = 50;
 const MENTION_BATCH = 100;
 // the row itself plus about four neighbours
 const NEIGHBOUR_LIMIT = 5;
-// Jev calls per scan, default and ceiling
+// AI calls per scan, default and ceiling
 const JEV_MAX_CALLS = 500;
 // earlier cleanup runs of the profile searched for a plan to continue
 const PRIOR_PLAN_LOOKBACK = 20;
 const PRIOR_GROUP_PAGE = 500;
 const JUDGE_CHUNK = 10;
-const JUDGE_CONTENT_CHARS = 600;
 const APPLY_GROUPS = 100;
 const APPLY_ROW_BUDGET = 1_000;
 const PLAN_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -426,6 +429,8 @@ const priorAiGroupValidator = v.object({
   loserTitles: v.array(v.string()),
   reason: v.string(),
   aiConfidence: v.optional(v.number()),
+  proposedTitle: v.optional(v.string()),
+  proposedContent: v.optional(v.string()),
 });
 
 // one page of a plan's AI groups, in plan order
@@ -453,6 +458,8 @@ export const priorAiGroupsInternal = internalQuery({
         loserTitles: row.loserTitles,
         reason: row.reason,
         aiConfidence: row.aiConfidence,
+        proposedTitle: row.proposedTitle,
+        proposedContent: row.proposedContent,
       })),
       lastSeq: rows.at(-1)?.seq ?? args.afterSeq,
       isDone: rows.length < PRIOR_GROUP_PAGE,
@@ -598,7 +605,7 @@ function clampCalls(value: number | undefined): number {
 const planArgs = {
   userId: v.id("users"),
   profileId: v.id("profiles"),
-  // Jev calls for this run: default and at most 500
+  // AI calls (one per cluster) for this run: default and at most 500
   jevMaxCalls: v.optional(v.number()),
   // past the call cap, judge an even spread of the unjudged groups instead
   // of the top ones
@@ -658,7 +665,7 @@ async function planRun(
   const scan = await planDeterministic(ctx, args);
   const cleanup = scan.cleanup;
   const calls = clampCalls(args.jevMaxCalls);
-  const apiKey = resolveSystemOneApiKey();
+  const apiKey = readOpenRouterApiKey();
   let queued = 0;
   if (apiKey === undefined) {
     cleanup.aiStopReason = "no_key";
@@ -765,7 +772,8 @@ async function planDeterministic(
 
 /**
  * Rule J over every eligible row. A candidate group that the prior plan
- * already judged keeps its verdict; the others queue for Jev, up to `calls`.
+ * already judged keeps its verdict (merged text included); the others queue
+ * for the AI, up to `calls`.
  * Queued groups come first (seq 0..), reused verdicts after them, so the
  * judge chain stops at the first group that is not pending.
  */
@@ -799,7 +807,7 @@ async function planAiGroups(
         loserIds: [],
         keeperTitle: title(group.memberIds[0]),
         loserTitles: group.memberIds.slice(1, PLAN_LOSER_TITLES + 1).map(title),
-        reason: "Jev candidate",
+        reason: "AI candidate",
         aiStatus: "pending",
         score: group.score,
       }),
@@ -821,12 +829,14 @@ async function planAiGroups(
   };
 }
 
-// ------------------------------------------------------------ Jev pass
+// ------------------------------------------------------------- AI pass
 
+// content is cut to what the prompt sends; contentLength is the full length
 const judgeMemberValidator = v.object({
   _id: v.id("memories"),
   title: v.string(),
   content: v.string(),
+  contentLength: v.number(),
   status: memoryStatusValidator,
   createdAt: v.number(),
 });
@@ -868,7 +878,8 @@ export const pendingAiGroupsInternal = internalQuery({
         members.push({
           _id: doc._id,
           title: doc.title,
-          content: doc.content.slice(0, JUDGE_CONTENT_CHARS),
+          content: doc.content.slice(0, CLUSTER_MERGE_CONTENT_CHARS),
+          contentLength: doc.content.length,
           status: doc.status,
           createdAt: doc.createdAt,
         });
@@ -892,6 +903,8 @@ const verdictValidator = v.union(
     removeIds: v.array(v.id("memories")),
     reason: v.string(),
     confidence: v.number(),
+    proposedTitle: v.optional(v.string()),
+    proposedContent: v.optional(v.string()),
   }),
   v.object({
     status: v.literal("not_duplicate"),
@@ -931,6 +944,8 @@ export const recordVerdictInternal = internalMutation({
         ),
         reason: verdict.reason,
         aiConfidence: verdict.confidence,
+        proposedTitle: verdict.proposedTitle,
+        proposedContent: verdict.proposedContent,
       });
     } else {
       await ctx.db.patch(group._id, {
@@ -957,26 +972,20 @@ export const recordVerdictInternal = internalMutation({
   },
 });
 
-// maps Jev's string ids back to the group's typed ids
-function typedVerdict(
-  verdict: JevDuplicateVerdict,
-  members: readonly { _id: MemoryId }[],
+// the stored verdict: merged text as the plan group's proposed fields
+function storedVerdict(
+  verdict: ClusterMergeVerdict<MemoryId>,
 ): Infer<typeof verdictValidator> {
   if (verdict.status !== "flagged") return verdict;
-  const idOf = (id: string) => members.find((m) => m._id === id)?._id;
-  const keeperId = idOf(verdict.keeperId);
-  if (keeperId === undefined) {
-    return { status: "error", reason: "keeper not in group" };
-  }
-  const removeIds = verdict.removeIds.flatMap((id) => {
-    const typed = idOf(id);
-    return typed === undefined ? [] : [typed];
-  });
-  return { ...verdict, keeperId, removeIds };
+  const { merged, ...rest } = verdict;
+  return merged === undefined
+    ? rest
+    : { ...rest, proposedTitle: merged.title, proposedContent: merged.content };
 }
 
 /**
- * Judges up to 10 pending groups, then schedules the next chunk. Stops on a
+ * Judges up to 10 pending clusters, one AI call each (logged by the chat
+ * helper under feature "dream"), then schedules the next chunk. Stops on a
  * missing key or once today's dream spend reaches the budget; whatever is
  * still pending then counts as skipped.
  */
@@ -984,7 +993,7 @@ export const judgeInternal = internalAction({
   args: { runId: v.id("dreamRuns"), afterSeq: v.number() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const apiKey = resolveSystemOneApiKey();
+    const apiKey = readOpenRouterApiKey();
     const batch = await ctx.runQuery(
       internal.dreamCleanup.pendingAiGroupsInternal,
       { runId: args.runId, afterSeq: args.afterSeq, limit: JUDGE_CHUNK },
@@ -1009,33 +1018,26 @@ export const judgeInternal = internalAction({
         });
         continue;
       }
-      const result = await judgeDuplicateGroup({
-        members: group.members.map((member) => ({
-          ...member,
-          id: member._id,
-        })),
+      const members = group.members.map((member) => ({
+        ...member,
+        id: member._id,
+      }));
+      const reply = await callJsonChatWithUsage(ctx, {
         apiKey,
-      });
-      spent += result.costUsd ?? 0;
-      await scheduleLog(ctx, {
         userId: batch.userId,
         profileId: batch.profileId,
         feature: "dream",
-        endpoint: "chat",
-        model: result.model,
-        promptTokens: result.promptTokens,
-        completionTokens: result.completionTokens,
-        costUsd: result.costUsd,
-        ...(result.verdict.status === "error"
-          ? { errorMessage: result.verdict.reason }
-          : {}),
+        role: CLUSTER_MERGE_ROLE,
+        prompt: buildClusterMergePrompt(members),
+        thinking: "off",
       });
+      spent += reply.costUsd ?? 0;
       await ctx.runMutation(internal.dreamCleanup.recordVerdictInternal, {
         runId: args.runId,
         groupId: group._id,
-        verdict: typedVerdict(result.verdict, group.members),
+        verdict: storedVerdict(parseClusterMergeReply(members, reply.content)),
         called: true,
-        costUsd: result.costUsd,
+        costUsd: reply.costUsd,
       });
     }
     if (stop === undefined && !batch.done) {
@@ -1055,7 +1057,7 @@ export const judgeInternal = internalAction({
 
 /**
  * Closes the dry run: verdict counts (reused verdicts included), sample = top
- * deterministic groups plus the first 50 Jev-flagged groups (apply reads the
+ * deterministic groups plus the first 50 AI-flagged groups (apply reads the
  * plan, not the sample), status "partial" when anything was capped, failed or
  * left unjudged.
  */
@@ -1149,6 +1151,7 @@ async function proposeAiMerge(
     const doc = await ctx.db.get(id);
     if (doc) others.push(doc);
   }
+  const merged = groupMergedText(args.group);
   return await proposeDreamChange(ctx, {
     clerkId: args.clerkId,
     profileId: args.profileId,
@@ -1160,13 +1163,24 @@ async function proposeAiMerge(
     ...(args.group.aiConfidence === undefined
       ? {}
       : { confidence: args.group.aiConfidence }),
+    ...(merged === undefined ? {} : { merged }),
   });
+}
+
+// the AI's merged text of a flagged group, when it wrote one
+function groupMergedText(
+  group: Doc<"dreamPlanGroups">,
+): { title: string; content: string } | undefined {
+  return group.proposedTitle === undefined ||
+    group.proposedContent === undefined
+    ? undefined
+    : { title: group.proposedTitle, content: group.proposedContent };
 }
 
 const applyArgs = {
   runId: v.id("dreamRuns"),
   includeAi: v.optional(v.boolean()),
-  // Jev-flagged groups always become proposals, even with auto-accept on
+  // AI-flagged groups always become proposals, even with auto-accept on
   aiAsProposals: v.optional(v.boolean()),
   // set by the chain itself
   applyRunId: v.optional(v.id("dreamRuns")),
@@ -1177,11 +1191,11 @@ const applyArgs = {
 /**
  * Applies a dry-run plan. Deterministic groups merge through dream.applyMerge
  * (undoable), 100 groups per mutation, self-rescheduling. With includeAi the
- * Jev-flagged groups then become inbox merge proposals, or merge at once
- * (suppressedBy "dream-ai") when dreamModeAutoAccept is on and aiAsProposals
- * is not set. A group is skipped when any of its rows is gone or no longer
- * visible. The last batch schedules tag consolidation (tagConsolidate.ts) for
- * the profile. Returns the apply run.
+ * AI-flagged groups then become inbox merge proposals, or merge at once with
+ * their merged text (suppressedBy "dream-ai") when dreamModeAutoAccept is on
+ * and aiAsProposals is not set. A group is skipped when any of its rows is
+ * gone or no longer visible. The last batch schedules tag consolidation
+ * (tagConsolidate.ts) for the profile. Returns the apply run.
  */
 async function applyPlanBatch(
   ctx: MutationCtx,
@@ -1247,6 +1261,7 @@ async function applyPlanBatch(
       if (proposed) counts.proposals += 1;
       continue;
     }
+    const merged = tier === "ai" ? groupMergedText(group) : undefined;
     const actionId = await mergeGroup(ctx, {
       runId: applyRunId,
       keeperId,
@@ -1258,10 +1273,11 @@ async function applyPlanBatch(
             ai: {
               relation: "duplicate",
               confidence: group.aiConfidence ?? 0,
-              model: SYSTEMONE_DEFAULT_MODEL,
+              model: LLM_MODEL,
             },
           }
         : {}),
+      ...(merged === undefined ? {} : { merged }),
     });
     if (actionId === null) continue;
     if (tier === "ai") counts.nearDupMerged += 1;
@@ -1434,8 +1450,8 @@ export const latestForProfile = authQuery({
 
 /**
  * "Scan for duplicates" on the Dreaming page: a dry run over every memory of
- * the caller's own personal profile. Jev runs only when dreamModeUseAi is on,
- * up to 500 calls; a later scan continues with the groups left unjudged.
+ * the caller's own personal profile. The AI runs only when dreamModeUseAi is
+ * on, up to 500 calls; a later scan continues with the groups left unjudged.
  * Refused while a cleanup runs and within an hour of the last one.
  */
 export const startDryRun = authMutation({
@@ -1472,7 +1488,7 @@ export const startDryRun = authMutation({
 /**
  * "Clean up" on the cleanup card: applies the caller's own dry run when it is
  * still the profile's latest cleanup run (not yet applied). Deterministic
- * groups merge with undo; Jev-flagged groups go to the inbox as proposals.
+ * groups merge with undo; AI-flagged clusters go to the inbox as proposals.
  */
 export const applyCleanup = authMutation({
   args: { runId: v.id("dreamRuns") },

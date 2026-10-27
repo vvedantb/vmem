@@ -30,12 +30,14 @@ export function useProposals() {
       proposalId: string;
       action: "approve" | "reject";
       winnerMemoryId?: string;
+      selectedSourceMemoryIds?: string[];
     }) => {
       // profile id lets team approvals resolve owner attributed memories
       return await resolveAction({
         proposalId: input.proposalId,
         action: input.action,
         winnerMemoryId: input.winnerMemoryId,
+        selectedSourceMemoryIds: input.selectedSourceMemoryIds,
         profileId: activeProfileId,
       });
     },
@@ -54,8 +56,13 @@ export function useProposals() {
     pendingCount,
     isLoading: listQuery.isLoading,
     isResolving: resolveMutation.isPending,
-    approve: (proposalId: string) =>
-      resolveMutation.mutateAsync({ proposalId, action: "approve" }),
+    // merge proposals pass the sources left ticked
+    approve: (proposalId: string, selectedSourceMemoryIds?: string[]) =>
+      resolveMutation.mutateAsync({
+        proposalId,
+        action: "approve",
+        selectedSourceMemoryIds,
+      }),
     reject: (proposalId: string) =>
       resolveMutation.mutateAsync({ proposalId, action: "reject" }),
     keepWinner: (proposalId: string, winnerMemoryId: string) =>

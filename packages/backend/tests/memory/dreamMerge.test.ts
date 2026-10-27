@@ -125,4 +125,23 @@ describe("snapshot and restore", () => {
     const restored = { ...merged, ...patch };
     expect(snapshotRow(restored)).toEqual(snapshot);
   });
+
+  it("writes the text back only when the snapshot has it", () => {
+    const plain = restorePatch(snapshotRow(row("k")));
+    expect(plain).not.toHaveProperty("title");
+    expect(plain).not.toHaveProperty("content");
+    expect(plain).not.toHaveProperty("contentHash");
+
+    const rewritten = restorePatch({
+      ...snapshotRow(row("k")),
+      title: "Old title",
+      content: "old content",
+      contentHash: "old-hash",
+    });
+    expect(rewritten).toMatchObject({
+      title: "Old title",
+      content: "old content",
+      contentHash: "old-hash",
+    });
+  });
 });

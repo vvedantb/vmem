@@ -4,7 +4,7 @@ import { isLowPriorSource } from "../usefulness";
 import { chooseKeeper, keeperOrder } from "./merge";
 
 // one-off cleanup planning: keyed buckets (exact hash, browse key) and
-// candidate groups for the Jev duplicate pass. Never all-pairs.
+// candidate groups for the AI duplicate pass. Never all-pairs.
 
 export const PLAN_TITLE_CHARS = 80;
 export const PLAN_LOSER_TITLES = 5;
@@ -235,7 +235,7 @@ export function deterministicStats<M extends string>(
 }
 
 /**
- * Rows the Jev pass may look at: visible, not already a loser in rule A/B,
+ * Rows the AI pass may look at: visible, not already a loser in rule A/B,
  * not a low-prior source (browsing history, bookmarks, desktop).
  */
 export function aiEligibleRows<M extends string>(
@@ -258,7 +258,7 @@ export interface CandidateEdge<M extends string> {
 
 /**
  * Edges between rows that share an entity. Entities mentioned by more rows
- * than fit in one Jev group are too broad to mean "duplicate" and are skipped.
+ * than fit in one AI group are too broad to mean "duplicate" and are skipped.
  */
 export function entityEdges<M extends string>(
   mentions: ReadonlyArray<{ rowId: M; entityId: string }>,
@@ -289,9 +289,45 @@ export interface CandidateGroup<M extends string> {
 }
 
 /**
- * Union-find over the candidate edges only. Components larger than one Jev
- * group are split in breadth-first order so neighbours stay together.
- * Ordered by best vector score, then size, then id.
+ * Splits one component into chunks of at most AI_GROUP_MAX_MEMBERS. Each
+ * chunk grows breadth first from the first free row over free neighbours
+ * only, so every chunk is connected by its own edges: a long chain or a hub
+ * never glues rows with no edge path inside the chunk. A row left alone is
+ * dropped; it joins a cluster again on a later scan, once the rows around it
+ * are merged.
+ */
+function connectedChunks<M extends string>(
+  members: readonly M[],
+  adjacent: ReadonlyMap<M, ReadonlySet<M>>,
+): M[][] {
+  const assigned = new Set<M>();
+  const chunks: M[][] = [];
+  for (const start of members) {
+    if (assigned.has(start)) continue;
+    const chunk: M[] = [];
+    const queued = new Set<M>([start]);
+    const queue = [start];
+    while (chunk.length < AI_GROUP_MAX_MEMBERS) {
+      const id = queue.shift();
+      if (id === undefined) break;
+      chunk.push(id);
+      assigned.add(id);
+      for (const next of [...(adjacent.get(id) ?? [])].sort()) {
+        if (assigned.has(next) || queued.has(next)) continue;
+        queued.add(next);
+        queue.push(next);
+      }
+    }
+    if (chunk.length > 1) chunks.push(chunk);
+  }
+  return chunks;
+}
+
+/**
+ * Union-find over the candidate edges only, so near-duplicates cluster
+ * transitively (A~B and B~C give one group A, B, C). Components larger than
+ * one AI group split into connected chunks (connectedChunks). Ordered by best
+ * vector score, then size, then id.
  */
 export function buildCandidateGroups<M extends string>(
   edges: readonly CandidateEdge<M>[],
@@ -317,30 +353,9 @@ export function buildCandidateGroups<M extends string>(
     else components.set(root, [id]);
   }
 
-  const chunks: M[][] = [];
-  for (const members of components.values()) {
-    const order: M[] = [];
-    const seen = new Set<M>();
-    for (const start of members) {
-      if (seen.has(start)) continue;
-      const queue = [start];
-      seen.add(start);
-      while (queue.length > 0) {
-        const id = queue.shift();
-        if (id === undefined) break;
-        order.push(id);
-        for (const next of [...(adjacent.get(id) ?? [])].sort()) {
-          if (seen.has(next)) continue;
-          seen.add(next);
-          queue.push(next);
-        }
-      }
-    }
-    for (let i = 0; i < order.length; i += AI_GROUP_MAX_MEMBERS) {
-      const chunk = order.slice(i, i + AI_GROUP_MAX_MEMBERS);
-      if (chunk.length > 1) chunks.push(chunk);
-    }
-  }
+  const chunks = [...components.values()].flatMap((members) =>
+    connectedChunks(members, adjacent),
+  );
 
   const groups = chunks.map((memberIds) => {
     const inGroup = new Set(memberIds);
@@ -387,8 +402,9 @@ function memberSetKey(memberIds: readonly string[]): string {
 
 /**
  * Splits this scan's candidate groups into the ones an earlier plan already
- * judged (same member set, verdict flagged or not_duplicate) and the ones Jev
- * still has to judge. Errors and unjudged groups go back in the queue. Both
+ * judged (same member set, verdict flagged or not_duplicate) and the ones the
+ * AI still has to judge. A flagged verdict carries its keeper, losers and
+ * merged text. Errors and unjudged groups go back in the queue. Both
  * lists keep candidate order.
  */
 export function reusePriorVerdicts<

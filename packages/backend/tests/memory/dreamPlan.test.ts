@@ -161,14 +161,48 @@ describe("rule J candidates", () => {
     ]);
   });
 
-  it("splits components larger than six members", () => {
+  it("clusters transitively: A~B and B~C give one group of three", () => {
+    const groups = buildCandidateGroups([
+      { a: "a", b: "b", score: 0.95 },
+      { a: "b", b: "c", score: 0.93 },
+    ]);
+    expect(groups).toEqual([{ memberIds: ["a", "b", "c"], score: 0.95 }]);
+  });
+
+  it("splits a hub larger than six members without gluing its leaves", () => {
     const edges = Array.from({ length: 8 }, (_, i) => ({
       a: "n0",
       b: `n${String(i + 1)}`,
       score: 0.92,
     }));
     const groups = buildCandidateGroups(edges);
-    expect(groups.map((g) => g.memberIds.length)).toEqual([6, 3]);
+    // the hub and five leaves; the other leaves share no edge with each
+    // other, so they wait for a later scan instead of forming a group
+    expect(groups).toEqual([
+      { memberIds: ["n0", "n1", "n2", "n3", "n4", "n5"], score: 0.92 },
+    ]);
+  });
+
+  it("splits a long chain into connected groups of at most six", () => {
+    const ids = Array.from({ length: 14 }, (_, i) => `c${String(i + 10)}`);
+    const edges = ids.slice(1).map((b, i) => ({
+      a: ids[i] ?? "",
+      b,
+      score: 0.91,
+    }));
+    const groups = buildCandidateGroups(edges);
+    expect(groups.map((g) => g.memberIds)).toEqual([
+      ids.slice(0, 6),
+      ids.slice(6, 12),
+      ids.slice(12),
+    ]);
+    const linked = new Set(edges.map((edge) => `${edge.a}|${edge.b}`));
+    for (const { memberIds } of groups) {
+      // each member links to the one before it inside the same group
+      memberIds.slice(1).forEach((id, i) => {
+        expect(linked.has(`${memberIds[i] ?? ""}|${id}`)).toBe(true);
+      });
+    }
   });
 
   it("skips entities too broad for one group", () => {
@@ -211,6 +245,30 @@ describe("rule J candidates", () => {
       [0.95, "not_duplicate"],
     ]);
     expect(unjudged.map((group) => group.score)).toEqual([0.93, 0.91, 0]);
+  });
+
+  it("hands back a reused cluster verdict whole, merged text included", () => {
+    const verdict = {
+      memberIds: ["c", "a", "b"],
+      aiStatus: "flagged",
+      keeperId: "a",
+      loserIds: ["b", "c"],
+      proposedTitle: "Uses pnpm",
+      proposedContent: "Uses pnpm 10 for every repo.",
+    };
+    const { reused, unjudged } = reusePriorVerdicts(
+      [{ memberIds: ["a", "b", "c"], score: 0.97 }],
+      [verdict],
+    );
+    expect(unjudged).toEqual([]);
+    expect(reused[0]?.verdict).toBe(verdict);
+    // one more member is a new cluster: judged again
+    expect(
+      reusePriorVerdicts(
+        [{ memberIds: ["a", "b", "c", "d"], score: 0.97 }],
+        [verdict],
+      ).unjudged,
+    ).toHaveLength(1);
   });
 });
 

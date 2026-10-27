@@ -22,9 +22,12 @@ export function ProposalsPanel() {
     pendingCount,
   } = useProposals();
 
-  const handleApprove = async (p: ProposedUpdate) => {
+  const handleApprove = async (
+    p: ProposedUpdate,
+    selectedSourceMemoryIds?: string[],
+  ) => {
     try {
-      await approve(p.id);
+      await approve(p.id, selectedSourceMemoryIds);
       toast.success(proposalApproveToast(p.kind));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to approve");
@@ -80,7 +83,7 @@ export function ProposalsPanel() {
               key={p.id}
               proposal={p}
               isResolving={isResolving}
-              onApprove={() => void handleApprove(p)}
+              onApprove={(selected) => void handleApprove(p, selected)}
               onReject={() => void handleReject(p)}
               onKeepWinner={(winnerId) => void handleKeepWinner(p, winnerId)}
             />

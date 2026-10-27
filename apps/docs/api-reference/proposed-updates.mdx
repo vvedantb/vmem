@@ -26,6 +26,9 @@ await client.action(api.proposedUpdateApi.listProposedUpdates, {
   `"approve"` or `"reject"`
 </ParamField>
 <ParamField body="winnerMemoryId" type="string" />
+<ParamField body="selectedSourceMemoryIds" type="string[]">
+  Merge proposals only: the sources to merge (default all)
+</ParamField>
 <ParamField body="profileId" type="string" />
 
 ```typescript

@@ -4,6 +4,7 @@ import { convexTest } from "convex-test";
 import type { WithoutSystemFields } from "convex/server";
 import { ConvexError } from "convex/values";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { MEMORY_EMBEDDING_DIMENSIONS } from "../engine/memory/searchableText";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -38,39 +39,69 @@ const VHUB_PATHS = [
   "/connectors?category=Code",
 ];
 
-type EvaluateCall = {
-  state: { memories: { key: string; title: string }[] };
-  providerOptions: { gateway: Record<string, string | boolean | string[]> };
+type GenerateCall = {
+  messages: { role: string; content: string }[];
+  providerOptions: Record<string, Record<string, string | boolean>>;
 };
 
-// no network: the AI SDK evaluate call (Jev) is a spy
-const evaluate = vi.hoisted(() =>
-  vi.fn<(call: EvaluateCall) => Promise<object>>(),
+// no network: the cleanup judge (generateText) and Jev (evaluate) are spies;
+// the cleanup never calls Jev
+const generateText = vi.hoisted(() =>
+  vi.fn<(call: GenerateCall) => Promise<object>>(),
 );
+const evaluate = vi.hoisted(() => vi.fn<() => Promise<object>>());
 
 vi.mock("ai", async (importOriginal) => ({
   ...(await importOriginal<typeof Ai>()),
   experimental_evaluate: evaluate,
+  generateText,
 }));
 
-// Jev says "duplicate, keep the first, remove the rest"
-function duplicateReply(call: EvaluateCall) {
-  const removes = Object.fromEntries(
-    call.state.memories
-      .slice(1)
-      .map((m) => [`remove_${m.key}`, { type: "boolean", probability: 0.9 }]),
-  );
+const promptSchema = z.object({
+  memories: z.array(
+    z.object({ id: z.string(), title: z.string(), content: z.string() }),
+  ),
+});
+
+// the memories one judge call saw, named m0, m1, ... as in the prompt
+function promptMemories(call: GenerateCall) {
+  const prompt = call.messages.find((m) => m.role === "user")?.content ?? "";
+  return promptSchema.parse(
+    JSON.parse(prompt.slice(prompt.indexOf('{\n  "memories"'))),
+  ).memories;
+}
+
+type ReplyFields = Record<string, string | number | boolean | string[] | null>;
+
+// one gateway text result with a JSON reply
+function chatReply(fields: ReplyFields, cost: string | null = "0.0002") {
   return {
-    response: { modelId: "typesafe-ai/jev" },
-    answers: {
-      duplicate: { type: "boolean", probability: 0.95 },
-      keep: { type: "choice", choice: "m0", probabilities: { m0: 0.9 } },
-      reason: { type: "choice", choice: "same_fact" },
-      ...removes,
+    text: JSON.stringify(fields),
+    finishReason: "stop",
+    response: { id: "gen_cleanup" },
+    usage: {
+      inputTokens: 300,
+      outputTokens: 12,
+      totalTokens: 312,
+      inputTokenDetails: {},
+      outputTokenDetails: {},
     },
-    usage: { inputTokens: 300, outputTokens: 12 },
-    providerMetadata: { gateway: { cost: "0.0002" } },
+    providerMetadata: cost === null ? {} : { gateway: { cost } },
   };
+}
+
+// the AI says "duplicates: keep m0, remove the rest" and joins the contents
+function duplicateReply(call: GenerateCall) {
+  const memories = promptMemories(call);
+  return chatReply({
+    duplicate: true,
+    keepId: "m0",
+    removeIds: memories.slice(1).map((m) => m.id),
+    mergedTitle: memories[0]?.title ?? "",
+    mergedContent: memories.map((m) => m.content).join("\n"),
+    confidence: 0.95,
+    reason: "Same fact.",
+  });
 }
 
 function setupT() {
@@ -214,8 +245,13 @@ async function getDoc(t: T, id: Id<"memories">): Promise<Doc<"memories">> {
   return doc;
 }
 
-function evaluatedStates(): EvaluateCall["state"][] {
-  return evaluate.mock.calls.map(([call]) => call.state);
+// the member titles of each judge call, sorted
+function judgedTitles(): string[][] {
+  return generateText.mock.calls.map(([call]) =>
+    promptMemories(call)
+      .map((m) => m.title)
+      .sort(),
+  );
 }
 
 beforeEach(() => {
@@ -223,10 +259,12 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
   vi.stubEnv("AI_GATEWAY_API_KEY", "test-key");
-  evaluate.mockReset();
-  evaluate.mockImplementation(async (call: EvaluateCall) =>
+  generateText.mockReset();
+  generateText.mockImplementation(async (call: GenerateCall) =>
     duplicateReply(call),
   );
+  evaluate.mockReset();
+  evaluate.mockRejectedValue(new Error("no Jev in cleanup tests"));
 });
 
 afterEach(() => {
@@ -288,7 +326,7 @@ describe("dreamCleanup dry run", () => {
       count: 8,
       keeperTitle: VHUB_TITLE,
     });
-    expect(evaluate).not.toHaveBeenCalled();
+    expect(generateText).not.toHaveBeenCalled();
   });
 
   it("plans duplicate tags when no memory is duplicated, without AI", async () => {
@@ -317,7 +355,7 @@ describe("dreamCleanup dry run", () => {
         reason: "Host-name tag spellings",
       },
     ]);
-    expect(evaluate).not.toHaveBeenCalled();
+    expect(generateText).not.toHaveBeenCalled();
   });
 
   it("caps sample titles at 80 chars", async () => {
@@ -412,10 +450,10 @@ describe("dreamCleanup apply", () => {
   });
 });
 
-describe("dreamCleanup Jev pass", () => {
+describe("dreamCleanup AI pass", () => {
   // n1 ~ n2 by vector, e1/e2 share an entity, far is alone, web is a
   // low-prior row with the same vector as n1
-  async function seedJev(t: T, owner: Owner) {
+  async function seedPairs(t: T, owner: Owner) {
     const n1 = await addMemory(t, owner, { title: "Uses pnpm" });
     const n2 = await addMemory(t, owner, { title: "Prefers pnpm" });
     const far = await addMemory(t, owner, { title: "Lives in London" });
@@ -455,16 +493,85 @@ describe("dreamCleanup Jev pass", () => {
     return { n1, n2, far, web, e1, e2 };
   }
 
-  it("judges only candidate groups and skips low-prior rows", async () => {
+  // a ~ b and b ~ c by vector (cosine 0.93 and 0.96), a and c are not
+  // neighbours (0.78): one cluster of three only through b. a is the oldest.
+  async function seedCluster(t: T, owner: Owner) {
+    const a = await addMemory(t, owner, {
+      title: "Uses pnpm",
+      content: "Uses pnpm in vmem.",
+    });
+    const b = await addMemory(t, owner, {
+      title: "Prefers pnpm",
+      content: "Prefers pnpm 10.",
+    });
+    const c = await addMemory(t, owner, {
+      title: "pnpm workspaces",
+      content: "vmem is a pnpm workspace.",
+    });
+    await embed(t, owner, a, vector(0));
+    await embed(t, owner, b, vector(0, 0.4));
+    await embed(t, owner, c, vector(0, 0.8));
+    return { a, b, c };
+  }
+
+  const MERGED = {
+    title: "Uses pnpm",
+    content: "Uses pnpm 10 in vmem, a pnpm workspace.",
+  };
+
+  // the AI keeps "Uses pnpm" and merges every other member into it
+  function clusterReply(call: GenerateCall) {
+    const memories = promptMemories(call);
+    const keep = memories.find((m) => m.title === "Uses pnpm");
+    return chatReply({
+      duplicate: true,
+      keepId: keep?.id ?? "m0",
+      removeIds: memories.filter((m) => m !== keep).map((m) => m.id),
+      mergedTitle: MERGED.title,
+      mergedContent: MERGED.content,
+      confidence: 0.93,
+      reason: "Same tool preference",
+    });
+  }
+
+  async function proposals(t: T): Promise<Doc<"proposedUpdates">[]> {
+    return await t.run(async (ctx) =>
+      ctx.db.query("proposedUpdates").collect(),
+    );
+  }
+
+  async function onlyProposal(t: T): Promise<Doc<"proposedUpdates">> {
+    const all = await proposals(t);
+    expect(all).toHaveLength(1);
+    const [proposal] = all;
+    if (!proposal) throw new Error("proposal missing");
+    return proposal;
+  }
+
+  async function approve(
+    t: T,
+    owner: Owner,
+    proposal: Doc<"proposedUpdates">,
+    selectedSourceMemoryIds?: string[],
+  ) {
+    return await t.mutation(internal.proposedUpdateApi.resolveInternal, {
+      clerkId: owner.clerkId,
+      proposalId: proposal.proposalId,
+      action: "approve",
+      ...(selectedSourceMemoryIds === undefined
+        ? {}
+        : { selectedSourceMemoryIds }),
+    });
+  }
+
+  it("judges only candidate groups, one logged call each, and skips low-prior rows", async () => {
     const t = setupT();
-    const owner = await addUser(t, "clerk_jev");
-    await seedJev(t, owner);
+    const owner = await addUser(t, "clerk_ai");
+    await seedPairs(t, owner);
 
     const run = await summary(t, await dryRun(t, owner));
 
-    const titles = evaluatedStates().map((state) =>
-      state.memories.map((m) => m.title).sort(),
-    );
+    const titles = judgedTitles();
     expect(titles).toEqual(
       expect.arrayContaining([
         ["Prefers pnpm", "Uses pnpm"],
@@ -472,6 +579,7 @@ describe("dreamCleanup Jev pass", () => {
       ]),
     );
     expect(titles).toHaveLength(2);
+    expect(evaluate).not.toHaveBeenCalled();
     expect(run).toMatchObject({
       status: "ok",
       aiCalls: 2,
@@ -480,6 +588,7 @@ describe("dreamCleanup Jev pass", () => {
     });
     expect(run.costUsd).toBeCloseTo(0.0004);
     expect(run.sample?.filter((s) => s.rule === "near_dup")).toHaveLength(2);
+    // the chat helper logs each call once
     const logs = await t.run(async (ctx) =>
       ctx.db.query("openRouterLogs").collect(),
     );
@@ -488,37 +597,298 @@ describe("dreamCleanup Jev pass", () => {
       ["dream", undefined],
     ]);
     expect(logs[0]).toMatchObject({
+      endpoint: "chat",
       promptTokens: 300,
       completionTokens: 12,
       costUsd: 0.0002,
     });
   });
 
-  it("asks the gateway for no-training routing, not ZDR", async () => {
+  it("judges a transitive cluster of three in one call and proposes one merge", async () => {
+    generateText.mockImplementation(async (call: GenerateCall) =>
+      clusterReply(call),
+    );
     const t = setupT();
-    const owner = await addUser(t, "clerk_policy");
-    await seedJev(t, owner);
+    const owner = await addUser(t, "clerk_cluster");
+    const { a, b, c } = await seedCluster(t, owner);
+    const docs = [await getDoc(t, a), await getDoc(t, b), await getDoc(t, c)];
+
+    const planId = await dryRun(t, owner);
+
+    expect(judgedTitles()).toEqual([
+      ["Prefers pnpm", "Uses pnpm", "pnpm workspaces"],
+    ]);
+    const call = generateText.mock.calls[0]?.[0];
+    if (!call) throw new Error("no judge call");
+    // members are m0..m2 in the prompt, never row ids; thinking is off
+    const prompt = call.messages.map((m) => m.content).join("\n");
+    for (const doc of docs) {
+      expect(prompt).not.toContain(doc._id);
+      expect(prompt).not.toContain(doc.memoryId);
+    }
+    expect(promptMemories(call).map((m) => m.id)).toEqual(["m0", "m1", "m2"]);
+    expect(call.providerOptions).toMatchObject({
+      alibaba: { enableThinking: false },
+    });
+    expect(await summary(t, planId)).toMatchObject({
+      status: "ok",
+      aiCalls: 1,
+      counts: { aiFlagged: 1 },
+      cleanup: { aiCandidates: 1, aiSkipped: 0 },
+    });
+    const groups = await t.run(async (ctx) =>
+      ctx.db.query("dreamPlanGroups").collect(),
+    );
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toMatchObject({
+      tier: "ai",
+      aiStatus: "flagged",
+      keeperId: a,
+      proposedTitle: MERGED.title,
+      proposedContent: MERGED.content,
+    });
+    expect([...(groups[0]?.loserIds ?? [])].sort()).toEqual([b, c].sort());
+
+    const applyId = await apply(t, planId, true);
+
+    const proposal = await onlyProposal(t);
+    expect(proposal).toMatchObject({
+      kind: "merge",
+      status: "pending",
+      memoryId: docs[0]?.memoryId,
+      proposedTitle: MERGED.title,
+      proposedContent: MERGED.content,
+      memorySnapshot: { title: "Uses pnpm", content: "Uses pnpm in vmem." },
+      dreamRunId: applyId,
+    });
+    expect([...proposal.sourceMemoryIds].sort()).toEqual(
+      docs.map((doc) => doc.memoryId).sort(),
+    );
+    expect(proposal.sourceMemorySnapshots).toHaveLength(3);
+    expect(proposal.reason).toContain("with the merged text");
+    expect((await summary(t, applyId)).counts.proposals).toBe(1);
+    // nothing changes before approval
+    expect((await getDoc(t, a)).content).toBe("Uses pnpm in vmem.");
+    expect((await getDoc(t, c)).status).toBe("active");
+  });
+
+  it("approving merges the cluster into the keeper with the merged text; undo restores it", async () => {
+    generateText.mockImplementation(async (call: GenerateCall) =>
+      clusterReply(call),
+    );
+    const t = setupT();
+    const owner = await addUser(t, "clerk_cluster_apply");
+    const { a, b, c } = await seedCluster(t, owner);
+    const before = await getDoc(t, a);
+    const applyId = await apply(t, await dryRun(t, owner), true);
+
+    expect(await approve(t, owner, await onlyProposal(t))).toEqual({
+      status: "approved",
+      materializedMemoryId: before.memoryId,
+    });
+
+    const keeper = await getDoc(t, a);
+    expect(keeper).toMatchObject({
+      status: "active",
+      title: MERGED.title,
+      content: MERGED.content,
+    });
+    expect(keeper.contentHash).not.toBe(before.contentHash);
+    expect(keeper.searchableText).toContain("workspace");
+    expect(keeper.updatedAt).toBeGreaterThan(before.updatedAt);
+    for (const id of [b, c]) {
+      expect(await getDoc(t, id)).toMatchObject({
+        status: "suppressed",
+        mergedInto: a,
+        suppressedBy: "dream-ai",
+      });
+    }
+    // one undoable action for the whole cluster, judged by the chat model
+    const actions = await t.run(async (ctx) =>
+      ctx.db.query("dreamActions").collect(),
+    );
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toMatchObject({ kind: "merge", keeperId: a });
+    expect(actions[0]?.memoryIds).toHaveLength(2);
+    expect(actions[0]?.ai?.model).not.toContain("jev");
+
+    await t.mutation(internal.dream.undoRunInternal, { runId: applyId });
+    const restored = await getDoc(t, a);
+    expect(restored).toMatchObject({
+      status: "active",
+      title: before.title,
+      content: before.content,
+      contentHash: before.contentHash,
+    });
+    expect(restored.searchableText).not.toContain("workspace");
+    for (const id of [b, c]) {
+      expect((await getDoc(t, id)).status).toBe("active");
+    }
+  });
+
+  it("merges only the sources left ticked", async () => {
+    generateText.mockImplementation(async (call: GenerateCall) =>
+      clusterReply(call),
+    );
+    const t = setupT();
+    const owner = await addUser(t, "clerk_cluster_untick");
+    const { a, b, c } = await seedCluster(t, owner);
+    await apply(t, await dryRun(t, owner), true);
+    const proposal = await onlyProposal(t);
+    const keeperId = (await getDoc(t, a)).memoryId;
+    const bId = (await getDoc(t, b)).memoryId;
+
+    // the kept memory alone, or a memory outside the proposal, is refused
+    await expect(approve(t, owner, proposal, [keeperId])).rejects.toThrow(
+      /Select at least one memory/,
+    );
+    await expect(
+      approve(t, owner, proposal, [keeperId, bId, "mem_other"]),
+    ).rejects.toThrow(/selectedSourceMemoryIds/);
+    expect((await onlyProposal(t)).status).toBe("pending");
+
+    // c unticked; the keeper need not be listed
+    await approve(t, owner, proposal, [bId]);
+
+    expect(await getDoc(t, a)).toMatchObject({
+      status: "active",
+      content: MERGED.content,
+    });
+    expect(await getDoc(t, b)).toMatchObject({
+      status: "suppressed",
+      mergedInto: a,
+    });
+    expect((await getDoc(t, c)).status).toBe("active");
+    expect((await onlyProposal(t)).status).toBe("approved");
+  });
+
+  it("refuses a source selection on a proposal that is not a merge", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_select_kind");
+    const a = await addMemory(t, owner);
+    const doc = await getDoc(t, a);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("proposedUpdates", {
+        proposalId: "prop_delete",
+        userId: owner.clerkId,
+        profileId: owner.profileId,
+        memoryId: doc.memoryId,
+        proposedContent: "",
+        reason: "Stale",
+        kind: "delete",
+        status: "pending",
+        createdAt: NOW,
+        sourceMemoryIds: [doc.memoryId],
+        source: "dream-mode",
+        sourceMemorySnapshots: [],
+      });
+    });
+    await expect(
+      t.mutation(internal.proposedUpdateApi.resolveInternal, {
+        clerkId: owner.clerkId,
+        proposalId: "prop_delete",
+        action: "approve",
+        selectedSourceMemoryIds: [doc.memoryId],
+      }),
+    ).rejects.toThrow(/only for merge proposals/);
+    expect((await getDoc(t, a)).status).toBe("active");
+  });
+
+  it("reuses a cluster verdict with its merged text; a changed member set is judged again", async () => {
+    generateText.mockImplementation(async (call: GenerateCall) =>
+      clusterReply(call),
+    );
+    const t = setupT();
+    const owner = await addUser(t, "clerk_cluster_reuse");
+    const { a, b, c } = await seedCluster(t, owner);
     await dryRun(t, owner);
 
-    const gateways = evaluate.mock.calls.map(
-      ([call]) => call.providerOptions.gateway,
+    const secondId = await dryRun(t, owner);
+    expect(generateText).toHaveBeenCalledTimes(1);
+    expect(await summary(t, secondId)).toMatchObject({
+      status: "ok",
+      aiCalls: 0,
+      counts: { aiFlagged: 1 },
+    });
+    const reused = await t.run(async (ctx) =>
+      ctx.db
+        .query("dreamPlanGroups")
+        .withIndex("by_run_tier_seq", (q) =>
+          q.eq("runId", secondId).eq("tier", "ai"),
+        )
+        .collect(),
     );
-    expect(gateways.length).toBeGreaterThan(0);
-    for (const gateway of gateways) {
-      expect(gateway).toMatchObject({
-        disallowPromptTraining: true,
-        tags: ["dream-cleanup"],
+    expect(reused).toHaveLength(1);
+    expect(reused[0]).toMatchObject({
+      aiStatus: "flagged",
+      keeperId: a,
+      proposedTitle: MERGED.title,
+      proposedContent: MERGED.content,
+      aiConfidence: 0.93,
+    });
+    expect([...(reused[0]?.loserIds ?? [])].sort()).toEqual([b, c].sort());
+    await apply(t, secondId, true);
+    expect(await onlyProposal(t)).toMatchObject({
+      proposedContent: MERGED.content,
+    });
+
+    // d joins the cluster through c: four members, a new group to judge
+    await t.run(async (ctx) => {
+      for (const proposal of await ctx.db.query("proposedUpdates").collect()) {
+        await ctx.db.delete(proposal._id);
+      }
+    });
+    const d = await addMemory(t, owner, { title: "pnpm 10" });
+    await embed(t, owner, d, vector(0, 1.2));
+    const thirdId = await dryRun(t, owner);
+    expect(generateText).toHaveBeenCalledTimes(2);
+    expect(judgedTitles()[1]).toHaveLength(4);
+    expect(await summary(t, thirdId)).toMatchObject({ aiCalls: 1 });
+  });
+
+  it("keeps the keeper's own text when a member is too long for the AI to see", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_long");
+    const long = "word ".repeat(1_000);
+    const a = await addMemory(t, owner, { title: "Notes", content: long });
+    const b = await addMemory(t, owner, { title: "Notes copy", content: long });
+    await embed(t, owner, a, vector(0));
+    await embed(t, owner, b, vector(0, 0.1));
+    await apply(t, await dryRun(t, owner), true);
+
+    const proposal = await onlyProposal(t);
+    expect(proposal.proposedContent).toBe(long);
+    expect(proposal.reason).not.toContain("merged text");
+    await approve(t, owner, proposal);
+    expect((await getDoc(t, a)).content).toBe(long);
+    expect((await getDoc(t, b)).status).toBe("suppressed");
+  });
+
+  it("asks one call per cluster through the chat model with thinking off", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_policy");
+    await seedPairs(t, owner);
+    await dryRun(t, owner);
+
+    const calls = generateText.mock.calls.map(([call]) => call);
+    expect(calls).toHaveLength(2);
+    for (const call of calls) {
+      expect(call.providerOptions).toMatchObject({
+        alibaba: { enableThinking: false },
       });
-      expect(gateway).not.toHaveProperty("zeroDataRetention");
+      expect(call.messages[0]).toMatchObject({ role: "system" });
+      expect(call.messages[0]?.content).toContain(
+        "Respond with ONLY valid JSON",
+      );
     }
   });
 
   it("respects jevMaxCalls", async () => {
     const t = setupT();
     const owner = await addUser(t, "clerk_cap");
-    await seedJev(t, owner);
+    await seedPairs(t, owner);
     const run = await summary(t, await dryRun(t, owner, { jevMaxCalls: 1 }));
-    expect(evaluate).toHaveBeenCalledTimes(1);
+    expect(generateText).toHaveBeenCalledTimes(1);
     expect(run).toMatchObject({
       status: "partial",
       aiCalls: 1,
@@ -546,7 +916,7 @@ describe("dreamCleanup Jev pass", () => {
 
     const run = await summary(t, await dryRun(t, owner));
 
-    expect(evaluate).toHaveBeenCalledTimes(25);
+    expect(generateText).toHaveBeenCalledTimes(25);
     expect(run).toMatchObject({
       status: "ok",
       aiCalls: 25,
@@ -559,14 +929,8 @@ describe("dreamCleanup Jev pass", () => {
   it("continues a capped scan with the groups it left unjudged", async () => {
     const t = setupT();
     const owner = await addUser(t, "clerk_continue");
-    await seedJev(t, owner);
-    const judged = () =>
-      evaluatedStates().map((state) =>
-        state.memories
-          .map((m) => m.title)
-          .sort()
-          .join(" | "),
-      );
+    await seedPairs(t, owner);
+    const judged = () => judgedTitles().map((titles) => titles.join(" | "));
 
     const first = await summary(t, await dryRun(t, owner, { jevMaxCalls: 1 }));
     expect(first).toMatchObject({
@@ -594,7 +958,7 @@ describe("dreamCleanup Jev pass", () => {
     const applyId = await apply(t, secondId, true);
     expect((await summary(t, applyId)).counts.proposals).toBe(2);
     const third = await summary(t, await dryRun(t, owner));
-    expect(evaluate).toHaveBeenCalledTimes(2);
+    expect(generateText).toHaveBeenCalledTimes(2);
     expect(third).toMatchObject({
       status: "ok",
       aiCalls: 0,
@@ -605,19 +969,19 @@ describe("dreamCleanup Jev pass", () => {
   it("stops at the daily budget", async () => {
     const t = setupT();
     const owner = await addUser(t, "clerk_budget");
-    await seedJev(t, owner);
+    await seedPairs(t, owner);
     await t.run(async (ctx) => {
       await ctx.db.insert("openRouterLogs", {
         userId: owner.userId,
         feature: "dream",
         endpoint: "chat",
-        model: "typesafe-ai/jev",
+        model: "alibaba/qwen3.7-flash",
         costUsd: 0.5,
         createdAt: NOW - 60_000,
       });
     });
     const run = await summary(t, await dryRun(t, owner));
-    expect(evaluate).not.toHaveBeenCalled();
+    expect(generateText).not.toHaveBeenCalled();
     expect(run).toMatchObject({
       status: "partial",
       aiCalls: 0,
@@ -629,25 +993,23 @@ describe("dreamCleanup Jev pass", () => {
     vi.stubEnv("AI_GATEWAY_API_KEY", "");
     const t = setupT();
     const owner = await addUser(t, "clerk_nokey");
-    await seedJev(t, owner);
+    await seedPairs(t, owner);
     const run = await summary(t, await dryRun(t, owner));
-    expect(evaluate).not.toHaveBeenCalled();
+    expect(generateText).not.toHaveBeenCalled();
     expect(run).toMatchObject({
       status: "ok",
       cleanup: { aiCandidates: 0, aiStopReason: "no_key" },
     });
   });
 
-  it("ignores malformed Jev output", async () => {
-    evaluate.mockImplementation(async () => ({
-      response: { modelId: "typesafe-ai/jev" },
-      answers: { keep: { type: "choice", choice: "nope" } },
-      usage: {},
-      providerMetadata: {},
+  it("ignores malformed AI output", async () => {
+    generateText.mockImplementation(async () => ({
+      ...chatReply({}, null),
+      text: "the first two look the same",
     }));
     const t = setupT();
     const owner = await addUser(t, "clerk_bad");
-    const { n2 } = await seedJev(t, owner);
+    const { n2 } = await seedPairs(t, owner);
     const planId = await dryRun(t, owner);
     expect(await summary(t, planId)).toMatchObject({
       status: "partial",
@@ -659,51 +1021,50 @@ describe("dreamCleanup Jev pass", () => {
 
     // errors are not reused: the next scan asks again
     await dryRun(t, owner);
-    expect(evaluate).toHaveBeenCalledTimes(4);
+    expect(generateText).toHaveBeenCalledTimes(4);
   });
 
-  it("turns Jev groups into proposals; approval suppresses with undo", async () => {
+  it("turns AI groups into proposals; approval suppresses with undo", async () => {
     const t = setupT();
     const owner = await addUser(t, "clerk_proposal");
-    const { n1, n2 } = await seedJev(t, owner);
+    const { n1, n2 } = await seedPairs(t, owner);
+    const n1Before = await getDoc(t, n1);
     const planId = await dryRun(t, owner);
 
     const applyId = await apply(t, planId, true);
 
     expect((await getDoc(t, n2)).status).toBe("active");
-    const proposals = await t.run(async (ctx) =>
-      ctx.db.query("proposedUpdates").collect(),
-    );
-    expect(proposals).toHaveLength(2);
-    expect(proposals[0]).toMatchObject({
+    const all = await proposals(t);
+    expect(all).toHaveLength(2);
+    expect(all[0]).toMatchObject({
       kind: "merge",
       status: "pending",
       dreamRunId: applyId,
     });
     expect((await summary(t, applyId)).counts.proposals).toBe(2);
 
-    const n1Doc = await getDoc(t, n1);
-    const proposal = proposals.find((p) => p.memoryId === n1Doc.memoryId);
+    const proposal = all.find((p) => p.memoryId === n1Before.memoryId);
     if (!proposal) throw new Error("proposal missing");
-    await t.mutation(internal.proposedUpdateApi.resolveInternal, {
-      clerkId: owner.clerkId,
-      proposalId: proposal.proposalId,
-      action: "approve",
-    });
+    await approve(t, owner, proposal);
     expect(await getDoc(t, n2)).toMatchObject({
       status: "suppressed",
       mergedInto: n1,
       suppressedBy: "dream-ai",
       suppressedAt: expect.any(Number),
     });
+    expect((await getDoc(t, n1)).content).toBe(proposal.proposedContent);
     await t.mutation(internal.dream.undoRunInternal, { runId: applyId });
     expect((await getDoc(t, n2)).status).toBe("active");
+    expect((await getDoc(t, n1)).content).toBe(n1Before.content);
   });
 
-  it("merges Jev groups at once when auto-accept is on", async () => {
+  it("merges AI groups at once, with the merged text, when auto-accept is on", async () => {
+    generateText.mockImplementation(async (call: GenerateCall) =>
+      clusterReply(call),
+    );
     const t = setupT();
     const owner = await addUser(t, "clerk_auto");
-    const { n1, n2 } = await seedJev(t, owner);
+    const { a, b, c } = await seedCluster(t, owner);
     await t.run(async (ctx) => {
       await ctx.db.insert("userSettings", {
         userId: owner.userId,
@@ -712,27 +1073,27 @@ describe("dreamCleanup Jev pass", () => {
     });
     const planId = await dryRun(t, owner);
     const applyId = await apply(t, planId, true);
-    expect(await getDoc(t, n2)).toMatchObject({
-      status: "suppressed",
-      mergedInto: n1,
-      suppressedBy: "dream-ai",
-      suppressedAt: expect.any(Number),
-    });
+    for (const id of [b, c]) {
+      expect(await getDoc(t, id)).toMatchObject({
+        status: "suppressed",
+        mergedInto: a,
+        suppressedBy: "dream-ai",
+        suppressedAt: expect.any(Number),
+      });
+    }
+    expect((await getDoc(t, a)).content).toBe(MERGED.content);
     expect(await summary(t, applyId)).toMatchObject({
-      counts: { nearDupMerged: 2, proposals: 0 },
+      counts: { nearDupMerged: 1, proposals: 0 },
     });
   });
 
-  it("does not apply Jev groups unless asked", async () => {
+  it("does not apply AI groups unless asked", async () => {
     const t = setupT();
     const owner = await addUser(t, "clerk_noai");
-    const { n2 } = await seedJev(t, owner);
+    const { n2 } = await seedPairs(t, owner);
     await apply(t, await dryRun(t, owner));
     expect((await getDoc(t, n2)).status).toBe("active");
-    const proposals = await t.run(async (ctx) =>
-      ctx.db.query("proposedUpdates").collect(),
-    );
-    expect(proposals).toHaveLength(0);
+    expect(await proposals(t)).toHaveLength(0);
   });
 });
 
@@ -822,7 +1183,7 @@ describe("dreamCleanup web", () => {
     });
   });
 
-  it("sends Jev groups to the inbox even with auto-accept on", async () => {
+  it("sends AI groups to the inbox even with auto-accept on", async () => {
     const t = setupT();
     const owner = await addUser(t, "clerk_web_ai");
     const n1 = await addMemory(t, owner, { title: "Uses pnpm" });
@@ -850,7 +1211,7 @@ describe("dreamCleanup web", () => {
     ]);
   });
 
-  it("skips Jev on a web scan when dreamModeUseAi is off", async () => {
+  it("skips the AI on a web scan when dreamModeUseAi is off", async () => {
     const t = setupT();
     const owner = await addUser(t, "clerk_web_noai");
     const n1 = await addMemory(t, owner, { title: "Uses pnpm" });
@@ -867,6 +1228,6 @@ describe("dreamCleanup web", () => {
       .withIdentity({ subject: owner.clerkId })
       .mutation(api.dreamCleanup.startDryRun, { profileId: owner.profileId });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    expect(evaluate).not.toHaveBeenCalled();
+    expect(generateText).not.toHaveBeenCalled();
   });
 });

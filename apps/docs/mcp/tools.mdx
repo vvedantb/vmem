@@ -559,6 +559,11 @@ Approve or reject one pending proposal.
 <ParamField body="winnerMemoryId" type="string">
   Contradictions only: the source memory to keep
 </ParamField>
+<ParamField body="selectedSourceMemoryIds" type="string[]">
+  Merges only: the `sourceMemoryIds` to merge (default all). The kept memory
+  (`memoryId`) always stays and gets `proposedTitle` / `proposedContent`;
+  unlisted memories stay as they are
+</ParamField>
 <ParamField body="profileId" type="string" />
 
 **Returns:** `{ status, materializedMemoryId? }`

@@ -28,6 +28,12 @@ const proposalsResolveSchema = z.object({
     .describe(
       "Contradiction proposals only: the source memory to keep (one of sourceMemoryIds). The others are superseded",
     ),
+  selectedSourceMemoryIds: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Merge proposals only: the sourceMemoryIds to merge (default all). The kept memory (memoryId) always stays; at least one other must be listed. Unlisted memories stay as they are",
+    ),
   profileId: profileIdParam,
 });
 
@@ -72,7 +78,7 @@ export const inboxToolSpecs = {
     name: "proposals_resolve",
     schema: proposalsResolveSchema,
     description:
-      "Approve or reject one pending proposal from proposals_list, as on the web Dreaming page. Approving a merge or update writes a new memory and supersedes the sources; approving a delete supersedes the memory; for a contradiction pass winnerMemoryId to keep that memory; approving a skill creates that skill. Returns status and materializedMemoryId.",
+      "Approve or reject one pending proposal from proposals_list, as on the web Dreaming page. Approving a Dream Mode merge keeps memoryId, gives it proposedTitle / proposedContent (the merged text) and hides the other sources (undo for 30 days); pass selectedSourceMemoryIds to merge only some of them. Approving an update or other merge writes a new memory and supersedes the sources; approving a delete supersedes the memory; for a contradiction pass winnerMemoryId to keep that memory; approving a skill creates that skill. Returns status and materializedMemoryId.",
     errorLabel: "Resolve proposal failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
@@ -97,6 +103,7 @@ export const inboxToolSpecs = {
             proposalId: proposal.id,
             action: params.action,
             winnerMemoryId: params.winnerMemoryId,
+            selectedSourceMemoryIds: params.selectedSourceMemoryIds,
           });
           if (!result) throw new Error("Proposal not found");
           return result;

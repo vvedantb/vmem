@@ -750,7 +750,8 @@ export const dreamRunFields = {
 
 // dry run of the one-off cleanup: one row per planned group. Deterministic
 // groups (rules A/B) carry keeper + losers; AI groups start as candidates
-// (aiStatus "pending") and get keeper + losers once Jev flags them.
+// (aiStatus "pending") and get keeper + losers, plus the merged text, once
+// the AI flags them.
 export const dreamPlanGroupInputFields = {
   tier: v.union(v.literal("deterministic"), v.literal("ai")),
   // plan order inside the tier; apply and judge page on it
@@ -774,6 +775,10 @@ export const dreamPlanGroupInputFields = {
   aiConfidence: v.optional(v.number()),
   // best vector score that formed an AI group (0 = entity only)
   score: v.optional(v.number()),
+  // flagged AI groups: the keeper's text after the merge, written by the AI
+  // (absent when a member was too long for the AI to see in full)
+  proposedTitle: v.optional(v.string()),
+  proposedContent: v.optional(v.string()),
 };
 
 export const dreamPlanGroupFields = {
@@ -813,6 +818,10 @@ export const dreamSnapshotValidator = v.object({
   url: v.optional(v.string()),
   // externalId upserts are stored as sourceId
   sourceId: v.optional(v.string()),
+  // only when the action rewrote the text (an AI merge with merged text)
+  title: v.optional(v.string()),
+  content: v.optional(v.string()),
+  contentHash: v.optional(v.string()),
 });
 
 // one undoable change from a dream run. `created` lists the link and mention
