@@ -8,6 +8,7 @@ import {
   temporalKindSchema,
 } from "@vmem/sdk";
 import { z } from "zod";
+import { CLUSTER_MERGE_JUDGE } from "../engine/memory/dream/clusterMerge";
 import {
   openRouterEndpointSchema,
   openRouterFeatureSchema,
@@ -773,6 +774,9 @@ export const dreamPlanGroupInputFields = {
     ),
   ),
   aiConfidence: v.optional(v.number()),
+  // set by the one-off cleanup cluster judge; absent on older pair-judge
+  // plan groups
+  aiJudge: v.optional(v.literal(CLUSTER_MERGE_JUDGE)),
   // best vector score that formed an AI group (0 = entity only)
   score: v.optional(v.number()),
   // flagged AI groups: the keeper's text after the merge, written by the AI

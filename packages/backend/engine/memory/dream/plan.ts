@@ -1,6 +1,7 @@
 import type { MemoryStatus } from "@vmem/sdk";
 import { browseKey, canonicalUrl } from "@vmem/shared";
 import { isLowPriorSource } from "../usefulness";
+import { CLUSTER_MERGE_JUDGE } from "./clusterMerge";
 import { chooseKeeper, keeperOrder } from "./merge";
 
 // one-off cleanup planning: keyed buckets (exact hash, browse key) and
@@ -9,7 +10,12 @@ import { chooseKeeper, keeperOrder } from "./merge";
 export const PLAN_TITLE_CHARS = 80;
 export const PLAN_LOSER_TITLES = 5;
 export const AI_GROUP_MAX_MEMBERS = 6;
-export const NEIGHBOUR_MIN_SCORE = 0.9;
+// Scan for duplicates only (nightly uses candidates.ts): cosine floor for
+// vector edges, looser than the nightly near_dup floor; the AI still decides
+export const MANUAL_NEIGHBOUR_MIN_SCORE = 0.85;
+// Scan for duplicates only: vectorSearch limit per memory; the memory's own
+// hit is one of them and is filtered out
+export const MANUAL_NEIGHBOUR_LIMIT = 8;
 export const SAMPLE_DETERMINISTIC_GROUPS = 50;
 export const SAMPLE_AI_GROUPS = 50;
 
@@ -401,15 +407,20 @@ function memberSetKey(memberIds: readonly string[]): string {
 }
 
 /**
- * Splits this scan's candidate groups into the ones an earlier plan already
- * judged (same member set, verdict flagged or not_duplicate) and the ones the
- * AI still has to judge. A flagged verdict carries its keeper, losers and
- * merged text. Errors and unjudged groups go back in the queue. Both
- * lists keep candidate order.
+ * Splits this scan's candidate groups into the ones the cluster judge already
+ * judged in an earlier plan (same member set, verdict flagged or
+ * not_duplicate, aiJudge set) and the ones the AI still has to judge. A
+ * flagged verdict carries its keeper, losers and merged text. Errors,
+ * unjudged groups and verdicts of the older pair judge (no aiJudge) go back
+ * in the queue. Both lists keep candidate order.
  */
 export function reusePriorVerdicts<
   G extends { memberIds: readonly string[] },
-  V extends { memberIds: readonly string[]; aiStatus?: string },
+  V extends {
+    memberIds: readonly string[];
+    aiStatus?: string;
+    aiJudge?: string;
+  },
 >(
   groups: readonly G[],
   verdicts: readonly V[],
@@ -417,8 +428,8 @@ export function reusePriorVerdicts<
   const byKey = new Map<string, V>();
   for (const verdict of verdicts) {
     if (
-      verdict.aiStatus === "flagged" ||
-      verdict.aiStatus === "not_duplicate"
+      verdict.aiJudge === CLUSTER_MERGE_JUDGE &&
+      (verdict.aiStatus === "flagged" || verdict.aiStatus === "not_duplicate")
     ) {
       byKey.set(memberSetKey(verdict.memberIds), verdict);
     }
