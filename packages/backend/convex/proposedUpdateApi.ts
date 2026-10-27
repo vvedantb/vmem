@@ -7,6 +7,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { SYSTEMONE_DEFAULT_MODEL } from "../engine/llm/systemOneClient";
 import { mergeGroup, supersedeRow } from "./dream";
 import { LLM_MODEL } from "./lib/openRouter/shared";
+import { userFacingError } from "./lib/userFacingError";
 import type { MemoryReadScope } from "../engine/memory/scope";
 import { UPDATES_LINK_REASON } from "../engine/memory/supersede";
 import { auditLog, ResourceTypes } from "./auditLog";
@@ -52,20 +53,63 @@ async function profileKind(
   return profile?.teamId === undefined ? "personal" : "team";
 }
 
-// AI-judged cleanup merge: suppress the duplicates under the dream run, so
-// the merge shows in the dreaming log and can be undone for 30 days
+/**
+ * Merge proposals: the sources the caller left ticked, in proposal order.
+ * Omitted means all. The kept memory (`memoryId`) always stays; at least one
+ * other source must stay ticked.
+ */
+function selectedMergeSources(
+  proposal: Doc<"proposedUpdates">,
+  selected: readonly string[] | undefined,
+): string[] {
+  if (selected === undefined) return proposal.sourceMemoryIds;
+  if (selected.some((id) => !proposal.sourceMemoryIds.includes(id))) {
+    userFacingError(
+      "selectedSourceMemoryIds must be sourceMemoryIds of this proposal",
+    );
+  }
+  const sources = proposal.sourceMemoryIds.filter(
+    (id) => id === proposal.memoryId || selected.includes(id),
+  );
+  if (!sources.some((id) => id !== proposal.memoryId)) {
+    userFacingError("Select at least one memory to merge");
+  }
+  return sources;
+}
+
+// the AI's merged text: proposed text that differs from the kept memory as
+// it was when the proposal was made (Jev merges propose the keeper's own text)
+function proposalMergedText(
+  proposal: Doc<"proposedUpdates">,
+): { title: string; content: string } | undefined {
+  const before = proposal.memorySnapshot;
+  const title = proposal.proposedTitle ?? before?.title;
+  if (before === undefined || title === undefined) return undefined;
+  return title === before.title && proposal.proposedContent === before.content
+    ? undefined
+    : { title, content: proposal.proposedContent };
+}
+
+// AI-judged merge (one-off cleanup or nightly): merges the selected sources
+// into the kept memory under the dream run, so the merge shows in the
+// dreaming log and can be undone for 30 days. The kept memory gets the AI's
+// merged text when the proposal has one; the merged text stays as the AI
+// wrote it when sources are unticked.
 async function applyDreamMergeProposal(
   ctx: MutationCtx,
   proposal: Doc<"proposedUpdates">,
   runId: Id<"dreamRuns">,
+  selected: readonly string[] | undefined,
 ): Promise<string | undefined> {
   const keeper = await findByMemoryId(ctx, proposal.memoryId);
   if (!keeper) return undefined;
   const loserIds: Id<"memories">[] = [];
-  for (const memoryId of proposal.sourceMemoryIds) {
+  for (const memoryId of selectedMergeSources(proposal, selected)) {
     const doc = await findByMemoryId(ctx, memoryId);
     if (doc && doc._id !== keeper._id) loserIds.push(doc._id);
   }
+  const run = await ctx.db.get(runId);
+  const merged = proposalMergedText(proposal);
   await mergeGroup(ctx, {
     runId,
     keeperId: keeper._id,
@@ -74,8 +118,10 @@ async function applyDreamMergeProposal(
     ai: {
       relation: "duplicate",
       confidence: proposal.confidence ?? 0,
-      model: SYSTEMONE_DEFAULT_MODEL,
+      // the one-off cleanup (trigger "backfill") judges with the chat model
+      model: run?.trigger === "backfill" ? LLM_MODEL : SYSTEMONE_DEFAULT_MODEL,
     },
+    ...(merged === undefined ? {} : { merged }),
   });
   return keeper.memoryId;
 }
@@ -139,9 +185,10 @@ async function applyApproval(
     clerkId: string;
     proposal: NonNullable<Awaited<ReturnType<typeof getProposedUpdate>>>;
     winnerMemoryId?: string;
+    selectedSourceMemoryIds?: string[];
   },
 ): Promise<string | undefined> {
-  const { clerkId, proposal, winnerMemoryId } = params;
+  const { clerkId, proposal, winnerMemoryId, selectedSourceMemoryIds } = params;
   const kind = await profileKind(ctx, proposal.profileId);
   const scope = writeScope(clerkId, proposal.profileId, kind);
 
@@ -176,7 +223,12 @@ async function applyApproval(
   }
 
   if (proposal.kind === "merge" && proposal.dreamRunId !== undefined) {
-    return await applyDreamMergeProposal(ctx, proposal, proposal.dreamRunId);
+    return await applyDreamMergeProposal(
+      ctx,
+      proposal,
+      proposal.dreamRunId,
+      selectedSourceMemoryIds,
+    );
   }
 
   if (proposal.kind === "update" && proposal.dreamRunId !== undefined) {
@@ -221,7 +273,10 @@ async function applyApproval(
   });
   await supersedeMemories(ctx, {
     scope,
-    predecessorIds: proposal.sourceMemoryIds,
+    predecessorIds:
+      proposal.kind === "merge"
+        ? selectedMergeSources(proposal, selectedSourceMemoryIds)
+        : proposal.sourceMemoryIds,
     successorId: created.id,
     reason: UPDATES_LINK_REASON,
   });
@@ -259,11 +314,16 @@ export async function resolveProposedUpdate(
     proposalId: string;
     action: string;
     winnerMemoryId?: string;
+    // merge proposals only: the sources to merge (default all)
+    selectedSourceMemoryIds?: string[];
   },
 ): Promise<ResolveResult | null> {
   const proposal = await getProposedUpdate(ctx, args.proposalId);
   if (!proposal || proposal.status !== "pending") return null;
   if (!(await callerMayResolve(ctx, args.clerkId, proposal))) return null;
+  if (args.selectedSourceMemoryIds !== undefined && proposal.kind !== "merge") {
+    userFacingError("selectedSourceMemoryIds is only for merge proposals");
+  }
 
   if (args.action !== "approve") {
     await markProposedUpdateResolved(ctx, args.proposalId, "rejected");
@@ -274,6 +334,7 @@ export async function resolveProposedUpdate(
     clerkId: args.clerkId,
     proposal,
     winnerMemoryId: args.winnerMemoryId,
+    selectedSourceMemoryIds: args.selectedSourceMemoryIds,
   });
   await markProposedUpdateResolved(ctx, args.proposalId, "approved");
   return { status: "approved", materializedMemoryId };
@@ -294,6 +355,7 @@ export const resolveInternal = internalMutation({
     proposalId: v.string(),
     action: v.string(),
     winnerMemoryId: v.optional(v.string()),
+    selectedSourceMemoryIds: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args): Promise<ResolveResult | null> =>
     resolveProposedUpdate(ctx, args),
@@ -323,6 +385,7 @@ export async function resolveProposalWithAudit(
     proposalId: string;
     action: string;
     winnerMemoryId?: string;
+    selectedSourceMemoryIds?: string[];
   },
 ): Promise<ResolveResult | null> {
   const result = await ctx.runMutation(
@@ -332,6 +395,7 @@ export async function resolveProposalWithAudit(
       proposalId: args.proposalId,
       action: args.action,
       winnerMemoryId: args.winnerMemoryId,
+      selectedSourceMemoryIds: args.selectedSourceMemoryIds,
     },
   );
   if (result) {
@@ -355,6 +419,8 @@ export const resolveProposal = authAction({
     proposalId: v.string(),
     action: v.string(),
     winnerMemoryId: v.optional(v.string()),
+    // merge proposals only: the sources left ticked (default all)
+    selectedSourceMemoryIds: v.optional(v.array(v.string())),
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<ResolveResult | null> => {
@@ -366,6 +432,7 @@ export const resolveProposal = authAction({
       proposalId: args.proposalId,
       action: args.action,
       winnerMemoryId: args.winnerMemoryId,
+      selectedSourceMemoryIds: args.selectedSourceMemoryIds,
     });
   },
 });

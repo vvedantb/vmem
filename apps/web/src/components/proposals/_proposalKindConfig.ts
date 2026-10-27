@@ -94,11 +94,11 @@ const PROPOSAL_KIND_CONFIG: Record<ProposedUpdateKind, ProposalKindConfig> = {
     Icon: IconArrowsJoin,
     badgeVariant: "secondary",
     accentClass: "bg-accent",
-    approveToast: "Memories merged — sources superseded",
-    synthesisContentLabel: "Consolidated memory",
+    approveToast: "Memories merged into one",
+    synthesisContentLabel: "Merged memory",
     synthesisApproveLabel: "Merge",
     synthesisRejectLabel: "Reject",
-    sourceListPrefix: "Replaces",
+    sourceListPrefix: "Merges",
   },
   // a Dream Mode skill draft; approving creates the skill, nothing is
   // published before that

@@ -1,13 +1,16 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useActiveProfile } from "@/components/workspace/active-profile";
-import { Badge, Button, Progress } from "@vvedantb/ui";
+import { Badge, Button, Checkbox, Progress } from "@vvedantb/ui";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import {
   getProposalKindConfig,
+  mergeSelection,
   proposalAccentClass,
   synthesisActionLabels,
   synthesisContentLabel,
   synthesisSourceListLabel,
+  toggleUnticked,
   type ProposedUpdate,
   type SourceMemorySnapshot,
 } from "./_proposalUtils";
@@ -27,12 +30,15 @@ export default function SynthesisProposalCard({
 }: {
   proposal: ProposedUpdate;
   isResolving: boolean;
-  onApprove: () => void;
+  // merges pass the source memories left ticked
+  onApprove: (selectedSourceMemoryIds?: string[]) => void;
   onReject: () => void;
   // contradictions resolve by keeping this source memory and suppressing the rest
   onKeepWinner?: (winnerMemoryId: string) => void;
 }) {
   const activeProfile = useActiveProfile();
+  // merges: the duplicates the user unticked; they stay as they are
+  const [unticked, setUnticked] = useState<readonly string[]>([]);
   const meta = getProposalKindConfig(proposal.kind);
   const actionLabels = synthesisActionLabels(proposal.kind);
   const contentLabel = synthesisContentLabel(proposal.kind);
@@ -44,6 +50,8 @@ export default function SynthesisProposalCard({
     proposal.kind === "contradiction" &&
     onKeepWinner !== undefined &&
     sourceCount >= 2;
+  const isMerge = proposal.kind === "merge";
+  const selection = mergeSelection(proposal, unticked);
 
   return (
     <ProposalShell
@@ -75,8 +83,10 @@ export default function SynthesisProposalCard({
           <Button
             type="button"
             size="sm"
-            onClick={onApprove}
-            disabled={isResolving}
+            onClick={() => {
+              onApprove(isMerge ? selection.selectedIds : undefined);
+            }}
+            disabled={isResolving || (isMerge && selection.mergedCount === 0)}
           >
             <IconCheck size={14} />
             {actionLabels.approve}
@@ -114,6 +124,11 @@ export default function SynthesisProposalCard({
               Acknowledge instead if both should stay.
             </p>
           )}
+          {isMerge && (
+            <p className="mb-1 text-xs text-muted">
+              Untick a memory to leave it out of the merge.
+            </p>
+          )}
           <div className="flex flex-col gap-0.5">
             {proposal.sourceMemorySnapshots.map((src) => (
               <SynthesisSourceMemoryRow
@@ -123,9 +138,26 @@ export default function SynthesisProposalCard({
                 showKeepWinner={showKeepWinner}
                 isResolving={isResolving}
                 onKeepWinner={onKeepWinner}
+                merge={
+                  isMerge
+                    ? {
+                        isKeeper: src.id === proposal.memoryId,
+                        checked: selection.selectedIds.includes(src.id),
+                        onToggle: () => {
+                          setUnticked((prev) => toggleUnticked(prev, src.id));
+                        },
+                      }
+                    : undefined
+                }
               />
             ))}
           </div>
+          {isMerge && selection.partial && (
+            <p className="mt-1 text-xs text-muted">
+              Unticked memories stay as they are. The AI wrote the merged text
+              above from all of them.
+            </p>
+          )}
         </div>
       )}
 
@@ -150,15 +182,31 @@ function SynthesisSourceMemoryRow({
   showKeepWinner,
   isResolving,
   onKeepWinner,
+  merge,
 }: {
   src: SourceMemorySnapshot;
   profileId: string;
   showKeepWinner: boolean;
   isResolving: boolean;
   onKeepWinner?: (winnerMemoryId: string) => void;
+  // merges: a tick per source; the kept memory cannot be unticked
+  merge?: { isKeeper: boolean; checked: boolean; onToggle: () => void };
 }) {
   return (
     <div className="flex min-w-0 items-center gap-1">
+      {merge !== undefined && (
+        <Checkbox
+          checked={merge.checked}
+          disabled={merge.isKeeper || isResolving}
+          onCheckedChange={merge.onToggle}
+          aria-label={
+            merge.isKeeper
+              ? `Kept memory: ${src.title || "(untitled)"}`
+              : `Merge ${src.title || "(untitled)"}`
+          }
+          className="mr-1 shrink-0"
+        />
+      )}
       <Link
         to="/$profileId/memories/graph"
         params={{ profileId }}
@@ -175,6 +223,11 @@ function SynthesisSourceMemoryRow({
           </span>
         )}
       </Link>
+      {merge?.isKeeper === true && (
+        <Badge variant="secondary" className="shrink-0 text-xs">
+          Kept
+        </Badge>
+      )}
       {showKeepWinner && onKeepWinner !== undefined && (
         <Button
           type="button"

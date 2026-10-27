@@ -28,11 +28,15 @@ export interface DreamSnapshot<M extends string, R extends string> {
   sources?: string[];
   url?: string;
   sourceId?: string;
+  // only when the action rewrote the text (an AI merge with merged text)
+  title?: string;
+  content?: string;
+  contentHash?: string;
 }
 
 export interface MergeRow<M extends string, R extends string> extends Omit<
   DreamSnapshot<M, R>,
-  "memoryId"
+  "memoryId" | "content"
 > {
   _id: M;
   createdAt: number;
@@ -61,7 +65,9 @@ export function snapshotRow<M extends string, R extends string>(
 }
 
 // Every key is listed: a stored snapshot drops undefined fields, and a patch
-// only clears a field when the key is present with undefined.
+// only clears a field when the key is present with undefined. Title,
+// content and contentHash are required on a memory, so they are written back
+// only when the snapshot has them.
 export function restorePatch<M extends string, R extends string>(
   snapshot: DreamSnapshot<M, R>,
 ): Omit<DreamSnapshot<M, R>, "memoryId"> {
@@ -78,6 +84,11 @@ export function restorePatch<M extends string, R extends string>(
     sources: snapshot.sources,
     url: snapshot.url,
     sourceId: snapshot.sourceId,
+    ...(snapshot.title === undefined ? {} : { title: snapshot.title }),
+    ...(snapshot.content === undefined ? {} : { content: snapshot.content }),
+    ...(snapshot.contentHash === undefined
+      ? {}
+      : { contentHash: snapshot.contentHash }),
   };
 }
 

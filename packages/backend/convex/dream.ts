@@ -17,6 +17,7 @@ import {
   memoryMatchesScope,
   type MemoryReadScope,
 } from "../engine/memory/scope";
+import { computeContentHash } from "../engine/memory/hash";
 import { normalizeTags } from "../engine/memory/tags";
 import { buildSearchableText } from "../engine/memory/searchableText";
 import { UPDATES_LINK_REASON } from "../engine/memory/supersede";
@@ -177,7 +178,9 @@ async function copyMentions(
 }
 
 // patches a row and keeps searchableText and the stat counters (tags and
-// visibility) in step
+// visibility) in step. A new title or content also renews contentHash
+// (unless the patch brings one, as undo does) and updatedAt, so the next
+// nightly run sees the row as changed.
 export async function patchDreamFields(
   ctx: MutationCtx,
   doc: Doc<"memories">,
@@ -185,13 +188,24 @@ export async function patchDreamFields(
 ): Promise<void> {
   const tags = patch.tags && normalizeTags(patch.tags, undefined, doc.tags);
   const tagsChanged = tags !== undefined && !sameTags(doc.tags, tags);
+  const title = patch.title ?? doc.title;
+  const content = patch.content ?? doc.content;
+  const textChanged = title !== doc.title || content !== doc.content;
   const statusChanged =
     patch.status !== undefined && patch.status !== doc.status;
   await ctx.db.patch(doc._id, {
     ...patch,
     ...(tags === undefined ? {} : { tags }),
-    ...(tagsChanged
-      ? { searchableText: buildSearchableText(doc.title, doc.content, tags) }
+    ...(tagsChanged || textChanged
+      ? {
+          searchableText: buildSearchableText(title, content, tags ?? doc.tags),
+        }
+      : {}),
+    ...(textChanged
+      ? {
+          contentHash: patch.contentHash ?? computeContentHash(title, content),
+          updatedAt: Date.now(),
+        }
       : {}),
   });
   if (!tagsChanged && !statusChanged) return;
@@ -207,13 +221,17 @@ const mergeArgs = {
   // browse key / external id written to the keeper's sourceId
   sourceKey: v.optional(v.string()),
   ai: dreamActionFields.ai,
+  // AI merge: the keeper's text after the merge
+  merged: v.optional(v.object({ title: v.string(), content: v.string() })),
 };
 
 /**
  * Merges losers into the keeper and logs one undoable action. A pinned row is
  * never suppressed: a pinned loser becomes the keeper, two pinned rows skip
- * the group. Rows that are not active or pinned are left out. Returns null
- * when nothing was merged.
+ * the group. Rows that are not active or pinned are left out. `merged`
+ * replaces the keeper's title and content; the snapshot keeps the old text
+ * for undo. When the pinned rule changes the keeper, the new keeper keeps its
+ * own text. Returns null when nothing was merged.
  */
 export async function mergeGroup(
   ctx: MutationCtx,
@@ -234,14 +252,31 @@ export async function mergeGroup(
   const group = resolvePinnedKeeper(chosen, losers);
   if (!group) return null;
   const { keeper, losers: groupLosers } = group;
+  const merged =
+    args.merged !== undefined &&
+    keeper._id === chosen._id &&
+    (args.merged.title !== keeper.title ||
+      args.merged.content !== keeper.content)
+      ? args.merged
+      : undefined;
 
   const now = Date.now();
-  const before = [keeper, ...groupLosers].map((doc) => snapshotRow(doc));
-  await patchDreamFields(
-    ctx,
-    keeper,
-    mergeKeeperPatch(keeper, groupLosers, args.sourceKey),
+  const before = [keeper, ...groupLosers].map((doc) =>
+    doc === keeper && merged !== undefined
+      ? {
+          ...snapshotRow(doc),
+          title: doc.title,
+          content: doc.content,
+          contentHash: doc.contentHash,
+        }
+      : snapshotRow(doc),
   );
+  await patchDreamFields(ctx, keeper, {
+    ...mergeKeeperPatch(keeper, groupLosers, args.sourceKey),
+    ...(merged === undefined
+      ? {}
+      : { title: merged.title, content: merged.content }),
+  });
   const linkIds: Id<"memoryLinks">[] = [];
   for (const loser of groupLosers) {
     await patchDreamFields(
@@ -335,9 +370,10 @@ function plural(count: number, word: string): string {
 /**
  * Inbox proposal for an AI-judged pair or group, skipped (false) when a
  * pending proposal already covers one of the rows. "merge": keep `keeper`,
- * hide `others`. "update": `others[0]` is the older row the newer `keeper`
- * replaces. Approving either runs under `runId` with undo. "contradiction":
- * the user keeps one row in the inbox (no dream run).
+ * hide `others`; with `merged` the keeper gets that text on approval.
+ * "update": `others[0]` is the older row the newer `keeper` replaces.
+ * Approving either runs under `runId` with undo. "contradiction": the user
+ * keeps one row in the inbox (no dream run).
  */
 export async function proposeDreamChange(
   ctx: MutationCtx,
@@ -350,9 +386,13 @@ export async function proposeDreamChange(
     others: readonly Doc<"memories">[];
     reason: string;
     confidence?: number;
+    merged?: { title: string; content: string };
   },
 ): Promise<boolean> {
-  const { keeper, others } = args;
+  const { keeper, others, merged } = args;
+  const rewrites =
+    merged !== undefined &&
+    (merged.title !== keeper.title || merged.content !== keeper.content);
   const older = others[0];
   const docs = [keeper, ...others];
   const sourceMemoryIds = docs.map((doc) => doc.memoryId);
@@ -369,7 +409,7 @@ export async function proposeDreamChange(
   const target = args.kind === "update" ? older : keeper;
   const reason =
     args.kind === "merge"
-      ? `${args.reason}. Keeps this memory and hides ${plural(others.length, "duplicate")} (undo for 30 days).`
+      ? `${args.reason}. ${rewrites ? "Keeps this memory with the merged text" : "Keeps this memory"} and hides ${plural(others.length, "duplicate")} (undo for 30 days).`
       : args.kind === "update"
         ? `${args.reason}. Hides the older memory in favour of the newer one (undo for 30 days).`
         : args.reason;
@@ -377,8 +417,8 @@ export async function proposeDreamChange(
     userId: args.clerkId,
     profileId: args.profileId,
     memoryId: target.memoryId,
-    proposedTitle: keeper.title,
-    proposedContent: keeper.content,
+    proposedTitle: merged?.title ?? keeper.title,
+    proposedContent: merged?.content ?? keeper.content,
     reason,
     kind: args.kind,
     sourceMemoryIds:
