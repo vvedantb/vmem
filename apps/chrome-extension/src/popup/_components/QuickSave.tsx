@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { IconDeviceFloppy } from "@tabler/icons-react";
-import { Button, Card, CardContent, Label, Skeleton } from "@vvedantb/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  Label,
+  Skeleton,
+} from "@vvedantb/ui/client";
 import { api } from "@vmem/backend";
 import { truncate } from "es-toolkit/compat";
 import { sendMessage } from "@/lib/messaging";

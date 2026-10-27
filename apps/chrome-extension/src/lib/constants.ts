@@ -76,6 +76,22 @@ export const SYNC_INTERVAL_PRESETS = [
   15, 30, 60, 120, 240, 360, 720, 1440,
 ] as const;
 
+// sync interval at a settings slider index
+export function syncIntervalAt(index: number): number {
+  return SYNC_INTERVAL_PRESETS[index] ?? DEFAULT_SYNC_INTERVAL_MINUTES;
+}
+
+// slider index for a sync interval, legacy off-grid values snap to the nearest preset
+export function syncIntervalIndex(minutes: number): number {
+  let best = 0;
+  SYNC_INTERVAL_PRESETS.forEach((preset, index) => {
+    if (Math.abs(preset - minutes) < Math.abs(syncIntervalAt(best) - minutes)) {
+      best = index;
+    }
+  });
+  return best;
+}
+
 // settings label for sync interval
 export function describeSyncInterval(minutes: number): string {
   if (minutes < 60) return `Every ${minutes} minutes`;

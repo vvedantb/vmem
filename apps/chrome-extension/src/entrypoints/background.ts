@@ -51,14 +51,18 @@ export default defineBackground(() => {
   registerCommandListener();
   registerMessageHandler();
 
-  // live e2e invokes the same path as Alt+S when OS shortcuts do not fire
-  globalThis.__vmemHandleCommand = handleCommand;
-  globalThis.__vmemSaveTab = savePageFromTab;
-  globalThis.__vmemHarvestToken = harvestConvexTokenFromOpenVmemTabs;
-  globalThis.__vmemListMemories = listMemories;
-  globalThis.__vmemGetMemory = getMemory;
-  globalThis.__vmemDeleteMemory = deleteMemory;
-  globalThis.__vmemAuthTokenLength = async () => (await getAuthToken()).length;
+  // live e2e invokes the same path as Alt+S when OS shortcuts do not fire.
+  // dev builds only (wxt / build:dev); production strips these hooks
+  if (import.meta.env.DEV) {
+    globalThis.__vmemHandleCommand = handleCommand;
+    globalThis.__vmemSaveTab = savePageFromTab;
+    globalThis.__vmemHarvestToken = harvestConvexTokenFromOpenVmemTabs;
+    globalThis.__vmemListMemories = listMemories;
+    globalThis.__vmemGetMemory = getMemory;
+    globalThis.__vmemDeleteMemory = deleteMemory;
+    globalThis.__vmemAuthTokenLength = async () =>
+      (await getAuthToken()).length;
+  }
 
   void runBackgroundBootstrap();
 

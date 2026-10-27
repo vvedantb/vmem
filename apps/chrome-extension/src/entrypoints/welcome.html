@@ -4,8 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Welcome to vmem</title>
-    <link rel="stylesheet" href="/fonts/instrument-sans.css" />
     <style>
+      /* packaged Instrument Sans; it sets html and body to --font-sans */
+      @import "@vvedantb/ui/fonts/instrument-sans.css";
+
+      :root {
+        --font-sans: "Instrument Sans", system-ui, -apple-system, sans-serif;
+      }
+
       *,
       *::before,
       *::after {
@@ -15,11 +21,6 @@
       }
 
       body {
-        font-family:
-          "Instrument Sans",
-          system-ui,
-          -apple-system,
-          sans-serif;
         background: #fafafa;
         color: #1a1a1f;
         min-height: 100vh;
@@ -72,20 +73,12 @@
         margin-bottom: 3rem;
       }
 
+      /* AppWordmark text style: sans 500, lowercase, upright */
       .logo {
-        font-family:
-          "Instrument Sans",
-          system-ui,
-          -apple-system,
-          sans-serif;
         font-size: 48px;
-        font-weight: 600;
-        letter-spacing: -1.5px;
+        font-weight: 500;
+        letter-spacing: -0.02em;
         margin-bottom: 0.5rem;
-      }
-
-      .logo em {
-        font-style: italic;
       }
 
       .tagline {
@@ -173,7 +166,7 @@
   <body>
     <div class="container">
       <div class="header">
-        <div class="logo">v<em>mem</em></div>
+        <div class="logo">vmem</div>
         <p class="tagline">Your AI memory layer for the browser</p>
       </div>
 

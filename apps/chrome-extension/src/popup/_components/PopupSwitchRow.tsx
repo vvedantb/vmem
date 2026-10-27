@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { LabeledSwitchRow } from "@vvedantb/ui";
+import { LabeledSwitchRow } from "@vvedantb/ui/client";
 
 // the 380px popup is always below sm, where the package row wraps the switch
 // under the text; keep it on the right (the text column already shrinks)

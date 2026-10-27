@@ -17,6 +17,7 @@ import {
   Button,
   Card,
   CardContent,
+  LabeledSliderRow,
   Skeleton,
   Select,
   SelectTrigger,
@@ -24,9 +25,9 @@ import {
   SelectContent,
   SelectItem,
   SettingsField,
-} from "@vvedantb/ui";
+} from "@vvedantb/ui/client";
 import { api } from "@vmem/backend";
-import { isTheme } from "@vmem/shared";
+import { handleNativeRangeKeyDown, isTheme } from "@vmem/shared";
 import { getStorage, setStorage } from "@/lib/storage";
 import { PopupSwitchRow } from "@/popup/_components/PopupSwitchRow";
 import {
@@ -35,10 +36,11 @@ import {
   DEFAULT_SYNC_INTERVAL_MINUTES,
   describeSyncInterval,
   shortSyncInterval,
+  syncIntervalAt,
+  syncIntervalIndex,
 } from "@/lib/constants";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import { useBrowserDefaultProfile } from "@/popup/useBrowserDefaultProfile";
-import { SettingsSliderRow } from "./SettingsSliderRow";
 import { ProfileSelect } from "./ProfileSelect";
 
 export function SettingsForm() {
@@ -80,8 +82,13 @@ export function SettingsForm() {
     void update({ extensionAutoSyncEnabled: checked });
   }
 
-  function handleSyncIntervalChange(minutes: number) {
-    void update({ extensionAutoSyncIntervalMinutes: minutes });
+  const syncIndex = syncIntervalIndex(
+    settings?.extensionAutoSyncIntervalMinutes ?? DEFAULT_SYNC_INTERVAL_MINUTES,
+  );
+  const syncRange = { min: 0, max: SYNC_INTERVAL_PRESETS.length - 1, step: 1 };
+
+  function handleSyncIndexChange(index: number) {
+    void update({ extensionAutoSyncIntervalMinutes: syncIntervalAt(index) });
   }
 
   function handleAutoSearchToggle(checked: boolean) {
@@ -208,23 +215,37 @@ export function SettingsForm() {
               disabled={settings === undefined}
               icon={<IconRefresh size={16} />}
             />
-            <SettingsSliderRow
-              id="sync-frequency-slider"
-              label="Sync frequency"
-              description="How often to check for new history and bookmarks."
-              value={
-                settings?.extensionAutoSyncIntervalMinutes ??
-                DEFAULT_SYNC_INTERVAL_MINUTES
+            {/* capture runs before radix, which moves 10 steps on shift+arrow and page keys */}
+            <div
+              onKeyDownCapture={(event) =>
+                handleNativeRangeKeyDown(
+                  event,
+                  syncIndex,
+                  syncRange,
+                  handleSyncIndexChange,
+                )
               }
-              presets={SYNC_INTERVAL_PRESETS}
-              format={describeSyncInterval}
-              formatShort={shortSyncInterval}
-              onValueChange={handleSyncIntervalChange}
-              disabled={
-                settings === undefined || !settings.extensionAutoSyncEnabled
-              }
-              icon={<IconClock size={16} />}
-            />
+            >
+              <LabeledSliderRow
+                id="sync-frequency-slider"
+                label="Sync frequency"
+                description="How often to check for new history and bookmarks."
+                {...syncRange}
+                value={[syncIndex]}
+                onValueChange={([index]) => {
+                  if (index !== undefined) handleSyncIndexChange(index);
+                }}
+                formatValue={([index]) =>
+                  describeSyncInterval(syncIntervalAt(index ?? syncIndex))
+                }
+                minLabel={shortSyncInterval(syncIntervalAt(syncRange.min))}
+                maxLabel={shortSyncInterval(syncIntervalAt(syncRange.max))}
+                disabled={
+                  settings === undefined || !settings.extensionAutoSyncEnabled
+                }
+                icon={<IconClock size={16} />}
+              />
+            </div>
           </CardContent>
         </Card>
       </section>

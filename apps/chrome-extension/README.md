@@ -40,8 +40,11 @@ After code changes with `pnpm ext:dev`, most UI updates hot-reload; for backgrou
 ```bash
 pnpm --filter @vmem/chrome-extension test      # unit / integration (CI)
 pnpm --filter @vmem/chrome-extension test:e2e  # headed Chrome load of dist/chrome-mv3/
-pnpm --filter @vmem/chrome-extension test:e2e:live  # signed-in matrix (needs env)
+pnpm --filter @vmem/chrome-extension build:dev     # dev build → dist/chrome-mv3-dev/
+pnpm --filter @vmem/chrome-extension test:e2e:live  # signed-in matrix on the dev build (needs env)
 ```
+
+The live harness drives `__vmem*` hooks on the service worker. Only dev builds (`pnpm ext:dev` or `build:dev`) set them; production builds do not expose them.
 
 Live signed-in coverage is opt-in so CI never sees the test password. Export `VMEM_TEST_EMAIL` and `VMEM_TEST_PASSWORD` in the shell (do not put them in git) then run `test:e2e:live`. The harness signs in on `https://vmem.projectv.uk` in the same Chrome profile as the unpacked extension, checks signed-out then signed-in popup, harvests a Convex JWT from the web Clerk session, saves via the same path as **Alt+S**, confirms the row in Convex `listMemories`, and deletes it. Headed-pass notes live in `tests/e2e/RESULTS.md`.
 

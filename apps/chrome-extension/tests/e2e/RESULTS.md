@@ -4,7 +4,7 @@ Follow-up to #156/#157. Credentials are env-only (`VMEM_TEST_EMAIL` / `VMEM_TEST
 
 Account: `eva@vedantb.com` against `https://vmem.vedantb.com` (Convex `https://clear-bear-690.eu-west-1.convex.cloud`).
 
-Run: `pnpm ext:build && pnpm --filter @vmem/chrome-extension test:e2e:live`
+Run: `pnpm --filter @vmem/chrome-extension build:dev && pnpm --filter @vmem/chrome-extension test:e2e:live` (the `__vmem*` hooks exist in dev builds only; this matrix predates that and ran on `dist/chrome-mv3`)
 
 Headed Chromium 148, unpacked `dist/chrome-mv3`, production Clerk `pk_live_` + FAPI sync host.
 

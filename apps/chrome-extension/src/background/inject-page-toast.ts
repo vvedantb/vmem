@@ -8,24 +8,18 @@ export async function injectPageToast(
     target: { tabId },
     // injected function only receives explicit args
     func: (toastMessage: string, toastColor: string) => {
-      if (!document.getElementById("vmem-instrument-sans-font")) {
-        const link = document.createElement("link");
-        link.id = "vmem-instrument-sans-font";
-        link.rel = "stylesheet";
-        link.href =
-          "https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap";
-        document.head.appendChild(link);
-      }
       const el = document.createElement("div");
       Object.assign(el.style, {
         position: "fixed",
         top: "24px",
         right: "24px",
+        // close to @vvedantb/ui tokens.color.fill.dark, which only ships in the react barrel
         background: "rgba(24,24,28,0.95)",
         backdropFilter: "blur(16px)",
         color: toastColor,
         padding: "10px 18px",
         borderRadius: "10px",
+        // no webfont fetch from the host page, instrument sans only if installed
         fontFamily: "'Instrument Sans', system-ui, -apple-system, sans-serif",
         fontSize: "13px",
         fontWeight: "500",

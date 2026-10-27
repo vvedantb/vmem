@@ -1,45 +1,17 @@
-import { resolve } from "node:path";
 import { defineConfig } from "wxt";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-
-const root = import.meta.dirname;
-
-// skip legacy browser downleveling for clerk chunks and esbuild
-const extensionBuildTarget = "chrome120";
-
-// staging hosts ship in development builds only
-const devOnlyHostPermissions = [
-  "https://vmem-git-staging-vedantb.vercel.app/*",
-  "https://allowing-coyote-80.clerk.accounts.dev/*",
-];
+import { srcAlias } from "@vvedantb/config";
+import { defineVExtensionConfig } from "@vvedantb/config/extension";
 
 export default defineConfig({
-  srcDir: "src",
-  outDir: "dist",
-  publicDir: "public",
-  imports: false,
-  alias: {
-    "@": resolve(root, "src"),
-  },
-  manifest: ({ mode }) => ({
-    name: "vmem",
-    description: "Memory layer for your browser",
-    version: "0.2.0",
-    content_security_policy: {
-      extension_pages: "script-src 'self'; object-src 'self'",
-    },
-    permissions: [
-      "storage",
-      "contextMenus",
-      "activeTab",
-      "bookmarks",
-      "history",
-      "alarms",
-      "scripting",
-      "cookies",
-    ],
-    host_permissions: [
+  ...defineVExtensionConfig({
+    app: "vmem",
+    react: { plugin: react },
+    tailwindcss,
+    // skip legacy browser downleveling for clerk chunks and esbuild
+    buildTarget: "chrome120",
+    hosts: [
       "https://vmem.projectv.uk/*",
       "https://vmem.vedantb.com/*",
       "https://clerk.projectv.uk/*",
@@ -49,49 +21,49 @@ export default defineConfig({
       "https://www.youtube.com/*",
       "https://youtube.com/*",
       "<all_urls>",
-      ...(mode === "development" ? devOnlyHostPermissions : []),
     ],
-    commands: {
-      "save-page": {
-        suggested_key: {
-          default: "Alt+S",
-          mac: "Alt+S",
-        },
-        description: "Save current page to vmem",
-      },
-      "take-screenshot": {
-        suggested_key: {
-          default: "Alt+Shift+S",
-          mac: "Alt+Shift+S",
-        },
-        description: "Capture a region screenshot to vmem",
-      },
-    },
-    action: {
-      default_icon: {
-        "16": "icons/icon-16.png",
-        "32": "icons/icon-32.png",
-        "48": "icons/icon-48.png",
-        "128": "icons/icon-128.png",
-      },
-    },
-    icons: {
-      "16": "icons/icon-16.png",
-      "32": "icons/icon-32.png",
-      "48": "icons/icon-48.png",
-      "128": "icons/icon-128.png",
-    },
-    web_accessible_resources: [
-      {
-        resources: ["icon-dark.svg", "icon-light.svg"],
-        matches: ["<all_urls>"],
-      },
+    // staging hosts ship in development builds only
+    devHosts: [
+      "https://vmem-git-staging-vedantb.vercel.app/*",
+      "https://allowing-coyote-80.clerk.accounts.dev/*",
     ],
-  }),
-  vite: () => ({
-    plugins: [react(), tailwindcss()],
-    build: {
-      target: extensionBuildTarget,
+    manifest: {
+      description: "Memory layer for your browser",
+      version: "0.2.0",
+      content_security_policy: {
+        extension_pages: "script-src 'self'; object-src 'self'",
+      },
+      permissions: [
+        "storage",
+        "contextMenus",
+        "activeTab",
+        "bookmarks",
+        "history",
+        "alarms",
+        "scripting",
+        "cookies",
+      ],
+      commands: {
+        "save-page": {
+          suggested_key: {
+            default: "Alt+S",
+            mac: "Alt+S",
+          },
+          description: "Save current page to vmem",
+        },
+        "take-screenshot": {
+          suggested_key: {
+            default: "Alt+Shift+S",
+            mac: "Alt+Shift+S",
+          },
+          description: "Capture a region screenshot to vmem",
+        },
+      },
     },
   }),
+  srcDir: "src",
+  outDir: "dist",
+  publicDir: "public",
+  imports: false,
+  alias: srcAlias(import.meta.dirname),
 });

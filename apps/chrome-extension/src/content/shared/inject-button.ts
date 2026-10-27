@@ -1,7 +1,5 @@
 import { VMEM_BUTTON_STYLES } from "@/lib/constants";
-import { createVmemLogoImg } from "@/content/shared/icons";
-
-let fontInjected = false;
+import { createVmemLogo } from "@/content/shared/icons";
 
 const VMEM_LABEL_SELECTOR = "[data-vmem-label]";
 
@@ -19,18 +17,6 @@ export function setVmemButtonLabel(
   button.setAttribute("aria-label", text);
 }
 
-// load instrument sans on host pages, shadow-dom overlays cannot see this link
-export function injectInstrumentSansFont(): void {
-  if (fontInjected) return;
-  fontInjected = true;
-
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href =
-    "https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap";
-  document.head.appendChild(link);
-}
-
 export function createVmemButton(
   text: string,
   onClick: () => void,
@@ -42,7 +28,7 @@ export function createVmemButton(
 
   const icon = document.createElement("span");
   icon.setAttribute("data-vmem-icon", "true");
-  icon.appendChild(createVmemLogoImg("dark", 16));
+  icon.appendChild(createVmemLogo("dark", 16));
   Object.assign(icon.style, {
     display: "inline-flex",
     alignItems: "center",
@@ -61,7 +47,6 @@ export function createVmemButton(
     button.append(icon, label);
   }
 
-  injectInstrumentSansFont();
   Object.assign(button.style, VMEM_BUTTON_STYLES);
   if (options?.iconOnly) {
     Object.assign(button.style, {

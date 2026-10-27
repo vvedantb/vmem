@@ -10,6 +10,7 @@ import { TargetType } from "puppeteer-core";
 import { z } from "zod";
 import {
   artifactDir,
+  devDistDir,
   ensureArtifactDir,
   launchUnpackedExtension,
   sleep,
@@ -454,7 +455,8 @@ async function saveExampleTab(
 async function runLive(): Promise<LiveMatrix> {
   const matrix = emptyMatrix("not run");
   await ensureArtifactDir();
-  const { browser, extensionId } = await launchUnpackedExtension();
+  // the __vmem* hooks below exist in dev builds only
+  const { browser, extensionId } = await launchUnpackedExtension(devDistDir);
 
   try {
     const worker = await extensionWorker(browser, extensionId);
