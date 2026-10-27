@@ -956,7 +956,11 @@ export const recordVerdictInternal = internalMutation({
     }
     const verdict = args.verdict;
     // only a verdict from a judge call is reused by a later scan
-    const judge = args.called ? { aiJudge: CLUSTER_MERGE_JUDGE } : {};
+    const judge = args.called
+      ? ({ aiJudge: CLUSTER_MERGE_JUDGE } satisfies {
+          aiJudge: typeof CLUSTER_MERGE_JUDGE;
+        })
+      : {};
     if (verdict.status === "flagged") {
       const titleOf = async (id: MemoryId) =>
         planTitle((await ctx.db.get(id))?.title ?? "");
