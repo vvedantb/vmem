@@ -1,8 +1,7 @@
 // save button on video pages, transcript via dom because caption apis need botguard
 
 import { sendMessage } from "@/lib/messaging";
-import { injectInstrumentSansFont } from "@/content/shared/inject-button";
-import { createVmemLogoImg } from "@/content/shared/icons";
+import { createVmemLogo } from "@/content/shared/icons";
 import { onDocumentReady, waitForProbe } from "@/content/shared/dom-utils";
 import { errorMessage } from "@/lib/error";
 
@@ -101,16 +100,14 @@ async function getTranscript(): Promise<string | null> {
 }
 
 function createSaveButton(): HTMLButtonElement {
-  injectInstrumentSansFont();
-
   const button = document.createElement("button");
   button.id = "vmem-youtube-save";
   button.title = "Save video to vmem";
   const label = document.createElement("span");
   label.textContent = "Save to vmem";
-  button.append(createVmemLogoImg("dark", 20), label);
+  button.append(createVmemLogo("dark", 20), label);
 
-  // chip shape matches youtube, instrument sans keeps vmem typography
+  // chip shape matches youtube, instrument sans only when installed locally
   button.style.cssText = `
     display: inline-flex;
     align-items: center;

@@ -3,12 +3,15 @@
 // Modified by me: signed-in tabs, auto-sync switches, codebase-free settings
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   describeSyncInterval,
   shortSyncInterval,
+  syncIntervalAt,
+  syncIntervalIndex,
   DEFAULT_SYNC_INTERVAL_MINUTES,
   clerkCookieSyncHost,
   clerkFrontendApiHost,
@@ -28,6 +31,24 @@ function readRepo(rel: string): string {
   return readFileSync(path.join(repoRoot, rel), "utf8");
 }
 
+// the @vvedantb/ui copy an app resolves (pnpm may nest it per app)
+function uiDirFor(appRel: string): string {
+  const require = createRequire(path.join(repoRoot, appRel, "package.json"));
+  return path.dirname(require.resolve("@vvedantb/ui/package.json"));
+}
+
+const extensionUiDir = uiDirFor("apps/chrome-extension");
+
+function extensionSourceFiles(
+  dir = path.join(repoRoot, "apps/chrome-extension/src"),
+): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) return extensionSourceFiles(full);
+    return /\.(ts|tsx|html|css)$/.test(entry.name) ? [full] : [];
+  });
+}
+
 const popupApp = readRepo("apps/chrome-extension/src/popup/App.tsx");
 const settingsForm = readRepo(
   "apps/chrome-extension/src/popup/_components/SettingsForm.tsx",
@@ -40,12 +61,14 @@ const dashboardExtensionPage = readRepo(
 );
 const navConfig = readRepo("apps/web/src/components/sidebar/nav-config.ts");
 
-await test("popup Tailwind scans hoisted @vvedantb/ui so overlay primitives get CSS", () => {
+await test("popup Tailwind scans the @vvedantb/ui the extension resolves so overlay primitives get CSS", () => {
   const globalsCss = readRepo("apps/chrome-extension/src/popup/globals.css");
   const webGlobalsCss = readRepo("apps/web/src/globals.css");
   const popupCssDir = path.join(repoRoot, "apps/chrome-extension/src/popup");
   const webCssDir = path.join(repoRoot, "apps/web/src");
-  const expectedUiSrc = path.join(repoRoot, "node_modules/@vvedantb/ui/src");
+  const expectedUiSrc = path.join(extensionUiDir, "src");
+  const expectedUiAppSrc = path.join(extensionUiDir, "app/src");
+  const webUiSrc = path.join(uiDirFor("apps/web"), "src");
 
   function sourceRoots(css: string, fromDir: string): string[] {
     return [...css.matchAll(/@source "([^"]+)"/g)].map((match) => {
@@ -54,18 +77,15 @@ await test("popup Tailwind scans hoisted @vvedantb/ui so overlay primitives get 
     });
   }
 
-  assert.equal(
-    sourceRoots(globalsCss, popupCssDir).includes(expectedUiSrc),
-    true,
-  );
-  assert.equal(
-    sourceRoots(webGlobalsCss, webCssDir).includes(expectedUiSrc),
-    true,
-  );
+  const popupRoots = sourceRoots(globalsCss, popupCssDir);
+  assert.equal(popupRoots.includes(expectedUiSrc), true, expectedUiSrc);
+  assert.equal(popupRoots.includes(expectedUiAppSrc), true, expectedUiAppSrc);
+  for (const root of popupRoots) assert.equal(existsSync(root), true, root);
+  assert.equal(sourceRoots(webGlobalsCss, webCssDir).includes(webUiSrc), true);
   assert.doesNotMatch(globalsCss, /@source "\.\.\/\.\.\/node_modules\/@vv\/ui/);
 });
 
-await test("extension pages ship Instrument Sans locally, not Google Fonts", () => {
+await test("extension pages bundle the packaged Instrument Sans, not Google Fonts", () => {
   const popupHtml = readRepo(
     "apps/chrome-extension/src/entrypoints/popup/index.html",
   );
@@ -73,10 +93,11 @@ await test("extension pages ship Instrument Sans locally, not Google Fonts", () 
     "apps/chrome-extension/src/entrypoints/welcome.html",
   );
   const globalsCss = readRepo("apps/chrome-extension/src/popup/globals.css");
-  const fontCss = readRepo(
-    "apps/chrome-extension/public/fonts/instrument-sans.css",
-  );
-  const fontsDir = path.join(repoRoot, "apps/chrome-extension/public/fonts");
+  const fontCssPath = createRequire(
+    path.join(repoRoot, "apps/chrome-extension/package.json"),
+  ).resolve("@vvedantb/ui/fonts/instrument-sans.css");
+  const fontCss = readFileSync(fontCssPath, "utf8");
+  const packageImport = /@import "@vvedantb\/ui\/fonts\/instrument-sans\.css";/;
 
   for (const src of [popupHtml, welcomeHtml, globalsCss, fontCss]) {
     assert.doesNotMatch(src, /https:\/\/fonts\.googleapis\.com/);
@@ -85,13 +106,19 @@ await test("extension pages ship Instrument Sans locally, not Google Fonts", () 
   const providers = readRepo("apps/chrome-extension/src/popup/providers.tsx");
   const popupApp = readRepo("apps/chrome-extension/src/popup/App.tsx");
 
-  assert.match(popupHtml, /href="\/fonts\/instrument-sans\.css"/);
-  assert.match(welcomeHtml, /href="\/fonts\/instrument-sans\.css"/);
+  assert.match(globalsCss, packageImport);
+  assert.match(welcomeHtml, packageImport);
+  assert.doesNotMatch(popupHtml, /\/fonts\/instrument-sans\.css/);
+  assert.doesNotMatch(welcomeHtml, /href="\/fonts\//);
+  assert.equal(
+    existsSync(path.join(repoRoot, "apps/chrome-extension/public/fonts")),
+    false,
+  );
   assert.match(providers, /fontFamily: instrumentSans/);
   assert.match(popupApp, /font-sans/);
   assert.match(fontCss, /font-family:\s*"Instrument Sans"/);
-  assert.match(fontCss, /InstrumentSans-latin\.woff2/);
-  assert.match(fontCss, /InstrumentSans-Italic-latin\.woff2/);
+  // Clerk's unlayered Inter override now ships with the package CSS
+  assert.match(fontCss, /font-family: var\(--font-sans\)/);
 
   for (const file of [
     "InstrumentSans-latin.woff2",
@@ -100,7 +127,68 @@ await test("extension pages ship Instrument Sans locally, not Google Fonts", () 
     "InstrumentSans-Italic-latin-ext.woff2",
     "OFL.txt",
   ]) {
-    assert.equal(existsSync(path.join(fontsDir, file)), true, file);
+    if (file.endsWith(".woff2"))
+      assert.equal(fontCss.includes(file), true, file);
+    assert.equal(
+      existsSync(path.join(path.dirname(fontCssPath), file)),
+      true,
+      file,
+    );
+  }
+});
+
+await test("extension source never loads Google Fonts on host pages", () => {
+  for (const file of extensionSourceFiles()) {
+    const src = readFileSync(file, "utf8");
+    assert.doesNotMatch(src, /fonts\.googleapis\.com/, file);
+    assert.doesNotMatch(src, /fonts\.gstatic\.com/, file);
+  }
+});
+
+await test("extension imports @vvedantb/ui/client or /brand, never the server/Clerk root", () => {
+  for (const file of extensionSourceFiles()) {
+    assert.doesNotMatch(
+      readFileSync(file, "utf8"),
+      /from "@vvedantb\/ui"/,
+      file,
+    );
+  }
+});
+
+await test("popup header uses the package AppWordmark, not a hand-built italic one", () => {
+  assert.match(popupApp, /<AppWordmark app="vmem"/);
+  assert.doesNotMatch(popupApp, /italic/);
+  assert.doesNotMatch(popupApp, /IconVmem/);
+});
+
+await test("content scripts inline the package vmem mark, no web-accessible logo files", () => {
+  const icons = readRepo("apps/chrome-extension/src/content/shared/icons.ts");
+  const wxt = readRepo("apps/chrome-extension/wxt.config.ts");
+  assert.match(icons, /appMarkSvg\("vmem"/);
+  assert.match(icons, /from "@vvedantb\/ui\/brand"/);
+  assert.doesNotMatch(icons, /getURL/);
+  assert.doesNotMatch(icons, /<svg/);
+  assert.doesNotMatch(wxt, /web_accessible_resources/);
+  for (const file of ["icon-dark.svg", "icon-light.svg"]) {
+    assert.equal(
+      existsSync(path.join(repoRoot, "apps/chrome-extension/public", file)),
+      false,
+      file,
+    );
+  }
+});
+
+await test("background debug hooks are set in dev builds only", () => {
+  const background = readRepo(
+    "apps/chrome-extension/src/entrypoints/background.ts",
+  );
+  const gate = background.indexOf("if (import.meta.env.DEV) {");
+  const block = background.slice(gate, background.indexOf("\n  }\n", gate));
+  const assignments = background.match(/globalThis\.__vmem\w+ =/g) ?? [];
+  assert.notEqual(gate, -1);
+  assert.equal(assignments.length, 7);
+  for (const assignment of assignments) {
+    assert.equal(block.includes(assignment), true, assignment);
   }
 });
 
@@ -151,6 +239,20 @@ await test("sync interval labels stay human-readable", () => {
   assert.equal(describeSyncInterval(120), "Every 2 hours");
   assert.equal(shortSyncInterval(30), "30m");
   assert.equal(shortSyncInterval(360), "6h");
+});
+
+await test("sync frequency slider maps presets to indexes and snaps legacy values", () => {
+  assert.equal(syncIntervalIndex(15), 0);
+  assert.equal(syncIntervalIndex(DEFAULT_SYNC_INTERVAL_MINUTES), 1);
+  assert.equal(syncIntervalIndex(1440), 7);
+  assert.equal(syncIntervalIndex(100), 3);
+  assert.equal(syncIntervalIndex(45), 1);
+  assert.equal(syncIntervalIndex(5000), 7);
+  assert.equal(syncIntervalAt(3), 120);
+  assert.equal(syncIntervalAt(99), DEFAULT_SYNC_INTERVAL_MINUTES);
+  assert.match(settingsForm, /LabeledSliderRow/);
+  assert.match(settingsForm, /onKeyDownCapture/);
+  assert.match(settingsForm, /handleNativeRangeKeyDown/);
 });
 
 await test("resolveExtensionProfileId prefers storage then convex then account default", () => {

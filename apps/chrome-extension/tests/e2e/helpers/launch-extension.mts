@@ -11,6 +11,8 @@ import puppeteer, { TargetType, type Browser } from "puppeteer-core";
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const extensionRoot = path.resolve(here, "../../..");
 export const distDir = path.join(extensionRoot, "dist/chrome-mv3");
+// build:dev output; only dev builds expose the __vmem* service-worker hooks
+export const devDistDir = path.join(extensionRoot, "dist/chrome-mv3-dev");
 export const chromeBin =
   process.env.CHROME_PATH ??
   ["/usr/bin/google-chrome-stable", "/usr/bin/google-chrome"].find((bin) =>
@@ -32,16 +34,17 @@ export async function ensureArtifactDir(): Promise<string> {
   return artifactDir;
 }
 
-export async function launchUnpackedExtension(): Promise<{
+export async function launchUnpackedExtension(dir = distDir): Promise<{
   browser: Browser;
   extensionId: string;
 }> {
   if (!chromeBin) {
     throw new Error("google-chrome is not installed");
   }
-  if (!existsSync(path.join(distDir, "manifest.json"))) {
+  if (!existsSync(path.join(dir, "manifest.json"))) {
+    const build = dir === devDistDir ? "build:dev" : "build";
     throw new Error(
-      `unpacked build missing at ${distDir} — run pnpm ext:build`,
+      `unpacked build missing at ${dir} — run pnpm --filter @vmem/chrome-extension ${build}`,
     );
   }
 
@@ -51,7 +54,7 @@ export async function launchUnpackedExtension(): Promise<{
     headless: false,
     userDataDir,
     pipe: true,
-    enableExtensions: [distDir],
+    enableExtensions: [dir],
     protocolTimeout: 120_000,
     args: [
       "--no-sandbox",

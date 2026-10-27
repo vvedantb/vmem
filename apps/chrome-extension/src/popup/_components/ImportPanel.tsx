@@ -11,7 +11,7 @@ import {
   SelectContent,
   SelectItem,
   Progress,
-} from "@vvedantb/ui";
+} from "@vvedantb/ui/client";
 import { formatRelativeTime, formatTimeUntil } from "@vmem/shared";
 import { sendMessage, onMessage } from "@/lib/messaging";
 import { getStorage, setStorage } from "@/lib/storage";

@@ -1,5 +1,9 @@
 @import "tailwindcss";
 @import "@vvedantb/ui/tokens";
+/* packaged woff2 (MV3 CSP blocks Google Fonts) plus the Clerk Inter override */
+@import "@vvedantb/ui/fonts/instrument-sans.css";
+/* .landing-wordmark-text for AppWordmark */
+@import "@vvedantb/ui/landing.css";
 @import "shadow-plugin";
 @import "@vvedantb/ui/tokens/css/base.css";
 @import "@vvedantb/ui/tokens/css/tabs-pills.css";
@@ -8,24 +12,13 @@
 @plugin "tailwindcss-animate";
 
 /*
- * Tailwind does not scan node_modules. @source is relative to this file.
- * The popup stylesheet lives one directory deeper than apps/web/src/globals.css,
- * and this repo uses a hoisted node_modules at the workspace root — so this
- * needs four `../` segments, not the two that used to work for a nested
- * @vmem/ui symlink. Without this scan, @vvedantb/ui primitives (card, input, select,
- * dropdown menus, overlays) ship with no utility classes.
+ * Tailwind does not scan node_modules. @source is relative to this file and
+ * must hit the @vvedantb/ui this package resolves: pnpm nests it under
+ * apps/chrome-extension/node_modules while the root keeps the web app's
+ * version. tests/popup-settings.test.mts checks the two stay the same.
  */
-@source "../../../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
-@source "../../../../node_modules/@vvedantb/ui/app/src/**/*.{ts,tsx}";
-
-/* Clerk injects unlayered `body { font-family: Inter }` which beats
- * `@layer base` from @vvedantb/ui/tokens. Keep extension pages on Instrument Sans.
- * Tokens only name "Instrument Sans"; the typeface is loaded from
- * public/fonts on extension pages (MV3 CSP blocks Google Fonts). */
-html,
-body {
-  font-family: var(--font-sans);
-}
+@source "../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
+@source "../../node_modules/@vvedantb/ui/app/src/**/*.{ts,tsx}";
 
 @layer base {
   /* radix menu items render as divs with menu roles not buttons */

@@ -1,4 +1,4 @@
-// SettingsSliderRow keyboard parity with the old native range input
+// popup sync-frequency slider keyboard parity with the old native range input
 import test from "node:test";
 import assert from "node:assert/strict";
 import { handleNativeRangeKeyDown, nativeRangeKeyValue } from "@vmem/shared";

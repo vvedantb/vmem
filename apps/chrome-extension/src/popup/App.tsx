@@ -17,7 +17,7 @@ import {
 } from "@tabler/icons-react";
 import { CLERK_SYNC_HOST } from "@/lib/constants";
 import {
-  IconVmem,
+  AppWordmark,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -27,7 +27,7 @@ import {
   CardContent,
   Spinner,
   fadeUp,
-} from "@vvedantb/ui";
+} from "@vvedantb/ui/client";
 import { api } from "@vmem/backend";
 import { SettingsForm } from "./_components/SettingsForm";
 import { QuickSave } from "./_components/QuickSave";
@@ -154,12 +154,7 @@ export function App() {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background font-sans text-foreground">
       <header className="flex items-center justify-between bg-surface px-5 py-3.5">
-        <span className="flex items-center gap-2">
-          <IconVmem size={26} className="text-foreground" />
-          <span className="text-lg font-semibold leading-none tracking-tight">
-            v<span className="italic">mem</span>
-          </span>
-        </span>
+        <AppWordmark app="vmem" size={18} />
         <Show when="signed-in">
           <UserButton />
         </Show>

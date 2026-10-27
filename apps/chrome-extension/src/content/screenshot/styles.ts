@@ -1,8 +1,6 @@
 // screenshot overlay styles scoped to shadow-root
 
 export const overlayCss = `
-  @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap');
-
   :host { all: initial; }
 
   /* viewport scrim during drag */

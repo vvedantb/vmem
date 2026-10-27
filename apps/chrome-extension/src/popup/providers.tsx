@@ -2,7 +2,7 @@ import { Component, type ReactNode } from "react";
 import { ClerkProvider, useAuth } from "@clerk/chrome-extension";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
-import { TooltipProvider } from "@vvedantb/ui";
+import { TooltipProvider } from "@vvedantb/ui/client";
 import {
   CLERK_COOKIE_SYNC_HOST,
   CLERK_PUBLISHABLE_KEY,

@@ -30,8 +30,6 @@ let repositionRaf: number | null = null;
 const { host, shadow } = createShadowHost(
   "vmem-selection-popup",
   `
-  @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap');
-
   :host {
     all: initial;
   }

@@ -1,28 +1,29 @@
-// logo svgs copied from apps/web/public
+import { appMarkSvg } from "@vvedantb/ui/brand";
 
 export type VmemLogoVariant = "dark" | "light";
 
-const LOGO_FILES: Record<VmemLogoVariant, string> = {
-  dark: "icon-dark.svg",
-  light: "icon-light.svg",
+const LOGO_COLORS: Record<VmemLogoVariant, string> = {
+  dark: "#000",
+  light: "#fff",
 };
 
-function getVmemLogoUrl(variant: VmemLogoVariant): string {
-  return chrome.runtime.getURL(LOGO_FILES[variant]);
-}
-
-export function createVmemLogoImg(
+// inline package mark, no web_accessible_resources file for pages to probe
+export function createVmemLogo(
   variant: VmemLogoVariant,
   size: number,
-): HTMLImageElement {
-  const img = document.createElement("img");
-  img.src = getVmemLogoUrl(variant);
-  img.width = size;
-  img.height = size;
-  img.alt = "";
-  img.draggable = false;
-  img.setAttribute("aria-hidden", "true");
-  return img;
+): Element {
+  const color = LOGO_COLORS[variant];
+  const template = document.createElement("template");
+  template.innerHTML = appMarkSvg("vmem", color);
+  const svg = template.content.firstElementChild;
+  if (!svg) throw new Error("vmem logo svg did not parse");
+  svg.setAttribute("width", String(size));
+  svg.setAttribute("height", String(size));
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  // inline style so host page svg rules cannot fill the stroke-only mark
+  svg.setAttribute("style", `fill: none; stroke: ${color}; flex-shrink: 0`);
+  return svg;
 }
 
 export function mountVmemLogo(
@@ -30,5 +31,5 @@ export function mountVmemLogo(
   variant: VmemLogoVariant,
   size: number,
 ): void {
-  container.replaceChildren(createVmemLogoImg(variant, size));
+  container.replaceChildren(createVmemLogo(variant, size));
 }
