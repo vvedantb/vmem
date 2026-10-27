@@ -5,6 +5,7 @@ import type { WithoutSystemFields } from "convex/server";
 import { ConvexError } from "convex/values";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { CLUSTER_MERGE_JUDGE } from "../engine/memory/dream/clusterMerge";
 import { MEMORY_EMBEDDING_DIMENSIONS } from "../engine/memory/searchableText";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -826,6 +827,7 @@ describe("dreamCleanup AI pass", () => {
     expect(reused).toHaveLength(1);
     expect(reused[0]).toMatchObject({
       aiStatus: "flagged",
+      aiJudge: CLUSTER_MERGE_JUDGE,
       keeperId: a,
       proposedTitle: MERGED.title,
       proposedContent: MERGED.content,
@@ -849,6 +851,49 @@ describe("dreamCleanup AI pass", () => {
     expect(generateText).toHaveBeenCalledTimes(2);
     expect(judgedTitles()[1]).toHaveLength(4);
     expect(await summary(t, thirdId)).toMatchObject({ aiCalls: 1 });
+  });
+
+  it("judges a pair-judge verdict again once, then reuses the cluster verdict", async () => {
+    generateText.mockImplementation(async () =>
+      chatReply({ duplicate: false, confidence: 0.9, reason: "Other facts" }),
+    );
+    const t = setupT();
+    const owner = await addUser(t, "clerk_pair_judge");
+    await seedCluster(t, owner);
+    await dryRun(t, owner);
+    const aiGroups = async (runId: Id<"dreamRuns">) =>
+      await t.run(async (ctx) =>
+        ctx.db
+          .query("dreamPlanGroups")
+          .withIndex("by_run_tier_seq", (q) =>
+            q.eq("runId", runId).eq("tier", "ai"),
+          )
+          .collect(),
+      );
+    // a plan from before the cluster judge: same verdict, no aiJudge
+    await t.run(async (ctx) => {
+      for (const group of await ctx.db.query("dreamPlanGroups").collect()) {
+        expect(group).toMatchObject({
+          aiStatus: "not_duplicate",
+          aiJudge: CLUSTER_MERGE_JUDGE,
+        });
+        await ctx.db.patch(group._id, { aiJudge: undefined });
+      }
+    });
+
+    const secondId = await dryRun(t, owner);
+    expect(generateText).toHaveBeenCalledTimes(2);
+    expect(await summary(t, secondId)).toMatchObject({ aiCalls: 1 });
+    expect(await aiGroups(secondId)).toMatchObject([
+      { aiStatus: "not_duplicate", aiJudge: CLUSTER_MERGE_JUDGE },
+    ]);
+
+    const thirdId = await dryRun(t, owner);
+    expect(generateText).toHaveBeenCalledTimes(2);
+    expect(await summary(t, thirdId)).toMatchObject({ aiCalls: 0 });
+    expect(await aiGroups(thirdId)).toMatchObject([
+      { aiStatus: "not_duplicate", aiJudge: CLUSTER_MERGE_JUDGE },
+    ]);
   });
 
   it("keeps the keeper's own text when a member is too long for the AI to see", async () => {

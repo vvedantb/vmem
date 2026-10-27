@@ -2,6 +2,7 @@ import { ConvexError, v, type Infer, type ObjectType } from "convex/values";
 import {
   buildClusterMergePrompt,
   CLUSTER_MERGE_CONTENT_CHARS,
+  CLUSTER_MERGE_JUDGE,
   CLUSTER_MERGE_ROLE,
   parseClusterMergeReply,
   type ClusterMergeVerdict,
@@ -70,8 +71,9 @@ import {
 // time. One AI call per cluster (clusterMerge.ts) picks the duplicates, the
 // row to keep and the one merged text, in scheduled chunks, up to
 // JEV_MAX_CALLS per scan; the scan is partial past that. The next scan reuses
-// the verdicts of the last plan for clusters with the same members, so it
-// continues with the unjudged ones. Memories are untouched; the plan lives in
+// the cluster judge verdicts of the last plan for clusters with the same
+// members, so it continues with the unjudged ones. Older pair-judge verdicts
+// are judged again. Memories are untouched; the plan lives in
 // dreamPlanGroups. applyInternal merges the A/B groups with undo and turns
 // AI-flagged clusters into inbox merge proposals.
 
@@ -428,6 +430,7 @@ const priorAiGroupValidator = v.object({
   loserTitles: v.array(v.string()),
   reason: v.string(),
   aiConfidence: v.optional(v.number()),
+  aiJudge: dreamPlanGroupInputFields.aiJudge,
   proposedTitle: v.optional(v.string()),
   proposedContent: v.optional(v.string()),
 });
@@ -457,6 +460,7 @@ export const priorAiGroupsInternal = internalQuery({
         loserTitles: row.loserTitles,
         reason: row.reason,
         aiConfidence: row.aiConfidence,
+        aiJudge: row.aiJudge,
         proposedTitle: row.proposedTitle,
         proposedContent: row.proposedContent,
       })),
@@ -791,9 +795,9 @@ async function planDeterministic(
 }
 
 /**
- * Rule J over every eligible row. A candidate group that the prior plan
- * already judged keeps its verdict (merged text included); the others queue
- * for the AI, up to `calls`.
+ * Rule J over every eligible row. A candidate group that the cluster judge
+ * already judged in the prior plan keeps its verdict (merged text and aiJudge
+ * included); the others queue for the AI, up to `calls`.
  * Queued groups come first (seq 0..), reused verdicts after them, so the
  * judge chain stops at the first group that is not pending.
  */
@@ -951,6 +955,8 @@ export const recordVerdictInternal = internalMutation({
       throw new Error("Plan group not found");
     }
     const verdict = args.verdict;
+    // only a verdict from a judge call is reused by a later scan
+    const judge = args.called ? { aiJudge: CLUSTER_MERGE_JUDGE } : {};
     if (verdict.status === "flagged") {
       const titleOf = async (id: MemoryId) =>
         planTitle((await ctx.db.get(id))?.title ?? "");
@@ -966,6 +972,7 @@ export const recordVerdictInternal = internalMutation({
         aiConfidence: verdict.confidence,
         proposedTitle: verdict.proposedTitle,
         proposedContent: verdict.proposedContent,
+        ...judge,
       });
     } else {
       await ctx.db.patch(group._id, {
@@ -975,6 +982,7 @@ export const recordVerdictInternal = internalMutation({
         verdict.confidence !== undefined
           ? { aiConfidence: verdict.confidence }
           : {}),
+        ...judge,
       });
     }
     if (!args.called) return null;

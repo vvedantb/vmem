@@ -19,6 +19,11 @@ const REASON_CHARS = 300;
 export const CLUSTER_MERGE_ROLE =
   "You find saved memories of one user that hold the same information and merge them into one memory.";
 
+// marks the plan groups this judge decided (aiJudge). A later scan reuses
+// only these verdicts; older pair-judge groups have no marker. The literal
+// type stops it widening to string inside an object.
+export const CLUSTER_MERGE_JUDGE: "cluster_merge" = "cluster_merge";
+
 export interface ClusterMergeMember<M extends string> {
   id: M;
   title: string;

@@ -5,6 +5,7 @@ import {
   parseJevDuplicateVerdict,
   type JevGroupMember,
 } from "../../engine/memory/dream/jevDuplicate";
+import { CLUSTER_MERGE_JUDGE } from "../../engine/memory/dream/clusterMerge";
 import {
   CANDIDATE_NEIGHBOUR_LIMIT,
   classifyCandidate,
@@ -244,14 +245,15 @@ describe("rule J candidates", () => {
       { memberIds: ["h", "i"], score: 0.91 },
       { memberIds: ["j", "k"], score: 0 },
     ];
+    const aiJudge = CLUSTER_MERGE_JUDGE;
     const { reused, unjudged } = reusePriorVerdicts(groups, [
-      { memberIds: ["b", "a"], aiStatus: "flagged" },
-      { memberIds: ["e", "c", "d"], aiStatus: "not_duplicate" },
+      { memberIds: ["b", "a"], aiStatus: "flagged", aiJudge },
+      { memberIds: ["e", "c", "d"], aiStatus: "not_duplicate", aiJudge },
       // errors and unjudged groups are judged again
-      { memberIds: ["f", "g"], aiStatus: "error" },
+      { memberIds: ["f", "g"], aiStatus: "error", aiJudge },
       { memberIds: ["h", "i"], aiStatus: "pending" },
       // a different member set is a different group
-      { memberIds: ["j", "k", "l"], aiStatus: "flagged" },
+      { memberIds: ["j", "k", "l"], aiStatus: "flagged", aiJudge },
     ]);
     expect(
       reused.map(({ group, verdict }) => [group.score, verdict.aiStatus]),
@@ -266,6 +268,7 @@ describe("rule J candidates", () => {
     const verdict = {
       memberIds: ["c", "a", "b"],
       aiStatus: "flagged",
+      aiJudge: CLUSTER_MERGE_JUDGE,
       keeperId: "a",
       loserIds: ["b", "c"],
       proposedTitle: "Uses pnpm",
@@ -284,6 +287,20 @@ describe("rule J candidates", () => {
         [verdict],
       ).unjudged,
     ).toHaveLength(1);
+  });
+
+  it("judges pair-judge verdicts again: no aiJudge, no reuse", () => {
+    const groups = [
+      { memberIds: ["a", "b"], score: 0.99 },
+      { memberIds: ["c", "d"], score: 0.95 },
+    ];
+    // plans from before the cluster judge stored no aiJudge
+    const { reused, unjudged } = reusePriorVerdicts(groups, [
+      { memberIds: ["a", "b"], aiStatus: "flagged", keeperId: "a" },
+      { memberIds: ["c", "d"], aiStatus: "not_duplicate" },
+    ]);
+    expect(reused).toEqual([]);
+    expect(unjudged).toEqual(groups);
   });
 });
 
