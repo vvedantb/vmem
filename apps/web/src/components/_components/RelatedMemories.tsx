@@ -141,8 +141,9 @@ export default function RelatedMemories({
                 <Button
                   type="button"
                   variant="ghost"
+                  shape="rounded"
                   onClick={() => onSelectRelated(related)}
-                  className="flex h-auto min-w-0 flex-1 flex-col items-start justify-start gap-2 overflow-hidden rounded-none border-0 bg-transparent p-0 text-left hover:bg-transparent active:scale-100"
+                  className="flex h-auto min-w-0 flex-1 flex-col items-start justify-start gap-2 overflow-hidden border-0 bg-transparent p-0 text-left hover:bg-transparent active:scale-100"
                 >
                   <div className="min-w-0 w-full overflow-hidden">
                     <p className="truncate text-sm font-medium text-foreground">

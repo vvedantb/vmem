@@ -320,9 +320,10 @@ export default function AddMemoryModal({
                             key={item.tag}
                             type="button"
                             variant="ghost"
+                            shape="rounded"
                             size="sm"
                             onClick={() => addTag(item.tag, field.onChange)}
-                            className="flex h-auto w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-foreground hover:bg-surface-tertiary/80"
+                            className="flex h-auto w-full items-center justify-between px-2 py-1.5 text-left text-sm text-foreground hover:bg-surface-tertiary/80"
                           >
                             <span className="flex items-center gap-1.5">
                               <IconHash className="size-3 text-muted" />
@@ -337,9 +338,10 @@ export default function AddMemoryModal({
                           <Button
                             type="button"
                             variant="ghost"
+                            shape="rounded"
                             size="sm"
                             onClick={() => addTag(tagInput, field.onChange)}
-                            className="flex h-auto w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-foreground hover:bg-surface-tertiary/80"
+                            className="flex h-auto w-full items-center gap-1.5 px-2 py-1.5 text-left text-sm text-foreground hover:bg-surface-tertiary/80"
                           >
                             <IconPlus className="size-3 text-muted" />
                             Create &ldquo;{normalizedTagInput}&rdquo;

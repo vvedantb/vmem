@@ -225,7 +225,7 @@ function MemoriesTabs({
         variant={value === "graph" ? "secondary" : "ghost"}
         onClick={() => onChange("graph")}
         className={cn(
-          "h-8 rounded-full px-3",
+          "h-8 px-3",
           value === "graph" ? "text-foreground" : "text-muted",
         )}
       >
@@ -237,7 +237,7 @@ function MemoriesTabs({
         variant={value === "list" ? "secondary" : "ghost"}
         onClick={() => onChange("list")}
         className={cn(
-          "h-8 rounded-full px-3",
+          "h-8 px-3",
           value === "list" ? "text-foreground" : "text-muted",
         )}
       >
@@ -249,7 +249,7 @@ function MemoriesTabs({
         variant={value === "timeline" ? "secondary" : "ghost"}
         onClick={() => onChange("timeline")}
         className={cn(
-          "h-8 rounded-full px-3",
+          "h-8 px-3",
           value === "timeline" ? "text-foreground" : "text-muted",
         )}
       >
@@ -276,7 +276,7 @@ function MobileViewSwitch({
           size="sm"
           variant={value === view ? "default" : "secondary"}
           onClick={() => onChange(view)}
-          className="h-9 shrink-0 rounded-full px-3 text-xs capitalize"
+          className="h-9 shrink-0 px-3 text-xs capitalize"
         >
           {view}
         </Button>

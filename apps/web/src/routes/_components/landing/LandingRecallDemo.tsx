@@ -47,7 +47,7 @@ export function LandingRecallDemo() {
                   size="sm"
                   variant={item.id === queryId ? "default" : "secondary"}
                   onClick={() => selectQuery(item.id)}
-                  className="rounded-full px-3.5"
+                  className="px-3.5"
                 >
                   {item.label}
                 </Button>
@@ -133,9 +133,10 @@ function RecallHit({
       <Button
         type="button"
         variant="ghost"
+        shape="rounded"
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="h-auto w-full justify-start gap-3 rounded-xl px-3 py-2.5 text-left"
+        className="h-auto w-full justify-start gap-3 px-3 py-2.5 text-left"
       >
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
           {memory.title}

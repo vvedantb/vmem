@@ -67,9 +67,10 @@ function ListRow({
     <Button
       type="button"
       variant="ghost"
+      shape="rounded"
       onClick={onSelect}
       className={cn(
-        "h-auto w-full justify-start gap-2 rounded-lg px-3 py-2.5 text-left",
+        "h-auto w-full justify-start gap-2 px-3 py-2.5 text-left",
         isSelected && "bg-surface-secondary",
       )}
     >

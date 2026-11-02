@@ -37,9 +37,10 @@ function AllFilterHeader({
     <Button
       type="button"
       variant="ghost"
+      shape="rounded"
       onClick={onSelectAll}
       className={cn(
-        "h-auto justify-start gap-2 rounded-md px-2 py-1.5 text-xs transition-colors active:scale-100",
+        "h-auto justify-start gap-2 px-2 py-1.5 text-xs transition-colors active:scale-100",
         trailing == null && "w-full",
         isAllSelected
           ? "bg-surface-secondary font-medium text-foreground hover:bg-surface-secondary"

@@ -18,7 +18,7 @@ export function ProfileColorPicker({
           onClick={() => onChange(c)}
           aria-label={`Color ${c}`}
           className={cn(
-            "h-8 w-8 rounded-full p-0 transition-transform",
+            "h-8 w-8 p-0 transition-transform",
             value === c &&
               "ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110",
           )}

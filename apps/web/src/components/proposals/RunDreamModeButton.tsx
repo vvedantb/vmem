@@ -54,6 +54,7 @@ export default function RunDreamModeButton() {
       type="button"
       size="sm"
       variant="outline"
+      shape="rounded"
       onClick={() => {
         void handleClick();
       }}

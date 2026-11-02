@@ -200,8 +200,9 @@ function TraceRowButton({
     <Button
       type="button"
       variant="ghost"
+      shape="rounded"
       onClick={onClick}
-      className="block h-auto w-full justify-start rounded-lg px-4 py-3 text-left font-normal hover:bg-surface-tertiary/50 focus:bg-surface-tertiary/50 active:scale-100"
+      className="block h-auto w-full justify-start px-4 py-3 text-left font-normal hover:bg-surface-tertiary/50 focus:bg-surface-tertiary/50 active:scale-100"
     >
       <div
         className={cn(

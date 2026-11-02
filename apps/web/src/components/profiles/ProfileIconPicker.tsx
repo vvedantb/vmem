@@ -21,7 +21,7 @@ export function ProfileIconPicker({
             onClick={() => onChange(i.name)}
             aria-label={i.name}
             className={cn(
-              "h-9 w-9 rounded-lg",
+              "h-9 w-9",
               value === i.name
                 ? "bg-segment text-foreground"
                 : "bg-surface-secondary hover:bg-surface-tertiary",

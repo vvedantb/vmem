@@ -160,7 +160,8 @@ export function SidebarWorkspaceSwitcher({
               <Button
                 type="button"
                 variant="ghost"
-                className="mx-auto h-auto rounded-lg p-1 hover:bg-surface-tertiary/50 active:scale-100"
+                shape="rounded"
+                className="mx-auto h-auto p-1 hover:bg-surface-tertiary/50 active:scale-100"
               >
                 <ProfileAvatar
                   icon={active.icon}
@@ -173,8 +174,9 @@ export function SidebarWorkspaceSwitcher({
             <Button
               type="button"
               variant="ghost"
+              shape="rounded"
               aria-label={`Switch workspace, ${active.name}`}
-              className="h-auto w-full justify-start gap-2.5 rounded-lg bg-surface-secondary p-2 text-left hover:bg-surface-tertiary active:scale-100"
+              className="h-auto w-full justify-start gap-2.5 bg-surface-secondary p-2 text-left hover:bg-surface-tertiary active:scale-100"
             >
               <ProfileAvatar
                 icon={active.icon}

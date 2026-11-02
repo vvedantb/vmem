@@ -17,9 +17,10 @@ export function LandingSkillsPreview() {
             key={item.name}
             type="button"
             variant="ghost"
+            shape="rounded"
             onClick={() => setSelected(index)}
             className={cn(
-              "h-auto w-full justify-start gap-2 rounded-lg px-3 py-1.5 text-left text-sm",
+              "h-auto w-full justify-start gap-2 px-3 py-1.5 text-left text-sm",
               index === selected
                 ? "text-foreground"
                 : "text-muted hover:text-foreground",
