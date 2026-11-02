@@ -44,9 +44,10 @@ function SkillVersionListItem({
     <Button
       type="button"
       variant="ghost"
+      shape="rounded"
       onClick={onSelect}
       className={cn(
-        "flex h-auto w-full flex-col items-start gap-1 rounded-md px-2.5 py-2 text-left",
+        "flex h-auto w-full flex-col items-start gap-1 px-2.5 py-2 text-left",
         active ? "bg-surface-tertiary" : "hover:bg-surface-tertiary/50",
       )}
     >

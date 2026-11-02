@@ -105,6 +105,7 @@ function ScanForDuplicatesButton() {
         type="button"
         size="sm"
         variant="outline"
+        shape="rounded"
         title={hint ?? undefined}
         disabled={submitting || coolingDown}
         onClick={() => setConfirmOpen(true)}
@@ -167,9 +168,10 @@ function RunRow({
       <Button
         type="button"
         variant="ghost"
+        shape="rounded"
         onClick={onToggle}
         aria-expanded={open}
-        className="block h-auto w-full justify-start rounded-lg px-4 py-3 text-left font-normal hover:bg-surface-tertiary/50 active:scale-100"
+        className="block h-auto w-full justify-start px-4 py-3 text-left font-normal hover:bg-surface-tertiary/50 active:scale-100"
       >
         <div className="flex items-center gap-3">
           <Chevron size={14} className="shrink-0 text-muted" />

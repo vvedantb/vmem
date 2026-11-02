@@ -94,7 +94,9 @@ describe("product tabs are isolated pills", () => {
       path.join(webSrc, "components/memories/MemoryTimelineScrubber.tsx"),
     );
     expect(scrubber).not.toContain("rounded-full bg-segment");
-    expect(scrubber).toContain("rounded-full border border-border");
+    // Button is a pill by default (@vvedantb/ui 0.31), so no radius class
+    expect(scrubber).toContain("shrink-0 border border-border");
+    expect(scrubber).not.toContain('shape="rounded"');
   });
 
   it("leaves product TabsList on the default pills variant", () => {

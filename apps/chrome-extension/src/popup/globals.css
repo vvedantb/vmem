@@ -13,12 +13,12 @@
 
 /*
  * Tailwind does not scan node_modules. @source is relative to this file and
- * must hit the @vvedantb/ui this package resolves: pnpm nests it under
- * apps/chrome-extension/node_modules while the root keeps the web app's
- * version. tests/popup-settings.test.mts checks the two stay the same.
+ * must hit the @vvedantb/ui this package resolves (hoisted to the repo root
+ * when every app pins the same version). tests/popup-settings.test.mts checks
+ * the resolved package path stays in the scan roots.
  */
-@source "../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
-@source "../../node_modules/@vvedantb/ui/app/src/**/*.{ts,tsx}";
+@source "../../../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
+@source "../../../../node_modules/@vvedantb/ui/app/src/**/*.{ts,tsx}";
 
 @layer base {
   /* radix menu items render as divs with menu roles not buttons */

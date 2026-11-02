@@ -56,8 +56,9 @@ export default function MoveFolderDialog({
           <Button
             type="button"
             variant="ghost"
+            shape="rounded"
             className={cn(
-              "flex h-auto w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
+              "flex h-auto w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors",
               selectedTarget === null
                 ? "bg-accent/10 text-accent"
                 : "text-foreground hover:bg-surface-tertiary",
@@ -73,8 +74,9 @@ export default function MoveFolderDialog({
               key={folder._id}
               type="button"
               variant="ghost"
+              shape="rounded"
               className={cn(
-                "flex h-auto w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
+                "flex h-auto w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors",
                 selectedTarget === folder._id
                   ? "bg-accent/10 text-accent"
                   : "text-foreground hover:bg-surface-tertiary",

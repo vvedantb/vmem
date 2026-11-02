@@ -60,9 +60,10 @@ export function ProfileDangerZone({
             <Button
               type="button"
               variant="ghost"
+              shape="rounded"
               onClick={() => setMoveToProfileId(null)}
               className={cn(
-                "h-auto w-full justify-start gap-3 rounded-lg p-3 text-left transition-colors active:scale-100",
+                "h-auto w-full justify-start gap-3 p-3 text-left transition-colors active:scale-100",
                 moveToProfileId === null
                   ? "bg-surface-tertiary text-foreground hover:bg-surface-tertiary"
                   : "bg-surface-secondary hover:bg-surface-tertiary/50",
@@ -84,9 +85,10 @@ export function ProfileDangerZone({
                 key={p._id}
                 type="button"
                 variant="ghost"
+                shape="rounded"
                 onClick={() => setMoveToProfileId(p._id)}
                 className={cn(
-                  "h-auto w-full justify-start gap-3 rounded-lg p-3 text-left transition-colors active:scale-100",
+                  "h-auto w-full justify-start gap-3 p-3 text-left transition-colors active:scale-100",
                   moveToProfileId === p._id
                     ? "bg-surface-tertiary text-foreground hover:bg-surface-tertiary"
                     : "bg-surface-secondary hover:bg-surface-tertiary/50",

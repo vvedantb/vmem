@@ -172,8 +172,9 @@ export default function GraphDetailPanel({
                     key={neighbor.id}
                     type="button"
                     variant="ghost"
+                    shape="rounded"
                     onClick={() => onNavigate(neighbor.id)}
-                    className="h-auto w-full rounded-lg bg-surface-secondary/50 p-2.5 text-left hover:bg-surface-tertiary"
+                    className="h-auto w-full bg-surface-secondary/50 p-2.5 text-left hover:bg-surface-tertiary"
                   >
                     <p className="text-sm font-medium text-foreground truncate">
                       {neighbor.title}

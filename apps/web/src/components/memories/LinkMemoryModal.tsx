@@ -85,10 +85,11 @@ function LinkMemoryRow({
       <Button
         type="button"
         variant="ghost"
+        shape="rounded"
         disabled={isDisabled}
         onClick={() => onLink(memory.id)}
         className={cn(
-          "flex h-auto w-full min-w-0 flex-col gap-2 rounded-lg bg-surface-secondary p-3 text-left transition-[background-color]",
+          "flex h-auto w-full min-w-0 flex-col gap-2 bg-surface-secondary p-3 text-left transition-[background-color]",
           "hover:bg-surface-tertiary disabled:cursor-not-allowed disabled:opacity-50",
         )}
       >

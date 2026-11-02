@@ -175,7 +175,7 @@ export default function MemoryTimelineSummaryCard() {
                   aria-pressed={active}
                   onClick={() => void setParams({ period: value })}
                   className={cn(
-                    "h-8 shrink-0 rounded-full border border-border px-2.5",
+                    "h-8 shrink-0 border border-border px-2.5",
                     active ? "text-foreground" : "text-muted",
                   )}
                 >

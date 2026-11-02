@@ -89,12 +89,13 @@ function RetellingStrip({
             key={version.eventId}
             type="button"
             variant="ghost"
+            shape="rounded"
             role="tab"
             aria-selected={selected}
             aria-label={`Version ${version.version}`}
             onClick={() => onSelectVersion(version.version)}
             className={cn(
-              "flex h-auto shrink-0 flex-col items-center justify-start gap-1.5 rounded-lg px-2.5 py-2 transition-[background-color] duration-150 active:scale-100",
+              "flex h-auto shrink-0 flex-col items-center justify-start gap-1.5 px-2.5 py-2 transition-[background-color] duration-150 active:scale-100",
               selected ? "bg-surface-tertiary" : "hover:bg-surface-tertiary",
             )}
           >
