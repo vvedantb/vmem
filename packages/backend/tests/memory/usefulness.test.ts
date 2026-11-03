@@ -58,19 +58,27 @@ describe("source prior", () => {
     expect(sourcePrior("file-upload")).toBe(0.62);
     expect(sourcePrior("bookmarks")).toBe(0.34);
     expect(sourcePrior("desktop")).toBe(0.34);
+    expect(sourcePrior("android")).toBe(0.34);
     expect(sourcePrior("browsing-history")).toBe(0.34);
     expect(sourcePrior("Chrome ")).toBe(0.34);
   });
 
   it("matches on either source or sourceType and defaults to medium", () => {
     expect(classifySource("api", "desktop")).toBe("low");
+    expect(classifySource("android", "android")).toBe("low");
     expect(classifySource("something-new")).toBe("medium");
     expect(classifySource("import:chatgpt")).toBe("medium");
     expect(classifySource("browsing-history")).toBe("low");
   });
 
   it("skips Jev for low-prior sources and tiers the rest", () => {
-    for (const source of ["browsing-history", "bookmarks", "desktop", "chrome"])
+    for (const source of [
+      "browsing-history",
+      "bookmarks",
+      "desktop",
+      "android",
+      "chrome",
+    ])
       expect(jevEligible(source)).toBe(false);
     expect(jevEligible("mcp")).toBe(true);
     expect(jevEligible("notion")).toBe(true);

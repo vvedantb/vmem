@@ -39,7 +39,7 @@ const settingsUpdateSchema = z.object({
     "Nightly dreaming (02:30 UTC): merge duplicates, expire, archive",
   ),
   dreamModeDecay: settingsFlagSchema.describe(
-    "Nightly dreaming archives stale browsing history, bookmarks and desktop rows",
+    "Nightly dreaming archives stale browsing history, bookmarks, desktop and Android rows",
   ),
   dreamModeUseAi: settingsFlagSchema.describe(
     "Nightly dreaming asks AI about near-duplicates and conflicts",

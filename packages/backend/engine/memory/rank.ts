@@ -961,7 +961,7 @@ export function rankMemories(
   }
 
   // 0.85 * relevance + 0.15 * usefulness. Passive sources (desktop,
-  // bookmarks) are handled by their low prior and fast decay.
+  // android, bookmarks) are handled by their low prior and fast decay.
   for (const hit of scored) {
     const usefulness = memoryUsefulness(hit, nowMs);
     hit.trace.score = blendRelevanceWithUsefulness(hit.trace.score, usefulness);

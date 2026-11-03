@@ -147,7 +147,7 @@
     },
     {
       // node:test `describe` / `it` return promises that the runner awaits.
-      "files": ["apps/desktop/tests/**"],
+      "files": ["apps/desktop/tests/**", "apps/mobile/tests/**"],
       "rules": { "typescript/no-floating-promises": "off" }
     },
     {

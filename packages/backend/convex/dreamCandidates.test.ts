@@ -213,8 +213,13 @@ describe("write-time dream candidates", () => {
 
     const bookmark = await addMemory(t, { source: "bookmarks" });
     const desktop = await addMemory(t, { source: "desktop" });
+    const android = await addMemory(t, {
+      source: "android",
+      sourceType: "android",
+    });
     await embed(t, bookmark, atCosine(0.995));
     await embed(t, desktop, atCosine(0.995));
+    await embed(t, android, atCosine(0.995));
     expect(await candidates(t)).toHaveLength(0);
   });
 

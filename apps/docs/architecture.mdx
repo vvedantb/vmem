@@ -33,12 +33,13 @@ vmem is a pnpm monorepo with a Convex backend, Vite web dashboard, and Chrome ex
 | ----------------------- | ----------------------------------------------- |
 | `apps/web`              | Vite + React + TanStack Router dashboard        |
 | `apps/chrome-extension` | Browser extension for ChatGPT/Claude/page saves |
+| `apps/mobile`           | Android tracker (Expo, local Kotlin module)     |
 | `apps/docs`             | Mintlify documentation site                     |
 | `packages/backend`      | Convex functions, memory engine, MCP server     |
 | `packages/shared`       | Shared helpers                                  |
 | `packages/sdk`          | `@vmem/sdk` HTTP client                         |
 
-A native Expo app and GitHub codebase indexer used to live in this repo. They are **not** on `main` — see [Mobile (removed)](/features/mobile) and [Codebases (removed)](/features/codebases).
+A GitHub codebase indexer used to live in this repo. It is **not** on `main` — see [Codebases (removed)](/features/codebases). The old Expo chat app is replaced by the [Android tracker](/features/mobile).
 
 ## Data Flow
 
@@ -66,7 +67,7 @@ One cron, `nightly maintenance` at 02:30 UTC (`convex/nightly.ts`), pages throug
    - exact and same-page dedupe over the rows changed since the last run (the first run reads only the last 24 hours), merged at once into one keeper
    - Jev judges open `near_dup` write-time candidates; Qwen (thinking off) judges open `maybe_conflict` candidates. Confident merges and updates apply only with `dreamModeAutoAccept`, else they become proposals. At most 40 AI calls per user per night and $0.50 of dream AI per UTC day
    - rows past `expiresAt` become `expired`
-   - stale browsing history, bookmarks and desktop rows are archived (`suppressedBy: "dream-decay"`), at most 500 per night, personal profiles only
+   - stale browsing history, bookmarks, desktop and Android rows are archived (`suppressedBy: "dream-decay"`), at most 500 per night, personal profiles only
 2. **Rollups** (`convex/rollupActions.ts`), when `rollupsEnabled` is on: the day rollup for yesterday, then the ISO week on Sundays and the month on its last day.
 
 A failed dream step is logged and does not block the rollups. Every dream change is a `dreamActions` row in the run's `dreamRuns` log and can be undone for 30 days. "Run dream mode" on the Dreaming page and MCP `dream_run` run the same dream step (once per hour).

@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "types": ["node"],
+    "paths": {
+      "@vmem/sdk": ["../../../packages/sdk/src/index.ts"]
+    }
+  },
+  "include": ["./**/*.ts"]
+}

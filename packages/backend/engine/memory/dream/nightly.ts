@@ -209,9 +209,9 @@ export interface DecayRow {
 }
 
 /**
- * Archive rule: low-prior source (browsing history, bookmarks, desktop), not
- * visited for 30 days, at most 2 visits, usefulness below 0.2, never
- * retrieved, and active (a pinned row never decays). A row with no
+ * Archive rule: low-prior source (browsing history, bookmarks, desktop,
+ * android), not visited for 30 days, at most 2 visits, usefulness below 0.2,
+ * never retrieved, and active (a pinned row never decays). A row with no
  * usefulness score yet is kept.
  */
 export function isDecayCandidate(

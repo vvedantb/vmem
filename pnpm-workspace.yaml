@@ -10,6 +10,7 @@ onlyBuiltDependencies:
 # Newly published scoped UI packages; the 7-day age gate would block install.
 minimumReleaseAgeExclude:
   - "@vvedantb/ui"
+  - "@vvedantb/native-ui"
   - "@vvedantb/config"
   - "@vvedantb/server"
 
@@ -62,6 +63,7 @@ packageExtensions:
 
 catalog:
   "@clerk/backend": ^2.30.1
+  "@clerk/clerk-expo": ^2.20.2
   "@cosmos.gl/graph": 3.3.0
   "@clerk/chrome-extension": ^3.1.2
   "@modelcontextprotocol/sdk": 1.29.0
@@ -104,6 +106,9 @@ catalogs:
     "@types/node": ^20
   node-types-22:
     "@types/node": ^22.18.5
+  # NativeWind 4 (apps/mobile) needs Tailwind 3.
+  tailwind3:
+    tailwindcss: ^3.4.19
   tailwind4:
     "@tailwindcss/vite": ^4.3.3
     tailwindcss: ^4.3.3

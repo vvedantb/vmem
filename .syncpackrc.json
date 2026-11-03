@@ -13,6 +13,26 @@
       "pinVersion": "catalog:tailwind4"
     },
     {
+      "label": "Tailwind 3 in mobile (NativeWind 4)",
+      "dependencies": ["tailwindcss"],
+      "packages": ["@vmem/mobile"],
+      "pinVersion": "catalog:tailwind3"
+    },
+    {
+      "label": "Expo SDK pins React and React Native in mobile",
+      "dependencies": [
+        "react",
+        "react-dom",
+        "react-native",
+        "react-native-*",
+        "expo",
+        "expo-*",
+        "@expo/*"
+      ],
+      "packages": ["@vmem/mobile"],
+      "isIgnored": true
+    },
+    {
       "label": "Published vv-ui packages stay pinned to npm",
       "dependencies": ["@vvedantb/ui"],
       "packages": ["web", "@vmem/chrome-extension"],
