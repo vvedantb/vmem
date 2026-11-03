@@ -49,7 +49,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function useReportSignedIn(): void {
   const { isLoaded, isSignedIn } = useAuth();
   useEffect(() => {
-    if (isLoaded) window.vmemDesktop.reportSignedIn(isSignedIn === true);
+    if (isLoaded) window.vmemDesktop.reportSignedIn(isSignedIn);
   }, [isLoaded, isSignedIn]);
 }
 
