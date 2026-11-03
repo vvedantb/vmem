@@ -1,0 +1,178 @@
+# Android tracker (apps/mobile): sideloaded APK for V Store, not Google Play.
+#
+# - Pull request: typecheck, tests and an unsigned release build (proves the
+#   Kotlin module and the JS bundle compile). The APK is a short-lived artifact.
+# - Push to main (paths below) or manual run: signed release build, published
+#   as GitHub Release `mobile-apk-<versionName>`.
+#
+# versionCode = highest published code + 1. versionName is
+# `<major>.<minor>` from apps/mobile/package.json plus `.<versionCode>`, so the
+# tag's last number is the versionCode. Secrets: apps/mobile/RELEASE.md.
+name: Release Android
+
+on:
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - "packages/sdk/src/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/release-android.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - "packages/sdk/src/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/release-android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # One release at a time on main, so two runs never take the same versionCode.
+  group: release-android-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @vmem/mobile typecheck
+      - run: pnpm --filter @vmem/mobile test
+
+  build:
+    needs: check
+    if: >-
+      github.event_name != 'push' ||
+      !contains(github.event.head_commit.message, '[skip android release]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PUBLISH: ${{ github.event_name != 'pull_request' }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check signing secrets
+        if: env.PUBLISH == 'true'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=""
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing (see apps/mobile/RELEASE.md)"
+            exit 1
+          fi
+
+      - name: Version
+        id: version
+        run: |
+          base="$(node -p "require('./apps/mobile/package.json').version")"
+          major_minor="${base%.*}"
+          highest="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 \
+            --json tagName --jq '.[].tagName' \
+            | sed -n 's/^mobile-apk-[0-9]*\.[0-9]*\.\([0-9][0-9]*\)$/\1/p' \
+            | sort -n | tail -n 1)"
+          code=$(( ${highest:-0} + 1 ))
+          name="${major_minor}.${code}"
+          echo "Highest published versionCode: ${highest:-none}. Building ${name} (${code})."
+          {
+            echo "code=${code}"
+            echo "name=${name}"
+            echo "tag=mobile-apk-${name}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Prebuild Android project
+        working-directory: apps/mobile
+        env:
+          VMEM_ANDROID_VERSION_CODE: ${{ steps.version.outputs.code }}
+          VMEM_ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Decode keystore
+        if: env.PUBLISH == 'true'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+
+      - name: Build release APK
+        working-directory: apps/mobile/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          args=(assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a)
+          if [ "$PUBLISH" = "true" ]; then
+            # Android Gradle Plugin signing override; nothing is written to the repo.
+            args+=(
+              "-Pandroid.injected.signing.store.file=$RUNNER_TEMP/release.keystore"
+              "-Pandroid.injected.signing.store.password=$ANDROID_KEYSTORE_PASSWORD"
+              "-Pandroid.injected.signing.key.alias=$ANDROID_KEY_ALIAS"
+              "-Pandroid.injected.signing.key.password=$ANDROID_KEY_PASSWORD"
+            )
+          fi
+          ./gradlew "${args[@]}"
+
+      - name: Collect APK
+        id: apk
+        run: |
+          apk="$RUNNER_TEMP/vmem-android-${{ steps.version.outputs.name }}.apk"
+          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk "$apk"
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner"
+          "$apksigner" verify --print-certs "$apk" | grep -E "Signer #1 certificate (DN|SHA-256)"
+          (cd "$RUNNER_TEMP" && sha256sum "$(basename "$apk")" > "$(basename "$apk").sha256")
+          echo "path=$apk" >> "$GITHUB_OUTPUT"
+
+      - name: Upload PR artifact
+        if: env.PUBLISH != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vmem-android-unsigned
+          path: ${{ steps.apk.outputs.path }}
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: env.PUBLISH == 'true'
+        env:
+          APK: ${{ steps.apk.outputs.path }}
+          TAG: ${{ steps.version.outputs.tag }}
+          NAME: ${{ steps.version.outputs.name }}
+          CODE: ${{ steps.version.outputs.code }}
+        run: |
+          gh release create "$TAG" "$APK" "$APK.sha256" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "vmem Android $NAME" \
+            --latest=false \
+            --notes "Android tracker. versionName $NAME, versionCode $CODE. Sideload only (V Store)."
