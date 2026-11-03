@@ -5,7 +5,7 @@ Android activity tracker for vmem. It records which apps you use and for how lon
 This app is a tracker, like `apps/desktop`. It is not a copy of the web dashboard.
 
 - Android only. Distribution is by sideload through V Store, not Google Play. Play policies for Usage Access and package visibility do not apply.
-- Expo SDK 57 (React Native 0.86), Expo Router, `@vvedantb/native-ui` 0.6.1 with its floating tab bar.
+- Expo SDK 57 (React Native 0.86), Expo Router, `@vvedantb/native-ui` 0.7.0 with its floating tab bar, shared Tailwind preset (`/tailwind-preset`) and auth screens (`/auth`).
 - Native code: a local Expo module in `modules/vmem-tracker` (Kotlin, WorkManager, SQLite, UsageStatsManager).
 
 ## Run
@@ -23,7 +23,7 @@ Defaults point at production: sign-in on `clerk.projectv.uk` and uploads to `htt
 
 ## Sign-in
 
-Sign-in uses Clerk in the same way as the Verve and vibot apps and the archived vmem Expo app (`archive/mobile`): `ClerkProvider` with `tokenCache` from `@clerk/clerk-expo/token-cache`, email and password with an emailed code for sign-up, and Google through `useSSO()`. It is the same Clerk instance as vmem web, so existing accounts work. The app copy does not name the provider.
+Sign-in uses Clerk through `@vvedantb/native-ui/auth`, as the Verve and vibot apps do: `AuthProviders` (Clerk only, no Convex client) with `tokenCache` from `@clerk/clerk-expo/token-cache`, and the package `SignInScreen` and `SignUpScreen` in `app/(auth)/`. They offer Google (`useSSO()`) first, then email and password, with an emailed code for sign-up. It is the same Clerk instance as vmem web, so existing accounts work. The app copy does not name the provider.
 
 No Clerk dashboard change is needed:
 
