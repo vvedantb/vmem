@@ -1,205 +1,115 @@
-import { discoverOAuthServerInfo } from "@modelcontextprotocol/sdk/client/auth.js";
-import type { FetchLike } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { z } from "zod";
-import {
-  authorizeMcpServer,
-  createMcpOAuthProvider,
-  hasMcpOAuthTokens,
-  isAccessTokenExpiring,
-  refreshMcpOAuth,
-  revokeMcpOAuth,
-  type Identity,
-  type McpOAuthStorage,
-} from "./mcp-oauth";
-import { startLoopback } from "./mcp-oauth-loopback";
+import type { SettingsStore } from "./settings";
 
-const claimsSchema = z
-  .object({
-    email: z.string().optional(),
-    name: z.string().optional(),
-    given_name: z.string().optional(),
-    family_name: z.string().optional(),
-  })
-  .passthrough();
+// Sign-in as main sees it. The session lives in the settings window (@clerk/electron/react). That window stays
+// alive, hidden, while the app runs, so main can ask it for a fresh session token before each upload, also when
+// the user never opens it. No Electron here: main passes `askWindow` and forwards the window's replies.
 
-function identityFromClaims(claims: z.infer<typeof claimsSchema>): Identity {
-  const name =
-    claims.name ??
-    ([claims.given_name, claims.family_name].filter(Boolean).join(" ") ||
-      undefined);
-  return { email: claims.email, name };
-}
+const claimsSchema = z.object({ iss: z.string(), sub: z.string().min(1) });
+const signedInSchema = z.boolean();
+const tokenReplySchema = z.string().nullable();
 
-/** Reads email and name from the id_token payload. The signature is not checked: the token came from the token endpoint over TLS. */
-export function identityFromIdToken(idToken: string): Identity | undefined {
+/** Longer than the window waits for sign-in to load (10 s in getToken), so a slow load still answers. */
+export const TOKEN_REQUEST_TIMEOUT_MS = 15_000;
+
+/**
+ * True for a session token from vmem's instance: a JWT with the right issuer and a user. The signature and expiry
+ * are not checked here. The vmem API verifies both with its own clock; a local clock can be wrong.
+ */
+export function isSessionToken(token: string, issuer: string): boolean {
   try {
-    const payload = Buffer.from(idToken.split(".")[1] ?? "", "base64url");
-    return identityFromClaims(
-      claimsSchema.parse(JSON.parse(payload.toString("utf8"))),
-    );
+    const payload = Buffer.from(token.split(".")[1] ?? "", "base64url");
+    const claims = claimsSchema.parse(JSON.parse(payload.toString("utf8")));
+    return claims.iss === issuer;
   } catch {
-    return undefined;
+    return false;
   }
 }
 
-const userinfoMetadataSchema = z
-  .object({
-    userinfo_endpoint: z.string().optional(),
-  })
-  .passthrough();
-
-export interface AuthDeps {
-  storage: McpOAuthStorage;
-  /** The vmem MCP URL, for example https://<deployment>.convex.site/mcp. It is the OAuth resource. */
-  mcpUrl: string;
-  /** Opens the authorization URL in the system browser. */
-  openExternal: (url: string) => Promise<void>;
-  /** Clears the API key that an older install saved. */
-  dropLegacyApiKey: () => void;
-  fetch?: FetchLike;
-  now?: () => number;
+export interface SessionAuthDeps {
+  settings: SettingsStore;
+  /** The `iss` of session tokens from vmem's instance (sessionIssuer in clerk.ts). */
+  issuer: string;
+  /** Sends a token request to the settings window. Returns false when no window can answer. */
+  askWindow: () => boolean;
+  timeoutMs?: number;
 }
 
-/** Clerk sign-in through the vmem MCP OAuth flow. Tokens live in `storage`. */
-export class AuthService {
-  private signingIn: Promise<void> | null = null;
-  private refreshing: Promise<boolean> | null = null;
+export class SessionAuth {
+  private pending: Promise<string | null> | null = null;
+  private reply: ((token: string | null) => void) | null = null;
   private readonly listeners = new Set<() => void>();
 
-  constructor(private readonly deps: AuthDeps) {}
+  constructor(private readonly deps: SessionAuthDeps) {}
 
   onChange(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
 
+  /** The last state that the window reported. It survives a restart, so recording starts before the window loads. */
   isSignedIn(): boolean {
-    return hasMcpOAuthTokens(this.deps.storage.load());
+    return this.deps.settings.get().signedIn;
   }
 
-  isSigningIn(): boolean {
-    return this.signingIn !== null;
+  /**
+   * From the window when its sign-in state changes. Sign-in also removes the API key that an older install saved.
+   * A malformed message is dropped.
+   */
+  setSignedIn(raw: unknown): void {
+    const parsed = signedInSchema.safeParse(raw);
+    if (!parsed.success) return;
+    const signedIn = parsed.data;
+    const current = this.deps.settings.get();
+    const dropKey = signedIn && current.apiKey !== "";
+    if (current.signedIn === signedIn && !dropKey) return;
+    this.deps.settings.update(
+      signedIn ? { signedIn, apiKey: "" } : { signedIn },
+    );
+    this.notify();
   }
 
-  identity(): Identity | undefined {
-    return this.deps.storage.load()?.identity;
-  }
-
-  /** The stored access token, which may have expired. Use it to check for sign-in. */
-  currentAccessToken(): string | null {
-    return this.deps.storage.load()?.tokens?.access_token ?? null;
-  }
-
-  /** The access token, refreshed first when it has expired or is about to. Null when it cannot be refreshed. */
-  async freshAccessToken(): Promise<string | null> {
-    const state = this.deps.storage.load();
-    if (!hasMcpOAuthTokens(state)) return null;
-    if (isAccessTokenExpiring(state, this.now())) {
-      this.refreshing ??= refreshMcpOAuth({
-        url: this.deps.mcpUrl,
-        provider: createMcpOAuthProvider({
-          storage: this.deps.storage,
-          now: this.deps.now,
-        }),
-        fetch: this.deps.fetch,
-      }).finally(() => {
-        this.refreshing = null;
-        this.notify();
+  /**
+   * A session token from the window, or null: signed out, no window, sign-in not loaded (offline) or no answer in
+   * time. Callers share one request at a time.
+   */
+  async sessionToken(): Promise<string | null> {
+    if (!this.isSignedIn()) return null;
+    if (this.pending === null) {
+      const pending = this.request().finally(() => {
+        if (this.pending === pending) this.pending = null;
       });
-      if (!(await this.refreshing)) return null;
+      this.pending = pending;
     }
-    return this.currentAccessToken();
+    const token = await this.pending;
+    return token !== null && isSessionToken(token, this.deps.issuer)
+      ? token
+      : null;
   }
 
-  /** Opens the browser and waits for the user. One sign-in at a time; callers share the run. */
-  signIn(): Promise<void> {
-    this.signingIn ??= this.runSignIn().finally(() => {
-      this.signingIn = null;
-      this.notify();
+  /** The window's answer to a token request. Late or malformed answers are dropped. */
+  receiveToken(raw: unknown): void {
+    const parsed = tokenReplySchema.safeParse(raw);
+    this.reply?.(parsed.success ? parsed.data : null);
+  }
+
+  private request(): Promise<string | null> {
+    return new Promise((resolve) => {
+      const finish = (token: string | null): void => {
+        clearTimeout(timer);
+        this.reply = null;
+        resolve(token);
+      };
+      const timer = setTimeout(
+        () => finish(null),
+        this.deps.timeoutMs ?? TOKEN_REQUEST_TIMEOUT_MS,
+      );
+      this.reply = finish;
+      if (!this.deps.askWindow()) finish(null);
     });
-    this.notify();
-    return this.signingIn;
-  }
-
-  async signOut(): Promise<void> {
-    await revokeMcpOAuth({
-      url: this.deps.mcpUrl,
-      state: this.deps.storage.load(),
-      fetch: this.deps.fetch,
-    });
-    this.deps.storage.save(undefined);
-    this.deps.dropLegacyApiKey();
-    this.notify();
-  }
-
-  private now(): number {
-    return (this.deps.now ?? Date.now)();
   }
 
   private notify(): void {
     for (const listener of this.listeners) listener();
-  }
-
-  private async runSignIn(): Promise<void> {
-    const loopback = await startLoopback();
-    try {
-      const provider = createMcpOAuthProvider({
-        storage: this.deps.storage,
-        redirectUrl: loopback.redirectUrl,
-        redirectToAuthorization: (url) =>
-          this.deps.openExternal(url.toString()),
-        now: this.deps.now,
-      });
-      const code = loopback.waitForCode(() => provider.pendingState);
-      await authorizeMcpServer({
-        url: this.deps.mcpUrl,
-        provider,
-        code,
-        fetch: this.deps.fetch,
-      });
-    } finally {
-      loopback.close();
-    }
-    // The key an older install saved is dead weight from here on.
-    this.deps.dropLegacyApiKey();
-    await this.saveIdentity();
-  }
-
-  /** Name and email for the settings window. Failure is not fatal: the window then shows "Signed in". */
-  private async saveIdentity(): Promise<void> {
-    const state = this.deps.storage.load();
-    const tokens = state?.tokens;
-    if (!state || !tokens) return;
-    const fromToken = tokens.id_token
-      ? identityFromIdToken(tokens.id_token)
-      : undefined;
-    const identity =
-      fromToken?.email || fromToken?.name
-        ? fromToken
-        : await this.fetchUserinfo(tokens.access_token);
-    if (identity) this.deps.storage.save({ ...state, identity });
-  }
-
-  private async fetchUserinfo(
-    accessToken: string,
-  ): Promise<Identity | undefined> {
-    const fetchFn = this.deps.fetch ?? fetch;
-    try {
-      const { authorizationServerMetadata } = await discoverOAuthServerInfo(
-        this.deps.mcpUrl,
-        { fetchFn },
-      );
-      const endpoint = userinfoMetadataSchema.parse(
-        authorizationServerMetadata,
-      ).userinfo_endpoint;
-      if (!endpoint) return undefined;
-      const response = await fetchFn(endpoint, {
-        headers: { authorization: `Bearer ${accessToken}` },
-      });
-      if (!response.ok) return undefined;
-      return identityFromClaims(claimsSchema.parse(await response.json()));
-    } catch {
-      return undefined;
-    }
   }
 }

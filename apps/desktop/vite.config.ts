@@ -5,8 +5,9 @@ import tailwindcss from "@tailwindcss/vite";
 
 const root = import.meta.dirname;
 
-// Builds the settings window into dist/renderer. `base: "./"` keeps asset URLs
-// relative, because the window loads from a file: URL inside app.asar.
+// Builds the settings window into dist/renderer. Main serves it as
+// vmem://renderer/ (src/renderer-protocol.ts). `base: "./"` keeps asset URLs
+// relative to that page.
 export default defineConfig({
   root: resolve(root, "renderer"),
   base: "./",

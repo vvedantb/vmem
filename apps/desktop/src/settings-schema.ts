@@ -3,8 +3,12 @@ import { z } from "zod";
 export const settingsSchema = z.object({
   /** Legacy. Installs that saved an API key keep working until the user signs in; sign-in and sign-out clear it. */
   apiKey: z.string().default(""),
-  /** safeStorage ciphertext (base64) of the OAuth client information and tokens. Empty when signed out. */
-  oauthCipher: z.string().default(""),
+  /**
+   * The last sign-in state that the settings window reported. Not a credential: the session lives in the window
+   * (its tokens are in clerk-tokens.json, encrypted). Main keeps this so recording continues after a restart before
+   * the window has loaded, and offline. Old files with `oauthCipher` still parse: Zod drops unknown keys.
+   */
+  signedIn: z.boolean().default(false),
   paused: z.boolean().default(false),
   idleThresholdMinutes: z.number().min(1).max(240).default(5),
   flushIntervalMinutes: z.number().min(1).max(240).default(15),

@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { build } from "esbuild";
-import { build as viteBuild } from "vite";
+import { build as viteBuild, loadEnv } from "vite";
 
 const common = { bundle: true, sourcemap: false, logLevel: "warning" };
 
@@ -34,23 +34,48 @@ const getWindowsShims = {
   },
 };
 
-// @vvedantb/server lazily imports the SDK's MCP client for its `connectAs`
-// sign-in, which vmem does not use (see src/mcp-oauth.ts). esbuild always keeps
-// a dynamic import, so that client and the ajv it loads would ship as a chunk
-// whose bare specifiers fail `check:asar`. Resolve it to a stub that throws.
-const sdkClientEntries =
-  /^@modelcontextprotocol\/sdk\/client\/(index|streamableHttp)\.js$/;
-const dropUnusedSdkClient = {
-  name: "drop-unused-sdk-client",
+// Stubs for modules that the bundle never runs. Their bare imports would
+// otherwise stay in dist and fail `check:asar`.
+// - @clerk/electron-passkeys: @clerk/electron imports it only when passkeys
+//   are on, and vmem does not turn them on. The stub throws on import.
+// - ajv, ajv-formats: conf (under electron-store) builds a validator only for
+//   a `schema` option, and @clerk/electron/storage passes none. ajv's code
+//   templates also hold require("ajv/dist/runtime/...") strings that
+//   `check:asar` reads as imports. The stub throws when it is called.
+const throwOnImport = (name) =>
+  `throw new Error(${JSON.stringify(`${name} is not bundled`)});`;
+const throwOnCall = (name) =>
+  `module.exports = { default() { throw new Error(${JSON.stringify(`${name} is not bundled`)}); } };`;
+const stubs = new Map([
+  ["@clerk/electron-passkeys", throwOnImport],
+  ["ajv", throwOnCall],
+  ["ajv-formats", throwOnCall],
+]);
+const stubUnused = {
+  name: "stub-unused",
   setup(b) {
-    b.onResolve({ filter: sdkClientEntries }, (args) => ({
-      path: args.path,
-      namespace: "unused-sdk-client",
-    }));
-    b.onLoad({ filter: /.*/, namespace: "unused-sdk-client" }, (args) => ({
-      contents: `throw new Error(${JSON.stringify(`${args.path} is not bundled`)});`,
+    b.onResolve(
+      { filter: /^(@clerk\/electron-passkeys|ajv|ajv-formats)$/ },
+      (args) => ({
+        path: args.path,
+        namespace: "unused",
+      }),
+    );
+    b.onLoad({ filter: /.*/, namespace: "unused" }, (args) => ({
+      contents: stubs.get(args.path)(args.path),
+      loader: "js",
     }));
   },
+};
+
+// The sign-in key override: Vite gives VITE_ variables to the settings window
+// (from the environment and renderer/.env files). Main gets the same value
+// here, so both always use one instance. Empty means the built-in key.
+const viteEnv = loadEnv("production", resolve("renderer"), "VITE_");
+const define = {
+  "process.env.VITE_CLERK_PUBLISHABLE_KEY": JSON.stringify(
+    viteEnv.VITE_CLERK_PUBLISHABLE_KEY ?? "",
+  ),
 };
 
 await rm("dist", { recursive: true, force: true });
@@ -68,7 +93,8 @@ await Promise.all([
     format: "esm",
     target: "node22",
     external: ["electron"],
-    plugins: [getWindowsShims, dropUnusedSdkClient],
+    define,
+    plugins: [getWindowsShims, stubUnused],
     banner: {
       js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);",
     },

@@ -22,12 +22,18 @@ describe("settings schema", () => {
     assert.equal(parsed.paused, true);
     assert.equal(parsed.idleThresholdMinutes, 10);
     assert.equal("baseUrl" in parsed, false);
-    assert.equal(parsed.oauthCipher, "");
+    assert.equal(parsed.signedIn, false);
   });
 
-  it("does not let the window send credentials", () => {
+  it("drops the MCP OAuth tokens that an older build saved", () => {
+    const parsed = settingsSchema.parse({ oauthCipher: "Y2lwaGVy" });
+    assert.equal("oauthCipher" in parsed, false);
+    assert.equal(parsed.signedIn, false);
+  });
+
+  it("does not let the window send credentials or the sign-in state", () => {
     assert.throws(() => formSettingsPatchSchema.parse({ apiKey: "x" }));
-    assert.throws(() => formSettingsPatchSchema.parse({ oauthCipher: "x" }));
+    assert.throws(() => formSettingsPatchSchema.parse({ signedIn: true }));
     assert.deepEqual(formSettingsPatchSchema.parse({ paused: true }), {
       paused: true,
     });

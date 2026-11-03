@@ -86,9 +86,20 @@ jobs:
             --runtime=electron --target="$electron" --target_arch=x64 \
             --dist-url=https://electronjs.org/headers
           ls -l lib/binding/*/*.node build/Release/*.node || true
-      - run: pnpm --filter @vmem/desktop package:win
+      # Signs when the WIN_CSC_LINK secret is set (apps/desktop/README.md,
+      # Signing). Without it the installer is unsigned.
+      - name: Package Windows installer
+        shell: bash
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          if [ -z "$WIN_CSC_LINK" ]; then
+            echo "No WIN_CSC_LINK secret: building unsigned."
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+            unset WIN_CSC_LINK WIN_CSC_KEY_PASSWORD
+          fi
+          pnpm --filter @vmem/desktop package:win
       - run: pnpm --filter @vmem/desktop check:asar "release/win-unpacked/vmem.exe"
       - uses: actions/upload-artifact@v4
         with:
@@ -119,11 +130,30 @@ jobs:
           echo "$archs"
           echo "$archs" | grep -q x86_64
           echo "$archs" | grep -q arm64
-      # Builds x64 and arm64 dmg files (see package:mac). build.mjs copies
-      # `main` into dist/native once, and both arches use it.
-      - run: pnpm --filter @vmem/desktop package:mac
+      # Builds x64 (Intel) and arm64 (Apple silicon) dmg files (see
+      # package:mac). build.mjs copies `main` into dist/native once, and both
+      # arches use it. Signs when the CSC_LINK secret is set, and notarises
+      # when the Apple secrets are also set (apps/desktop/README.md, Signing).
+      # Without CSC_LINK the dmg files are unsigned and not notarised.
+      - name: Package macOS dmg files (arm64 + x64)
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -z "$CSC_LINK" ]; then
+            echo "No CSC_LINK secret: building unsigned and not notarised."
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+            unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+          fi
+          pnpm --filter @vmem/desktop package:mac
+      - name: Check both dmg files
+        working-directory: apps/desktop
+        run: |
+          ls -l release/*.dmg
+          ls release/*-arm64.dmg release/*-x64.dmg
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-macos

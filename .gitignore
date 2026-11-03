@@ -73,3 +73,5 @@ apps/desktop/release
 
 # Local Android release signing (scripts/build-android-release.sh)
 keystore.properties
+
+.claude-work/
