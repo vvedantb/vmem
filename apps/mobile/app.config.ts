@@ -1,9 +1,10 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
 /**
- * Android-only tracker. The scheme (`vmem`) and package (`com.vis1.vmem`) are
- * the ones the archived vmem Expo app shipped with, so Google sign-in reuses
- * the `vmem://sso-callback` redirect that app already used. See README.md.
+ * Android-only tracker. The package (`com.projectvdotuk.vmem`) follows the
+ * other Project V apps. The scheme (`vmem`) is the archived vmem Expo app's
+ * scheme, so Google sign-in reuses its `vmem://sso-callback` redirect.
+ * See README.md.
  *
  * `scripts/build-android-release.sh` sets `VERSION_NAME` and `VERSION_CODE`.
  * `.github/workflows/release-android.yml` reads the `DEFAULT_VERSION_NAME`
@@ -28,7 +29,7 @@ export default (_context: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: "automatic",
   platforms: ["android"],
   android: {
-    package: "com.vis1.vmem",
+    package: "com.projectvdotuk.vmem",
     versionCode: versionCode(),
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",

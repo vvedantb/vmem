@@ -44,7 +44,7 @@ Set these under Settings, Secrets and variables, Actions. The run stops at "Deco
 
 Encode a keystore with `base64 -w0 release.p12` (Linux) or `base64 -i release.p12` (macOS). Do not commit keystores: `apps/mobile/.gitignore` ignores `*.jks`, `*.keystore` and `*.p12`.
 
-Every release must use the same key. Android refuses an update signed with another key, and the user must uninstall first. The package id is `com.vis1.vmem` (see README, Sign-in). A phone that still has the archived vmem app with that id and another signature must uninstall it first.
+Every release must use the same key. Android refuses an update signed with another key, and the user must uninstall first. The package id is `com.projectvdotuk.vmem` (see README, Sign-in). Version 0.1.1 shipped with an older package id. Android treats it as another app, so a phone with 0.1.1 must uninstall it once, then install the new build.
 
 No other secret is needed. The sign-in publishable key and the API host are public. The script bakes `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` and `EXPO_PUBLIC_VMEM_BASE_URL` from the environment, else from the `process.env.NAME || "literal"` defaults in `src/config.ts`.
 

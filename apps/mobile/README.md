@@ -29,7 +29,7 @@ No Clerk dashboard change is needed:
 
 - Email and password need no redirect. They work as they do on the web.
 - Google sign-in uses the redirect of the archived app, `AuthSession.makeRedirectUri({ scheme: "vmem", path: "sso-callback" })`, which is `vmem://sso-callback` in a release build. The `app/sso-callback.tsx` route is kept.
-- The URL scheme (`vmem`) and the Android package (`com.vis1.vmem`) are the archived app's values, not a new id such as `com.projectvdotuk.vmem`. A new package or scheme could need a new entry under Native applications or the redirect allowlist. The reused values need none, if the archived app's redirect is still allowlisted on the instance. This repository cannot read the dashboard to confirm that. If Google sign-in fails with a redirect error, email and password still work.
+- The Android package is `com.projectvdotuk.vmem`, the same pattern as the other Project V apps. The URL scheme (`vmem`) is the archived app's scheme. The redirect depends on the scheme only, so it needs no new allowlist entry if the archived app's redirect is still allowlisted on the instance. If the instance has a Native applications entry keyed to the package, the new package could need one. This repository cannot read the dashboard to confirm either. If Google sign-in fails with a redirect error, email and password still work.
 
 The app does not use the desktop MCP OAuth flow, and it needs no `CLERK_SECRET_KEY`.
 
