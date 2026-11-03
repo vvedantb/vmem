@@ -41,6 +41,13 @@
     --segment: 0 0% 100%;
     --segment-foreground: 0 0% 10%;
     --separator: 0 0% 90%;
+    /* Keys the native-ui preset reads; same values as the vars they alias. */
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --danger: 8 80% 56%;
+    --danger-foreground: 0 0% 99%;
+    --surface-card: 0 0% 97%;
+    --field: 0 0% 100%;
   }
 
   .dark:root {
@@ -75,5 +82,11 @@
     --segment: 0 0% 28%;
     --segment-foreground: 0 0% 99%;
     --separator: 0 0% 13%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 99%;
+    --danger: 6 70% 60%;
+    --danger-foreground: 0 0% 99%;
+    --surface-card: 0 0% 14%;
+    --field: 0 0% 10%;
   }
 }
