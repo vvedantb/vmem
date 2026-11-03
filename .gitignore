@@ -41,12 +41,13 @@ skills-lock.json.bak
 # Internal docs, plans, dissertation — local only
 internal/
 
-# Agent workflow specs + local scripts — not shared. The compiler-check pair
-# is the exception: the pre-push hook runs it, so it must ship.
+# Agent workflow specs + local scripts — not shared. Exceptions: the
+# compiler-check pair (pre-push hook) and the Android release build (CI).
 docs/superpowers/
 scripts/*
 !scripts/compiler-check.mjs
 !scripts/compiler-check-baseline.json
+!scripts/build-android-release.sh
 
 # Chrome extension build + live-verification scripts — local only
 apps/chrome-extension/scripts/
@@ -69,5 +70,8 @@ packages/backend/eval/e2e-ab/results/
 # Desktop app packaging output
 apps/desktop/release
 .tmp-vpro-shot/
+
+# Local Android release signing (scripts/build-android-release.sh)
+keystore.properties
 
 .claude-work/

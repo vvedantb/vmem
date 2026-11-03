@@ -151,6 +151,53 @@ const config: KnipConfig = {
       // Linux window manager and terminal that scripts/packaged-test.mjs spawns.
       ignoreBinaries: ["openbox", "xterm"],
     },
+    "apps/mobile": {
+      entry: [
+        "app/**/*.tsx!",
+        "app.config.ts!",
+        "modules/vmem-tracker/index.ts!",
+        "tests/**/*.ts!",
+      ],
+      project: [
+        "app/**/*.tsx",
+        "src/**/*.{ts,tsx}",
+        "modules/**/*.ts",
+        "tests/**/*.ts",
+        "app.config.ts",
+      ],
+      // Not imported from TS. Expo config plugins and autolinked native
+      // modules (expo-font, expo-secure-store, expo-system-ui, expo-linking,
+      // expo-constants, @expo/metro-runtime); peers of @vvedantb/native-ui
+      // (some loaded with an optional require) and @clerk/clerk-expo; and
+      // the babel/tailwind toolchain.
+      ignoreDependencies: [
+        "@babel/core",
+        "@expo/metro-runtime",
+        "@expo/vector-icons",
+        "@rn-primitives/select",
+        "@rn-primitives/slot",
+        "@rn-primitives/switch",
+        "class-variance-authority",
+        "clsx",
+        "expo-blur",
+        "expo-constants",
+        "expo-crypto",
+        "expo-font",
+        "expo-haptics",
+        "expo-linking",
+        "expo-secure-store",
+        "expo-system-ui",
+        "lucide-react-native",
+        "react-dom",
+        "react-native-reanimated",
+        "react-native-safe-area-context",
+        "react-native-screens",
+        "react-native-svg",
+        "react-native-worklets",
+        "tailwind-merge",
+        "tailwindcss",
+      ],
+    },
     "packages/backend": {
       // e2e-ab eval spawns the local `claude` CLI (not a dependency).
       ignoreBinaries: ["claude"],

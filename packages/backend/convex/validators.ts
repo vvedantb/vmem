@@ -461,7 +461,7 @@ export const userSettingsFields = {
   dreamModeScheduleTime: v.optional(v.string()),
   // nightly dreaming on (default true)
   dreamModeAutomatic: v.optional(v.boolean()),
-  // nightly archive of stale browsing history, bookmarks, desktop (default true)
+  // nightly archive of stale browsing history, bookmarks, desktop, android (default true)
   dreamModeDecay: v.optional(v.boolean()),
   // nightly AI judge for near-duplicates and conflicts (default on when the
   // deployment has AI_GATEWAY_API_KEY)

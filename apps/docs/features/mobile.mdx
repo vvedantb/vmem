@@ -1,13 +1,36 @@
 ---
-title: "Mobile (removed)"
-description: "The Expo app is not in the main tree"
+title: "Android tracker"
+description: "Record app use and shares on Android, review them, then save to vmem"
 ---
 
-<Warning>
-  `apps/mobile` is **not** on `main`. There is no `pnpm mobile` script and no
-  Expo app in this checkout. The current clients are the web dashboard and the
-  Chrome extension. A native app snapshot lives on the `archive/mobile` branch
-  only.
-</Warning>
+`apps/mobile` is an Android-only Expo app. It is a tracker, like the desktop recorder, not a copy of the web dashboard. It is sideloaded through V Store, not published on Google Play.
 
-The web app is responsive. Use [vmem.vedantb.com](https://vmem.vedantb.com) or `pnpm dev` in a mobile viewport rather than a separate native project.
+## What it records
+
+- **App use.** With Usage Access, the app reads which app is in the foreground and when. It makes one item per app per hour, for example "Used Chrome for 25 min", with the sessions in the content.
+- **Shares.** Share text or a link to "Save to vmem" from any app.
+
+It does not read screen content, notifications, messages or keystrokes. vmem itself, the home screen and blocked apps are never recorded. Messaging apps (WhatsApp, Telegram, Signal, Messages, Discord, Slack and others) are blocked by default. You can edit the list in Settings.
+
+## Review before upload
+
+Every item waits in a review queue on the phone. Nothing is sent until you press **Approve** or **Approve all**. **Discard** deletes an item. You can pause recording in the app or from the **vmem recording** Quick Settings tile. **Delete all local data** removes everything the app holds on the phone.
+
+## How it saves
+
+Approved items go to `POST /api/v1/memories` with the signed-in session token, the same route as the [HTTP API](/api-reference/http-memories):
+
+| Field                  | Value                                               |
+| ---------------------- | --------------------------------------------------- |
+| `type`                 | `episodic`                                          |
+| `source`, `sourceType` | `android`                                           |
+| `tags`                 | `android`, plus `activity` and the app, or `share`  |
+| `externalId`           | Stable per phone, app and hour (or per shared text) |
+
+The `externalId` makes a retry update the same memory. Retrieval ranks `android` as a low-prior source, like `desktop`, and nightly [Dream Mode](/concepts/dream-mode) can archive stale Android rows.
+
+Sign-in uses the same account as the web app (email and password, or Google).
+
+## Develop
+
+See `apps/mobile/README.md` for the native module, the token handoff to background uploads and the review queue states, and `apps/mobile/RELEASE.md` for the release workflow and signing secrets.

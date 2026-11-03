@@ -1,0 +1,20 @@
+{
+  "extends": ["expo/tsconfig.base", "../../tsconfig.base.json"],
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "modules/**/*.ts",
+    "app.config.ts",
+    "env.d.ts",
+    "nativewind-env.d.ts"
+  ],
+  "exclude": ["node_modules", "android", "tests"]
+}
