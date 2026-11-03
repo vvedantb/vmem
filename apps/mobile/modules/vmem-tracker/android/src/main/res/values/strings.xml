@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="vmem_tracker_share_label">Save to vmem</string>
+  <string name="vmem_tracker_share_saved">Added to vmem. Review it in the app before it is saved.</string>
+  <string name="vmem_tracker_share_empty">Nothing to save. vmem takes text and links.</string>
+  <string name="vmem_tracker_tile_label">vmem recording</string>
+  <string name="vmem_tracker_tile_on">On</string>
+  <string name="vmem_tracker_tile_paused">Paused</string>
+</resources>

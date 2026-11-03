@@ -31,6 +31,7 @@ This repo is the source tree. It does not include `.env.local` or other secrets.
 - **Files** — folders, upload/preview, and PDF/text indexing into memories.
 - **Import** — client-side ChatGPT, Claude, Grok, and DeepSeek export ZIP/JSON (Sources → Import). Gemini and Perplexity are coming later.
 - **Chrome extension** — save page (popup, context menu, **Alt+S**), region screenshot (**Alt+Shift+S**), ChatGPT/Claude export + inject, bookmark/history import and auto-sync.
+- **Android tracker** — `apps/mobile` records app use (Usage Access) and shared text or links. Each item waits in an on-phone review queue until approved, then posts as an `android` episodic memory. Sideloaded through V Store ([README](apps/mobile/README.md)).
 - **Connectors** — Google Drive, Gmail, Notion, Figma, GitHub OAuth sync into memories (daily cron plus on-demand). Callback is `https://<CONVEX_SITE_URL>/api/auth/connector/callback`.
 
 ### Recall
@@ -271,6 +272,7 @@ pnpm workspace, Node 20+, pnpm 10.15.1.
 | ----------------------- | ------------------------ | ------------------------------------------------------------ |
 | `apps/web`              | `web`                    | Dashboard: memories, files, skills, sources, inbox, settings |
 | `apps/chrome-extension` | `@vmem/chrome-extension` | MV3 extension (WXT) — save pages, inject ChatGPT/Claude      |
+| `apps/mobile`           | `@vmem/mobile`           | Android tracker (Expo): app use and shares, review queue     |
 | `apps/docs`             | `docs`                   | Mintlify docs (`pnpm docs:dev` → http://localhost:3001)      |
 | `packages/backend`      | `@vmem/backend`          | Convex functions, memory engine, MCP HTTP                    |
 | `packages/shared`       | `@vmem/shared`           | Shared constants and client-safe helpers                     |
@@ -280,11 +282,11 @@ pnpm workspace, Node 20+, pnpm 10.15.1.
 
 `.env.example` files live at the root and under `apps/*` / `packages/*`. Shared UI is the published `@vvedantb/ui` package, not an in-repo `packages/ui`.
 
-Removed from `main` (snapshots on archive branches only): native Expo app (`archive/mobile`), GitHub codebase indexing / Neo4j (`features/codebases.mdx`). Docs for those are kept as explicit **removed** notes.
+Removed from `main` (snapshots on archive branches only): the old Expo chat app (`archive/mobile`; `apps/mobile` is now the Android tracker), GitHub codebase indexing / Neo4j (`features/codebases.mdx`). Docs for removed features are kept as explicit **removed** notes.
 
 ## Development
 
-- **Typecheck**: `pnpm typecheck:all` (web, backend, sdk, shared, extension, e2e)
+- **Typecheck**: `pnpm typecheck:all` (web, backend, sdk, shared, extension, desktop, mobile, e2e)
 - **Typecheck Convex** (no dev server): `cd packages/backend && npx convex codegen --typecheck enable`
 - **Lint**: `pnpm lint` (oxlint type-aware + eslint)
 - **Dead code**: `pnpm knip`

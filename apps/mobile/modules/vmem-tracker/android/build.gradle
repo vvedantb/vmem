@@ -1,0 +1,23 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.vmemtracker'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.vmemtracker"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // Periodic usage collection and upload retries while the JS app is closed.
+  implementation "androidx.work:work-runtime:2.10.5"
+}
