@@ -6,8 +6,10 @@ import { defaultSettings } from "../src/settings-schema";
 import { summarise } from "../src/summarise";
 import {
   createPoster,
+  hasCredentials,
   resolveBaseUrl,
-  resolveClientConfig,
+  resolveBearer,
+  staticApiKey,
 } from "../src/vmem-client";
 
 const memoryResponse = {
@@ -76,11 +78,13 @@ describe("vmem client", () => {
     );
     try {
       const { port } = portSchema.parse(server.address());
-      const config = resolveClientConfig(defaultSettings(), {
+      const env = {
         VMEM_API_KEY: "vmem_sk_test",
         VMEM_BASE_URL: `http://127.0.0.1:${String(port)}`,
-      });
-      assert.ok(config);
+      };
+      const post = createPoster(resolveBaseUrl(env), () =>
+        resolveBearer(defaultSettings(), env, async () => null),
+      );
 
       const t0 = Date.UTC(2026, 0, 5, 10, 0, 0);
       const { memories } = summarise(
@@ -97,7 +101,7 @@ describe("vmem client", () => {
       );
       const draft = memories[0];
       assert.ok(draft);
-      await createPoster(config)(draft);
+      await post(draft);
 
       assert.equal(seen.length, 1);
       assert.equal(seen[0]?.method, "POST");
@@ -116,50 +120,61 @@ describe("vmem client", () => {
   });
 });
 
-describe("resolveClientConfig", () => {
+describe("credentials", () => {
   const prod = "https://clear-bear-690.eu-west-1.convex.site";
+  const noSession = async (): Promise<string | null> => null;
+  const session = async (): Promise<string | null> => "session-jwt";
 
-  it("returns null with no key and no sign-in", () => {
-    assert.equal(resolveClientConfig(defaultSettings(), {}), null);
-    assert.equal(resolveClientConfig(defaultSettings(), {}, null), null);
+  it("has none with no key and no sign-in", async () => {
+    assert.equal(staticApiKey(defaultSettings(), {}), null);
+    assert.equal(hasCredentials(defaultSettings(), {}, false), false);
+    assert.equal(await resolveBearer(defaultSettings(), {}, noSession), null);
   });
 
-  it("uses a saved API key until the user signs in", () => {
-    const settings = { ...defaultSettings(), apiKey: "saved" };
-    assert.deepEqual(resolveClientConfig(settings, {}), {
-      apiKey: "saved",
-      baseUrl: prod,
-    });
+  it("counts sign-in as credentials before a token is fetched", () => {
+    assert.equal(hasCredentials(defaultSettings(), {}, true), true);
   });
 
-  it("prefers the OAuth access token over a saved key", () => {
-    const settings = { ...defaultSettings(), apiKey: "saved" };
-    assert.deepEqual(resolveClientConfig(settings, {}, "clerk-access"), {
-      apiKey: "clerk-access",
-      baseUrl: prod,
-    });
+  it("uses a saved API key until the user signs in", async () => {
+    const settings = { ...defaultSettings(), apiKey: " saved " };
+    assert.equal(staticApiKey(settings, {}), "saved");
+    assert.equal(hasCredentials(settings, {}, false), true);
+    assert.equal(await resolveBearer(settings, {}, noSession), "saved");
   });
 
-  it("lets VMEM_API_KEY win over everything", () => {
+  it("prefers the session token over a saved key", async () => {
     const settings = { ...defaultSettings(), apiKey: "saved" };
+    assert.equal(await resolveBearer(settings, {}, session), "session-jwt");
+  });
+
+  it("lets VMEM_API_KEY win without asking for a session token", async () => {
+    const settings = { ...defaultSettings(), apiKey: "saved" };
+    let asked = 0;
+    const bearer = await resolveBearer(
+      settings,
+      { VMEM_API_KEY: "env" },
+      async () => {
+        asked += 1;
+        return "session-jwt";
+      },
+    );
+    assert.equal(bearer, "env");
+    assert.equal(asked, 0);
     assert.equal(
-      resolveClientConfig(settings, { VMEM_API_KEY: "env" }, "clerk-access")
-        ?.apiKey,
+      staticApiKey(defaultSettings(), { VMEM_API_KEY: "env" }),
       "env",
     );
   });
 
   it("lets VMEM_BASE_URL override the production host", () => {
-    const config = resolveClientConfig(
-      defaultSettings(),
-      { VMEM_BASE_URL: "http://127.0.0.1:1234" },
-      "clerk-access",
+    assert.equal(
+      resolveBaseUrl({ VMEM_BASE_URL: "http://127.0.0.1:1234" }),
+      "http://127.0.0.1:1234",
     );
-    assert.equal(config?.baseUrl, "http://127.0.0.1:1234");
     assert.equal(resolveBaseUrl({}), prod);
   });
 
-  it("posts the OAuth access token as the Bearer token", async () => {
+  it("gets the Bearer token again for every post", async () => {
     const auths: (string | undefined)[] = [];
     const server = createServer((req, res) => {
       void readBody(req).then(() => {
@@ -173,20 +188,27 @@ describe("resolveClientConfig", () => {
     );
     try {
       const { port } = portSchema.parse(server.address());
-      const config = resolveClientConfig(
-        { ...defaultSettings(), apiKey: "saved" },
-        { VMEM_BASE_URL: `http://127.0.0.1:${String(port)}` },
-        "clerk-access",
+      let issued = 0;
+      const post = createPoster(
+        `http://127.0.0.1:${String(port)}`,
+        async () => {
+          issued += 1;
+          return `session-${String(issued)}`;
+        },
       );
-      assert.ok(config);
-      await createPoster(config)({
-        title: "t",
-        content: "c",
-        tags: [],
-      });
-      assert.deepEqual(auths, ["Bearer clerk-access"]);
+      const draft = { title: "t", content: "c", tags: [] };
+      await post(draft);
+      await post(draft);
+      assert.deepEqual(auths, ["Bearer session-1", "Bearer session-2"]);
     } finally {
       server.close();
     }
+  });
+
+  it("throws without a token, so the events stay queued", async () => {
+    const post = createPoster("http://127.0.0.1:9", noSession);
+    await assert.rejects(post({ title: "t", content: "c", tags: [] }), {
+      message: "Not signed in",
+    });
   });
 });

@@ -1,4 +1,7 @@
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { createClerkBridge } from "@clerk/electron";
+import { storage } from "@clerk/electron/storage";
 import {
   app,
   BrowserWindow,
@@ -7,28 +10,40 @@ import {
   ipcMain,
   Menu,
   nativeImage,
+  net,
   powerMonitor,
-  safeStorage,
+  protocol,
   shell,
   Tray,
 } from "electron";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { getActiveWindow } from "./active-window";
-import { AuthService } from "./auth";
-import { OAuthStateStorage, type SecretCrypto } from "./auth-storage";
+import { SessionAuth } from "./auth";
 import { BatchStore, flushBatch } from "./batch";
 import { recordingSettings } from "./can-record";
+import {
+  isRendererUrl,
+  publishableKey,
+  RENDERER_HOST,
+  RENDERER_SCHEME,
+  RENDERER_URL,
+  sessionIssuer,
+} from "./clerk";
+import { fromRenderer, registerClerkOAuthIpc } from "./clerk-oauth-ipc";
 import type { ActivityEvent } from "./events";
+import { IPC } from "./ipc";
 import { allowClipboard, allowScreenshot, clipboardSnippet } from "./privacy";
+import { createRendererHandler } from "./renderer-protocol";
 import { SettingsStore } from "./settings";
 import { formSettingsPatchSchema } from "./settings-schema";
 import { runPackagedTest, runSmoke } from "./self-test";
 import { Tracker } from "./tracker";
-import type { ActionResult, ViewState } from "./view-state";
+import type { ViewState } from "./view-state";
 import {
   createPoster,
+  hasCredentials,
   resolveBaseUrl,
-  resolveClientConfig,
+  resolveBearer,
+  staticApiKey,
 } from "./vmem-client";
 
 const SMOKE = process.env["VMEM_DESKTOP_SMOKE"] === "1";
@@ -37,6 +52,10 @@ const SELF_TEST = SMOKE || PACKAGED_TEST;
 const POLL_MS = 2_000;
 const SCREENSHOT_INTERVAL_MS = 10 * 60_000;
 const QUIT_FLUSH_TIMEOUT_MS = 10_000;
+// scripts/build.mjs replaces this with the build-time value, the same one Vite gives the settings window.
+const PUBLISHABLE_KEY = publishableKey(
+  process.env["VITE_CLERK_PUBLISHABLE_KEY"],
+);
 
 const here = import.meta.dirname;
 const assets = join(here, "..", "assets");
@@ -52,19 +71,20 @@ if (!app.commandLine.hasSwitch("user-data-dir")) {
 }
 app.setAboutPanelOptions({ applicationName: "vmem" });
 
-function secretCrypto(): SecretCrypto {
-  return {
-    // Linux without a keyring falls back to a hard-coded key. That is not secret, so treat it as unavailable.
-    available: () =>
-      safeStorage.isEncryptionAvailable() &&
-      !(
-        process.platform === "linux" &&
-        safeStorage.getSelectedStorageBackend() === "basic_text"
-      ),
-    encrypt: (plain) => safeStorage.encryptString(plain).toString("base64"),
-    decrypt: (cipher) =>
-      safeStorage.decryptString(Buffer.from(cipher, "base64")),
-  };
+// Self tests may run beside a real copy, so only the app itself takes the
+// single-instance lock (a second request would open the real copy's window).
+// Without the lock the bridge warns that deep links cannot arrive; self tests
+// need none. The bridge must exist before whenReady: it registers the vmem://
+// scheme, the token cache (clerk-tokens.json in userData, encrypted with
+// safeStorage) and the OAuth IPC that registerClerkOAuthIpc then replaces.
+const primary = SELF_TEST || app.requestSingleInstanceLock();
+if (primary) {
+  createClerkBridge({
+    storage: storage(),
+    renderer: { scheme: RENDERER_SCHEME, host: RENDERER_HOST },
+    manageSingleInstanceLock: false,
+    userAgent: `vmem/${app.getVersion()}`,
+  });
 }
 
 /** The tray icon: a template image on macOS (the menu bar recolours it), a colour tile elsewhere. */
@@ -77,34 +97,75 @@ function trayImage(): Electron.NativeImage {
   return image;
 }
 
+/** The app icon as a data: URL for the sign-in page in the browser. Undefined if it cannot be read. */
+function iconDataUrl(): string | undefined {
+  try {
+    return `data:image/png;base64,${readFileSync(iconPath).toString("base64")}`;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Opens https links (help, terms) in the system browser. Everything else is dropped. */
+function openHttpsExternally(url: string): void {
+  try {
+    if (new URL(url).protocol === "https:") void shell.openExternal(url);
+  } catch {
+    // Not a URL.
+  }
+}
+
 function log(message: string): void {
   process.stderr.write(`[vmem-desktop] ${message}\n`);
 }
 
 async function start(): Promise<void> {
   await app.whenReady();
+  protocol.handle(
+    RENDERER_SCHEME,
+    createRendererHandler({
+      rendererDir: join(here, "renderer"),
+      publishableKey: PUBLISHABLE_KEY,
+      fetchFile: (url) => net.fetch(url),
+    }),
+  );
+
   const userData = app.getPath("userData");
   const settings = new SettingsStore(userData);
   const batch = SMOKE ? null : new BatchStore(userData);
-  const auth = new AuthService({
-    storage: new OAuthStateStorage(settings, secretCrypto()),
-    mcpUrl: `${resolveBaseUrl(process.env)}/mcp`,
-    openExternal: async (url) => {
-      const { protocol } = new URL(url);
-      if (protocol !== "https:" && protocol !== "http:") {
-        throw new Error("Unexpected sign-in URL");
+
+  let tray: Tray | null = null;
+  let settingsWindow: BrowserWindow | null = null;
+  let flushTimer: NodeJS.Timeout | null = null;
+  let flushing: Promise<void> | null = null;
+  let quitting = false;
+
+  const auth = new SessionAuth({
+    settings,
+    issuer: sessionIssuer(PUBLISHABLE_KEY),
+    askWindow: () => {
+      if (settingsWindow === null || settingsWindow.isDestroyed()) {
+        return false;
       }
-      await shell.openExternal(url);
-    },
-    dropLegacyApiKey: () => {
-      if (settings.get().apiKey !== "") settings.update({ apiKey: "" });
+      const contents = settingsWindow.webContents;
+      // This upload fails; the next one finds the session again.
+      if (contents.isCrashed()) {
+        contents.reload();
+        return false;
+      }
+      // A page that is still loading drops the message, so fail fast.
+      if (contents.isLoading()) return false;
+      contents.send(IPC.tokenRequest);
+      return true;
     },
   });
-  const currentConfig = () =>
-    resolveClientConfig(settings.get(), process.env, auth.currentAccessToken());
+  const credentials = (): boolean =>
+    hasCredentials(settings.get(), process.env, auth.isSignedIn());
   /** Signed out counts as paused for the tracker and the capture gates. */
-  const gatedSettings = () =>
-    recordingSettings(settings.get(), currentConfig() !== null);
+  const gatedSettings = () => recordingSettings(settings.get(), credentials());
+  const post = createPoster(resolveBaseUrl(process.env), () =>
+    resolveBearer(settings.get(), process.env, () => auth.sessionToken()),
+  );
 
   const record = (event: ActivityEvent): void => batch?.append(event);
   const trackerFailures: string[] = [];
@@ -119,18 +180,19 @@ async function start(): Promise<void> {
     record,
   });
 
-  let tray: Tray | null = null;
-  let settingsWindow: BrowserWindow | null = null;
-  let flushTimer: NodeJS.Timeout | null = null;
-  let flushing: Promise<void> | null = null;
-
-  function openSettings(): void {
+  /**
+   * The settings window, created hidden on first use. It also holds the sign-in session, so closing it only hides
+   * it: main asks it for a session token before each upload. A crashed page is loaded again.
+   */
+  function ensureWindow(): BrowserWindow {
     if (settingsWindow !== null && !settingsWindow.isDestroyed()) {
-      settingsWindow.show();
-      settingsWindow.focus();
-      return;
+      if (settingsWindow.webContents.isCrashed()) {
+        settingsWindow.webContents.reload();
+      }
+      return settingsWindow;
     }
     const win = new BrowserWindow({
+      show: false,
       width: 480,
       height: 880,
       title: "vmem",
@@ -143,14 +205,43 @@ async function start(): Promise<void> {
       },
     });
     win.removeMenu();
-    void win.loadFile(join(here, "renderer", "index.html"));
+    win.on("close", (event) => {
+      if (quitting) return;
+      event.preventDefault();
+      win.hide();
+    });
+    // Windows sends no before-quit on shutdown or log off; do not block it.
+    win.on("session-end", () => {
+      quitting = true;
+    });
+    // The window only shows vmem://renderer/. Links out go to the browser.
+    win.webContents.setWindowOpenHandler(({ url }) => {
+      openHttpsExternally(url);
+      return { action: "deny" };
+    });
+    win.webContents.on("will-navigate", (event, url) => {
+      if (isRendererUrl(url)) return;
+      event.preventDefault();
+      openHttpsExternally(url);
+    });
+    void win.loadURL(RENDERER_URL);
     settingsWindow = win;
+    return win;
+  }
+
+  function openSettings(): void {
+    const win = ensureWindow();
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+    // vmem has no Dock icon on macOS, so it must take focus, for example from the browser after sign-in.
+    if (process.platform === "darwin") app.focus({ steal: true });
   }
 
   function refreshTray(): void {
     if (tray === null) return;
     const paused = settings.get().paused;
-    const signedOut = currentConfig() === null;
+    const signedOut = !credentials();
     tray.setToolTip(
       signedOut
         ? "vmem (sign in needed)"
@@ -172,17 +263,9 @@ async function start(): Promise<void> {
   }
 
   async function runFlush(): Promise<void> {
-    if (batch === null) return;
-    // Refresh an expiring Clerk token before posting. A saved key or the test key needs no refresh.
-    await auth.freshAccessToken();
-    const config = currentConfig();
-    if (config === null) return;
+    if (batch === null || !credentials()) return;
     try {
-      const { posted } = await flushBatch(
-        batch,
-        createPoster(config),
-        Date.now(),
-      );
+      const { posted } = await flushBatch(batch, post, Date.now());
       if (posted > 0) log(`posted ${String(posted)} memories`);
     } catch (error) {
       log(`flush failed: ${String(error)}`);
@@ -216,7 +299,6 @@ async function start(): Promise<void> {
       blocklist,
       launchAtLogin,
     } = current;
-    const signedIn = auth.isSignedIn();
     return {
       settings: {
         paused,
@@ -228,17 +310,15 @@ async function start(): Promise<void> {
         launchAtLogin,
       },
       auth: {
-        signedIn,
-        signingIn: auth.isSigningIn(),
-        usingSavedKey: !signedIn && currentConfig() !== null,
-        ...auth.identity(),
+        usingSavedKey:
+          !auth.isSignedIn() && staticApiKey(current, process.env) !== null,
       },
     };
   }
 
   function pushState(): void {
     if (settingsWindow !== null && !settingsWindow.isDestroyed()) {
-      settingsWindow.webContents.send("state:changed", viewState());
+      settingsWindow.webContents.send(IPC.stateChanged, viewState());
     }
   }
 
@@ -259,20 +339,6 @@ async function start(): Promise<void> {
     pushState();
   });
 
-  async function runAuthAction(
-    action: () => Promise<void>,
-  ): Promise<ActionResult> {
-    try {
-      await action();
-      return { ok: true };
-    } catch (error) {
-      return {
-        ok: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
   try {
     tray = new Tray(trayImage());
     refreshTray();
@@ -289,11 +355,10 @@ async function start(): Promise<void> {
   }
 
   if (PACKAGED_TEST) {
-    const config = currentConfig();
-    if (batch === null || config === null) {
+    if (batch === null || staticApiKey(settings.get(), process.env) === null) {
       throw new Error("Packaged test needs VMEM_API_KEY and VMEM_BASE_URL.");
     }
-    await runPackagedTest(tracker, batch, createPoster(config));
+    await runPackagedTest(tracker, batch, post);
     process.stdout.write("VMEM_DESKTOP_PACKAGED_TEST_OK\n");
     app.exit(0);
     return;
@@ -309,14 +374,38 @@ async function start(): Promise<void> {
   app.on("window-all-closed", () => {
     // Keep running in the tray.
   });
+  // "Return to vmem" on the sign-in page opens vmem://renderer/: a second
+  // instance on Windows and Linux, open-url on macOS.
   app.on("second-instance", openSettings);
+  app.on("open-url", (event, url) => {
+    if (!isRendererUrl(url)) return;
+    event.preventDefault();
+    openSettings();
+  });
 
-  ipcMain.handle("state:get", () => viewState());
-  ipcMain.handle("settings:set", (_event, patch: object) => {
+  // Social sign-in returns to a page on 127.0.0.1 (clerk-oauth-loopback.ts), not to vmem://renderer/.
+  const stopClerkOAuth = registerClerkOAuthIpc({
+    ipcMain,
+    openExternal: (url) => shell.openExternal(url),
+    bringToFront: openSettings,
+    logo: iconDataUrl(),
+  });
+  app.on("will-quit", stopClerkOAuth);
+
+  ipcMain.handle(IPC.getState, (event) => {
+    if (!fromRenderer(event)) throw new Error("Not allowed");
+    return viewState();
+  });
+  ipcMain.handle(IPC.saveSettings, (event, patch: unknown) => {
+    if (!fromRenderer(event)) throw new Error("Not allowed");
     applySettings(formSettingsPatchSchema.parse(patch));
   });
-  ipcMain.handle("auth:sign-in", () => runAuthAction(() => auth.signIn()));
-  ipcMain.handle("auth:sign-out", () => runAuthAction(() => auth.signOut()));
+  ipcMain.on(IPC.signedIn, (event, signedIn: unknown) => {
+    if (fromRenderer(event)) auth.setSignedIn(signedIn);
+  });
+  ipcMain.on(IPC.tokenReply, (event, token: unknown) => {
+    if (fromRenderer(event)) auth.receiveToken(token);
+  });
 
   // A previous run may have ended mid-session: close it at its last event.
   const last = batch?.last();
@@ -325,8 +414,10 @@ async function start(): Promise<void> {
   }
 
   scheduleFlush();
-  // Signed out: recording stays off until the user signs in.
-  if (currentConfig() === null) openSettings();
+  // The window loads hidden so it can answer token requests. Without
+  // credentials recording stays off, so show it for sign-in.
+  ensureWindow();
+  if (!credentials()) openSettings();
 
   let busy = false;
   let lastClip: string | null = null;
@@ -364,12 +455,12 @@ async function start(): Promise<void> {
     void captureScreenshot(userData, record);
   }, SCREENSHOT_INTERVAL_MS);
 
-  let quitting = false;
   app.on("before-quit", (event) => {
     if (quitting) return;
     quitting = true;
     event.preventDefault();
     tracker.stop();
+    // The window stays open until this flush ends, so it can still answer token requests.
     const timeout = new Promise<void>((resolve) =>
       setTimeout(resolve, QUIT_FLUSH_TIMEOUT_MS),
     );
@@ -403,7 +494,7 @@ async function captureScreenshot(
 }
 
 async function main(): Promise<void> {
-  if (!SELF_TEST && !app.requestSingleInstanceLock()) {
+  if (!primary) {
     app.quit();
     return;
   }

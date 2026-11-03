@@ -18,22 +18,36 @@ The app runs in the tray. On first start, signed out, it opens the settings wind
 
 ## Sign in
 
-Press **Sign in with vmem** in the settings window. The app opens your system browser for Clerk sign-in (the same OAuth that the vmem MCP server uses):
+The settings window signs in with `@clerk/electron`, as Bee (`vvedantb/bee`) does. The instance is Project V production (`clerk.projectv.uk`, publishable key `pk_live_Y2xlcmsucHJvamVjdHYudWsk`), the same as the web app and the extension.
 
-1. The app starts a one-shot server on `127.0.0.1` at a random port, with the redirect `http://127.0.0.1:<port>/callback`.
-2. It finds the OAuth metadata of `https://clear-bear-690.eu-west-1.convex.site/mcp` (the resource), registers a public client named `vmem` and opens the authorisation URL. The flow is authorization code with PKCE (`@modelcontextprotocol/sdk`).
-3. The app checks the `state`, exchanges the code and saves the tokens. The window shows your name and email (from the `id_token`, or the `userinfo` endpoint).
-4. Before each flush the app refreshes an expiring access token. It posts summaries with `Authorization: Bearer <access token>` through `@vmem/sdk`.
+1. `main.ts` calls `createClerkBridge` before `app.whenReady()`. The bridge registers the `vmem://` scheme, the token cache and the OAuth IPC. The token cache is `clerk-tokens.json` in `userData`, encrypted with Electron `safeStorage`.
+2. Main serves the settings window from `vmem://renderer/` (`src/renderer-protocol.ts`), so sign-in sees one stable origin. The response header sets a CSP that allows the Frontend API host and Cloudflare Turnstile.
+3. The window shows `<SignIn>` from `@clerk/electron/react`. Email and password sign-in runs in the window.
+4. Social sign-in opens the system browser. The browser comes back to a one-shot page at `http://127.0.0.1:45790/sso-callback` (`src/clerk-oauth-loopback.ts`, `src/clerk-oauth-ipc.ts`), not to `vmem://renderer/`: a browser cannot show a custom-scheme URL as a page. The page says how sign-in ended and links back with **Return to vmem**. The port is fixed because the exact URL must be on the allowlist. Bee uses 45789, so both apps can sign in on one computer.
+5. The window tells main when the user signs in or out. Main saves this as `signedIn` in `settings.json`. It is not a credential. It lets recording start after a restart before the window has loaded, and offline.
+6. Before each upload, main asks the window for a session token (`getToken()`) and posts with `Authorization: Bearer <session JWT>` through `@vmem/sdk`. Closing the window only hides it, so a background flush still gets a fresh token. A session token lives about a minute, so main asks again for each post. Main checks the `iss` claim. The vmem API checks the signature and expiry: `/api/v1/memories` accepts `session_token` (`packages/backend/convex/mcp/serverInfo.ts`).
 
-**Sign out** revokes the tokens at the authorisation server (best effort), clears them and removes any saved API key.
+**Sign out** (or the account menu) ends the session in the window. Main then stops recording.
 
 Signed out counts as paused: no windows, clipboard or screenshots are recorded, even when Pause is off, and nothing is posted. The tray tooltip reads `vmem (sign in needed)`.
 
-Token storage: the OAuth client information and tokens are encrypted with Electron `safeStorage` and saved as base64 ciphertext in `settings.json`. If encryption is not available (for example Linux without a keyring), tokens stay in memory for the session and you sign in again after a restart. Plain tokens never reach the disk.
+Existing installs: sign in again once. The tokens from the earlier MCP OAuth sign-in (`oauthCipher` in `settings.json`) are no longer read, and the next settings save removes them. A saved `apiKey` keeps working until you sign in. Sign-in removes it. `VMEM_API_KEY` overrides everything (tests).
 
-Existing installs: a saved `apiKey` keeps working until you sign in with Clerk. Sign-in then removes it. `VMEM_API_KEY` still overrides everything (used by tests).
+### Dashboard setup (required, one time)
 
-> **Deploy note.** The HTTP ingest route (`/api/v1/memories`) accepts a Clerk access token only after the backend change in `packages/backend/convex/http/v1Memories/apiKeyAuth.ts` is deployed to Convex prod (`clear-bear-690`). Until that deploy, Clerk sign-in works but posts return 401. API keys work either way.
+In the Clerk Dashboard for the Project V production instance:
+
+1. **Native applications**: turn on the Native API. Without it the sign-in server refuses requests from `vmem://renderer`. In tests on 3 November 2026, production answered "Production Keys are only allowed for domain projectv.uk", and the development instance refused sign-in with "only one of the 'Origin' and 'Authorization' headers should be provided".
+2. **Native applications → Allowlist for mobile SSO redirect**: add exactly `http://127.0.0.1:45790/sso-callback`.
+3. **Customization → Branding**: the sign-in form shows the vendor's "Secured by" badge unless branding is turned off there. The app copy never names the vendor.
+
+To test with the development instance (`allowing-coyote-80.clerk.accounts.dev`), make the same changes there.
+
+### Override the instance
+
+`VITE_CLERK_PUBLISHABLE_KEY` at build time overrides the key, for example `VITE_CLERK_PUBLISHABLE_KEY=pk_test_... pnpm --filter @vmem/desktop dev`. Vite gives it to the settings window. `scripts/build.mjs` reads the same value with Vite's `loadEnv` and puts it into main, which uses it for the CSP and the issuer check.
+
+On Linux without a keyring, Electron `safeStorage` uses a fixed key (`basic_text`), so `clerk-tokens.json` is obscured, not encrypted. Linux is for development and CI only.
 
 ## Settings
 
@@ -41,7 +55,7 @@ Open the settings window from the tray menu. Changes save when you switch a togg
 
 | Setting          | Default    | Notes                                                                                                                                                |
 | ---------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Account          | signed out | Sign in with vmem (Clerk). No API key or base URL fields.                                                                                            |
+| Account          | signed out | Sign in in the window (email or a social account). No API key or base URL fields.                                                                    |
 | Pause            | off        | Also in the tray. Pause records nothing.                                                                                                             |
 | Idle threshold   | 5 min      | No keyboard or mouse input for this long ends the session. Idle time is not counted.                                                                 |
 | Summary interval | 15 min     | Also flushes on quit.                                                                                                                                |
@@ -82,7 +96,7 @@ pnpm --filter @vmem/desktop smoke                 # dev build
 VMEM_DESKTOP_SMOKE=1 release/linux-unpacked/vmem-desktop --no-sandbox   # packaged
 ```
 
-Smoke starts the tray, imports `get-windows`, calls `activeWindow` once and ticks the tracker once. A headless display may return no window, which passes. If the import, the call or the tick throws, the app logs the error, exits non-zero and does not print `VMEM_DESKTOP_SMOKE_OK`. On success it prints exactly `VMEM_DESKTOP_SMOKE_OK` and exits 0. It does not write events or post. On Linux CI, run under `xvfb-run -a`. `--no-sandbox` is needed when `chrome-sandbox` is not set up.
+Smoke creates the sign-in bridge (and so loads the bundled `electron-store`), starts the tray, imports `get-windows`, calls `activeWindow` once and ticks the tracker once. Self tests skip the single-instance lock, so the bridge prints a warning that deep links cannot arrive. That is expected. A headless display may return no window, which passes. If the import, the call or the tick throws, the app logs the error, exits non-zero and does not print `VMEM_DESKTOP_SMOKE_OK`. On success it prints exactly `VMEM_DESKTOP_SMOKE_OK` and exits 0. It does not write events or post. On Linux CI, run under `xvfb-run -a`. `--no-sandbox` is needed when `chrome-sandbox` is not set up.
 
 The packaged test proves that tracking works end to end:
 
@@ -111,7 +125,7 @@ The scripts also work from `apps/desktop` (for example `pnpm exec electron-build
 
 The app ships no `node_modules`. `electron-builder` packs only `dist/**`, `assets/**` and `package.json`. `scripts/skip-node-modules.mjs` (the `beforeBuild` hook) stops it from collecting dependencies from the pnpm tree. That tree could not be resolved from the app folder, and nested packages such as `readable-stream@3` did not reach the asar.
 
-`scripts/build.mjs` bundles the main process with esbuild, including `@vmem/sdk`, `@modelcontextprotocol/sdk`, `zod` and the `get-windows` JS. Only `electron` stays external. It builds the settings window into `dist/renderer` with Vite (`vite.config.ts`). Two `get-windows` files do not survive bundling, so the build swaps them for shims in `src/native`:
+`scripts/build.mjs` bundles the main process and the preload with esbuild, including `@vmem/sdk`, `@clerk/electron`, `electron-store`, `zod` and the `get-windows` JS. Only `electron` stays external. Three modules that never run are stubs: `@clerk/electron-passkeys` (passkeys are off) and `ajv` and `ajv-formats` (`electron-store` validates only with a `schema`, and none is passed). Without the stubs their bare imports would stay in `dist` and fail `check:asar`. It builds the settings window into `dist/renderer` with Vite (`vite.config.ts`). Two `get-windows` files do not survive bundling, so the build swaps them for shims in `src/native`:
 
 - `lib/windows.js` found its addon with `@mapbox/node-pre-gyp` and `__dirname`. The shim loads `dist/native/win32-<arch>/node-get-windows.node`. `node-pre-gyp` is not bundled.
 - `lib/macos.js` ran `../main` next to the package. The shim runs `dist/native/main`.
@@ -134,4 +148,29 @@ There is no `electron-updater`, `publish` block or `latest*.yml` in this repo, s
 
 Icons live in `assets/`: `icon.png` (Linux, BrowserWindow), `icon.icns` (macOS), `icon.ico` (Windows), `tray.png` and `tray@2x.png` (Windows and Linux tray) and `trayTemplate.png` and `trayTemplate@2x.png` (macOS menu bar template, monochrome). `pnpm --filter @vmem/desktop icons` regenerates them from `apps/web/public/icon.png` and the shared `@vvedantb/ui/brand` vmem mark. The files are committed, so CI needs no `iconutil`.
 
-Releases: push a tag `desktop-v*` or run the `Desktop` workflow manually. Windows and macOS build on native runners, then a `publish` job creates the GitHub Release. Installers are unsigned.
+Releases: push a tag `desktop-v*` or run the `Desktop` workflow manually. Windows (x64 NSIS) and macOS (Apple silicon arm64 and Intel x64 dmg) build on native runners, then a `publish` job creates the GitHub Release.
+
+### Signing
+
+The workflow signs only when the secrets exist. Without them it sets `CSC_IDENTITY_AUTO_DISCOVERY=false` and builds unsigned installers. No secrets are set yet. electron-builder reads these names:
+
+| Secret                        | Use                                                                  |
+| ----------------------------- | -------------------------------------------------------------------- |
+| `CSC_LINK`                    | macOS Developer ID Application certificate (`.p12`, base64 or a URL) |
+| `CSC_KEY_PASSWORD`            | Password of that certificate                                         |
+| `APPLE_ID`                    | Apple ID for notarisation                                            |
+| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password of that Apple ID                               |
+| `APPLE_TEAM_ID`               | Apple Developer team ID                                              |
+| `WIN_CSC_LINK`                | Windows code-signing certificate (`.pfx`, base64 or a URL)           |
+| `WIN_CSC_KEY_PASSWORD`        | Password of that certificate                                         |
+
+Notarisation runs when `CSC_LINK` and the three Apple secrets are set.
+
+## Dependencies
+
+Added for sign-in, with the same ranges as Bee:
+
+- `@clerk/electron` `^0.0.47`: main, preload and React entries. It brings `@clerk/react`, `@clerk/clerk-js` and `@clerk/shared`. `@clerk/clerk-react` is not added: `@clerk/electron/react` re-exports `@clerk/react`.
+- `electron-store` `^8.2.0`: peer of `@clerk/electron/storage`.
+
+Removed: `@modelcontextprotocol/sdk` and `@vvedantb/server` (MCP OAuth only).

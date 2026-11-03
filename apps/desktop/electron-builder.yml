@@ -12,8 +12,9 @@ productName: vmem
 # Releases are GitHub artifacts from .github/workflows/desktop-release.yml, so
 # the productName change renames no update feed. The userData folder is still
 # "vmem Desktop": main.ts sets it explicitly after app.setName("vmem").
-# `dependencies: {}` stops electron-builder from collecting get-windows and zod
-# from node_modules: scripts/build.mjs bundles the main process into dist/.
+# `dependencies: {}` stops electron-builder from collecting get-windows, zod,
+# @clerk/electron and electron-store from node_modules: scripts/build.mjs
+# bundles the main process and the preload into dist/.
 extraMetadata:
   name: vmem-desktop
   productName: vmem
@@ -32,6 +33,12 @@ asarUnpack:
 # so still collects node_modules from the pnpm tree. Natives are copied by
 # build.mjs, so no rebuild is needed.
 beforeBuild: scripts/skip-node-modules.mjs
+# vmem://renderer/ is the settings window's origin. "Return to vmem" on the
+# sign-in page in the browser opens it, so the installers register the scheme
+# (Windows registry, macOS Info.plist). Linux `dir` builds have no .desktop file.
+protocols:
+  - name: vmem
+    schemes: [vmem]
 win:
   target: nsis
   icon: assets/icon.ico

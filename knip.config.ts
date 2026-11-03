@@ -138,11 +138,13 @@ const config: KnipConfig = {
       ],
       // electron: launched via the `dev`/`start` scripts and electron-builder.
       // electron-builder: runs from the `package*` scripts and CI. The build
-      // script bundles @vmem/sdk, zod and get-windows JS. tailwindcss: used by
+      // script bundles @vmem/sdk, zod and get-windows JS. electron-store: peer
+      // of @clerk/electron/storage, which imports it. tailwindcss: used by
       // renderer/globals.css `@import`; knip does not trace stylesheet imports.
       ignoreDependencies: [
         "electron",
         "electron-builder",
+        "electron-store",
         "get-windows",
         "tailwindcss",
       ],

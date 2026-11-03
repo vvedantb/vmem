@@ -1,11 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import type { FormSettings } from "../src/settings-schema";
-import {
-  actionResultSchema,
-  viewStateSchema,
-  type ViewState,
-} from "../src/view-state";
+import { viewStateSchema, type ViewState } from "../src/view-state";
 
 // Main owns the state. This store mirrors it into React and pushes no state of its own.
 let snapshot: ViewState | null = null;
@@ -48,21 +44,3 @@ export async function saveSettings(
     toast.error(message(error));
   }
 }
-
-async function runAction(
-  start: () => Promise<unknown>,
-  done: string | null,
-): Promise<void> {
-  try {
-    const result = actionResultSchema.parse(await start());
-    if (!result.ok) toast.error(result.error ?? "Something went wrong");
-    else if (done !== null) toast.success(done);
-  } catch (error) {
-    toast.error(message(error));
-  }
-}
-
-export const signIn = (): Promise<void> =>
-  runAction(() => window.vmemDesktop.signIn(), "Signed in");
-export const signOut = (): Promise<void> =>
-  runAction(() => window.vmemDesktop.signOut(), "Signed out");

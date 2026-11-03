@@ -1,10 +1,10 @@
-/** The preload bridge. Payloads cross the boundary as unknown and are parsed in desktop-state.ts. */
+/** The preload bridge (src/preload.ts). Payloads from main cross as unknown and are parsed in desktop-state.ts. */
 interface DesktopBridge {
   getState: () => Promise<unknown>;
   onState: (listener: (state: unknown) => void) => () => void;
   saveSettings: (patch: unknown) => Promise<unknown>;
-  signIn: () => Promise<unknown>;
-  signOut: () => Promise<unknown>;
+  reportSignedIn: (signedIn: boolean) => void;
+  answerTokenRequests: (getToken: () => Promise<string | null>) => void;
 }
 
 interface Window {

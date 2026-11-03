@@ -22,9 +22,9 @@
     "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "catalog:",
+    "@clerk/electron": "^0.0.47",
     "@vmem/sdk": "workspace:*",
-    "@vvedantb/server": "^0.10.0",
+    "electron-store": "^8.2.0",
     "get-windows": "^9.2.0",
     "zod": "catalog:"
   },

@@ -26,7 +26,7 @@ export class SettingsStore {
     const parsed = settingsPatchSchema.parse(patch);
     this.current = settingsSchema.parse({ ...this.current, ...parsed });
     mkdirSync(dirname(this.file), { recursive: true });
-    // The file holds the API key, so keep it owner-only.
+    // The file can hold a legacy API key, so keep it owner-only.
     writeFileSync(this.file, JSON.stringify(this.current, null, 2), {
       mode: 0o600,
     });
