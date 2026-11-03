@@ -94,10 +94,10 @@ Uploads use `Authorization: Bearer <Clerk session JWT>` on `POST /api/v1/memorie
 
 A session JWT lives for about 60 seconds. So:
 
-1. While the app is open, it uploads approved items itself with a fresh `getToken()` (`src/sync/store.ts`).
-2. On every sync, and when the app goes to the background (with `skipCache`), it writes the current token into the native module (`setAuthToken`). Native code reads the JWT `exp` and stores both in private SharedPreferences. The token is never logged.
+1. While the app is open, it uploads approved items itself. Right before the first post it mints a new token with `getToken({ skipCache: true })`, never the cached one (`src/sync/store.ts`). It asks for no token when nothing is approved.
+2. Each new token, and a new one when the app goes to the background, goes into the native module (`setAuthToken`). Native code reads the JWT `exp` and stores both in private SharedPreferences. The token is never logged.
 3. The native `UploadWorker` posts approved items with that token, but only while it is valid for at least 10 more seconds. This covers items approved just before the app closed, or approved while offline when the phone reconnects shortly after.
-4. If the token is missing or expired, or the server returns 401, items stay `approved`. They upload on the next app open, when the app has a fresh token.
+4. If the token is missing or expired, or the server returns 401, items stay `approved` and no attempt is counted. A 401 also clears the stored token. They upload on the next app open, when the app has a fresh token.
 
 Offline, 408, 429 and 5xx errors do not count against an item. Other errors count, and after 5 attempts the item shows **Try again**.
 
@@ -127,7 +127,7 @@ pnpm --filter @vmem/mobile typecheck   # app (with the native-ui source) and tes
 pnpm --filter @vmem/mobile test        # batching, summaries, externalIds, upload rules, module JS API
 ```
 
-The Kotlin code compiles in the `Release Android` workflow on every pull request that touches `apps/mobile`.
+The Kotlin code compiles in the `Release Android APK` workflow (on `main`, or a manual `dry_run`).
 
 ## Release
 

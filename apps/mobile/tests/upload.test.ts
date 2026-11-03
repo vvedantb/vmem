@@ -34,6 +34,13 @@ function row(id: number, patch: Partial<QueueRow> = {}): QueueRow {
   };
 }
 
+type Poster = (body: StructuredStoreBody) => Promise<void>;
+
+/** `connect` for a signed-in app: hands out `post`. */
+function signedIn(post: Poster): () => Promise<Poster> {
+  return () => Promise.resolve(post);
+}
+
 function fakeTracker(rows: QueueRow[]) {
   const uploaded: number[] = [];
   const failed: { id: number; error: string; countAttempt: boolean }[] = [];
@@ -66,20 +73,37 @@ describe("uploadApproved", () => {
     const posted: string[] = [];
     const result = await uploadApproved({
       tracker: fake.tracker,
-      post: (body) => {
+      connect: signedIn((body) => {
         posted.push(body.externalId ?? "");
         return Promise.resolve();
-      },
+      }),
     });
     assert.deepEqual(result, { outcome: "done", uploaded: 2 });
     assert.deepEqual(posted, ["android:test:1", "android:test:4"]);
     assert.deepEqual(fake.uploaded, [1, 4]);
   });
 
+  it("does not fetch a token when nothing is approved", async () => {
+    const fake = fakeTracker([row(1, { status: "pending_review" })]);
+    let connects = 0;
+    const result = await uploadApproved({
+      tracker: fake.tracker,
+      connect: () => {
+        connects += 1;
+        return Promise.resolve(null);
+      },
+    });
+    assert.deepEqual(result, { outcome: "done", uploaded: 0 });
+    assert.equal(connects, 0);
+  });
+
   it("waits for a token without touching rows", async () => {
     const fake = fakeTracker([row(1)]);
     assert.deepEqual(
-      await uploadApproved({ tracker: fake.tracker, post: null }),
+      await uploadApproved({
+        tracker: fake.tracker,
+        connect: () => Promise.resolve(null),
+      }),
       {
         outcome: "no-token",
         uploaded: 0,
@@ -88,25 +112,38 @@ describe("uploadApproved", () => {
     assert.deepEqual(fake.failed, []);
   });
 
-  it("stops on an expired sign-in and keeps the attempt", async () => {
+  it("stops on an expired sign-in and keeps every item approved", async () => {
     const fake = fakeTracker([row(1), row(2)]);
+    let posts = 0;
     const result = await uploadApproved({
       tracker: fake.tracker,
-      post: () => Promise.reject(new VMemoryError("nope", 401, "unauthorized")),
+      connect: signedIn(() => {
+        posts += 1;
+        return Promise.reject(new VMemoryError("nope", 401, "unauthorized"));
+      }),
     });
     assert.deepEqual(result, { outcome: "auth-failed", uploaded: 0 });
-    assert.equal(fake.failed.length, 1);
-    assert.equal(fake.failed[0]?.countAttempt, false);
+    assert.equal(posts, 1);
+    assert.deepEqual(fake.uploaded, []);
+    // markFailed only records the error; it never changes the status.
+    assert.deepEqual(fake.failed, [
+      {
+        id: 1,
+        error: "Sign-in expired. Open vmem to send.",
+        countAttempt: false,
+      },
+    ]);
   });
 
   it("counts a rejected item and carries on with the next", async () => {
     const fake = fakeTracker([row(1), row(2)]);
     const result = await uploadApproved({
       tracker: fake.tracker,
-      post: (body) =>
+      connect: signedIn((body) =>
         body.externalId === "android:test:1"
           ? Promise.reject(new VMemoryError("bad", 400, "invalid_request"))
           : Promise.resolve(),
+      ),
     });
     assert.deepEqual(result, { outcome: "done", uploaded: 1 });
     assert.deepEqual(fake.failed, [
@@ -119,10 +156,10 @@ describe("uploadApproved", () => {
     let posts = 0;
     await uploadApproved({
       tracker: fake.tracker,
-      post: () => {
+      connect: signedIn(() => {
         posts += 1;
         return Promise.resolve();
-      },
+      }),
     });
     assert.equal(posts, 0);
     assert.deepEqual(fake.failed, [

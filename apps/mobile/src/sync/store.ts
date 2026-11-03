@@ -58,12 +58,13 @@ async function guarded(action: () => Promise<void>): Promise<void> {
 }
 
 /**
- * The current session JWT (about 60 s lifetime). Also handed to the native
- * module so WorkManager can upload with it while it is still valid.
+ * A newly minted session JWT (about 60 s lifetime), never the cached one.
+ * Also handed to the native module so WorkManager can upload with it while
+ * it is still valid.
  */
-async function freshToken(skipCache = false): Promise<string | null> {
+async function freshToken(): Promise<string | null> {
   const session = getClerkInstance().session;
-  const token = session ? await session.getToken({ skipCache }) : null;
+  const token = session ? await session.getToken({ skipCache: true }) : null;
   await tracker.setAuthToken(token);
   return token;
 }
@@ -78,11 +79,17 @@ async function reload(): Promise<void> {
 }
 
 async function upload(): Promise<void> {
-  const token = await freshToken();
   const result = await uploadApproved({
     tracker,
-    post: token ? createPoster(token, VMEM_BASE_URL) : null,
+    // Never the cached token: it can be seconds from expiry.
+    connect: async () => {
+      const token = await freshToken();
+      return token ? createPoster(token, VMEM_BASE_URL) : null;
+    },
   });
+  // The server rejected this token, so the native worker must not reuse it.
+  // Items stay approved and upload on the next sync with a new token.
+  if (result.outcome === "auth-failed") await tracker.setAuthToken(null);
   if (result.uploaded > 0 || result.outcome !== "done") await reload();
 }
 
@@ -117,7 +124,7 @@ function onAppStateChange(state: AppStateStatus): void {
   } else if (state === "background") {
     // A full-length token lets WorkManager finish approved uploads after the app closes.
     void guarded(async () => {
-      await freshToken(true);
+      await freshToken();
     });
   }
 }

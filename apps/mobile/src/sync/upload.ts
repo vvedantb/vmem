@@ -78,14 +78,19 @@ export function classifyError(error: Error): Failure {
  * Uploads approved items in order. Stops at the first error that affects
  * every item (offline, 5xx, expired sign-in); other errors count against
  * that item only. The `externalId` in each body makes a repeat safe.
+ *
+ * `connect` runs only when there is something to send, right before the
+ * first post, so the session JWT (about 60 s) is fresh. Null means signed out.
+ * A 401 leaves every item `approved` with its attempts unchanged.
  */
 export async function uploadApproved(deps: {
   tracker: Pick<TrackerApi, "listQueue" | "markUploaded" | "markFailed">;
-  post: Poster | null;
+  connect: () => Promise<Poster | null>;
 }): Promise<UploadResult> {
   const rows = uploadable(await deps.tracker.listQueue());
   if (rows.length === 0) return { outcome: "done", uploaded: 0 };
-  if (deps.post === null) return { outcome: "no-token", uploaded: 0 };
+  const post = await deps.connect();
+  if (post === null) return { outcome: "no-token", uploaded: 0 };
   let uploaded = 0;
   for (const row of rows) {
     const body = parseBody(row);
@@ -94,7 +99,7 @@ export async function uploadApproved(deps: {
       continue;
     }
     try {
-      await deps.post(body);
+      await post(body);
       await deps.tracker.markUploaded(row.id);
       uploaded += 1;
     } catch (caught) {

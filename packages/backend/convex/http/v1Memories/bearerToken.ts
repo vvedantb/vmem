@@ -5,7 +5,8 @@ type BearerResolvers<A> = {
   clerk: (token: string) => Promise<A | null>;
 };
 
-// `vmem_sk_` tokens are API keys. Any other bearer is a Clerk OAuth access token.
+// `vmem_sk_` tokens are API keys. Any other bearer is a Clerk OAuth access
+// token or a Clerk session JWT (MCP_ACCEPTED_TOKEN_TYPES).
 export function resolveBearerAuth<A>(
   token: string,
   resolvers: BearerResolvers<A>,
