@@ -21,24 +21,29 @@ describe("clerk billing writers", () => {
     });
 
     expect(
-      await t.mutation(internal.clerkBilling.replacePlanSlugsInternal, {
-        clerkId: "user_a",
-        planSlugs: ["v_pro"],
+      await t.mutation(internal.clerkBilling.applyBillingChangeInternal, {
+        change: { kind: "replace", clerkId: "user_a", planSlugs: ["v_pro"] },
       }),
     ).toBe(true);
     expect(await planSlugs(t, "user_a")).toEqual(["v_pro"]);
 
-    await t.mutation(internal.clerkBilling.applyPlanItemInternal, {
-      clerkId: "user_a",
-      status: "ended",
-      slug: "v_pro",
+    await t.mutation(internal.clerkBilling.applyBillingChangeInternal, {
+      change: {
+        kind: "item",
+        clerkId: "user_a",
+        status: "ended",
+        slug: "v_pro",
+      },
     });
     expect(await planSlugs(t, "user_a")).toEqual([]);
 
-    await t.mutation(internal.clerkBilling.applyPlanItemInternal, {
-      clerkId: "user_a",
-      status: "active",
-      slug: "v_pro",
+    await t.mutation(internal.clerkBilling.applyBillingChangeInternal, {
+      change: {
+        kind: "item",
+        clerkId: "user_a",
+        status: "active",
+        slug: "v_pro",
+      },
     });
     expect(await planSlugs(t, "user_a")).toEqual(["v_pro"]);
   });
@@ -46,10 +51,13 @@ describe("clerk billing writers", () => {
   it("ignores a Clerk id without a users row", async () => {
     const t = convexTest(schema, modules);
     expect(
-      await t.mutation(internal.clerkBilling.applyPlanItemInternal, {
-        clerkId: "user_missing",
-        status: "active",
-        slug: "v_pro",
+      await t.mutation(internal.clerkBilling.applyBillingChangeInternal, {
+        change: {
+          kind: "item",
+          clerkId: "user_missing",
+          status: "active",
+          slug: "v_pro",
+        },
       }),
     ).toBe(false);
   });

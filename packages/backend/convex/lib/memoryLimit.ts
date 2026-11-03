@@ -1,4 +1,5 @@
 import { FREE_MEMORY_LIMIT, MEMORY_LIMIT_MESSAGE } from "@vmem/shared";
+import { hasVPro, parseVProCompUserIds } from "@vvedantb/server";
 import { getUserByClerkId } from "../auth";
 import type { MutationCtx } from "../_generated/server";
 import { userFacingError } from "./userFacingError";
@@ -7,7 +8,6 @@ import {
   getUserMemoryCountRow,
   setUserMemoryCount,
 } from "./userMemoryCount";
-import { userHasVPlan } from "./vPlan";
 
 export { FREE_MEMORY_LIMIT };
 
@@ -20,7 +20,15 @@ export async function assertCanCreateMemory(
   clerkId: string,
 ): Promise<void> {
   const user = await getUserByClerkId(ctx, clerkId);
-  if (userHasVPlan({ clerkId, planSlugs: user?.planSlugs })) return;
+  if (
+    hasVPro({
+      clerkId,
+      planSlugs: user?.planSlugs,
+      compIds: parseVProCompUserIds(process.env.V_PRO_COMP_USER_IDS),
+    })
+  ) {
+    return;
+  }
 
   const existing = await getUserMemoryCountRow(ctx, clerkId);
   if (existing !== null) {

@@ -1,41 +1,29 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
-import { getUserByClerkId } from "./auth";
-import { applyItemToPlanSlugs } from "./lib/vPlan";
+import { vPro } from "./vPro";
 
-// Writers for users.planSlugs, called by the Clerk Billing webhook and backfill.
-// A missing user row is a no-op: ensureUserExists reads no plan, and the next
-// event or a backfill run fills the slugs in.
-
-export const replacePlanSlugsInternal = internalMutation({
-  args: { clerkId: v.string(), planSlugs: v.array(v.string()) },
-  returns: v.boolean(),
-  handler: async (ctx, { clerkId, planSlugs }) => {
-    const user = await getUserByClerkId(ctx, clerkId);
-    if (!user) return false;
-    await ctx.db.patch(user._id, { planSlugs });
-    return true;
-  },
-});
-
-export const applyPlanItemInternal = internalMutation({
+// The one writer for users.planSlugs, called by the Clerk Billing webhook and
+// backfill. `replace` overwrites the set; `item` merges one item into it. A
+// missing user row is a no-op (returns false): the next event or a backfill
+// run fills the slugs in.
+export const applyBillingChangeInternal = internalMutation({
   args: {
-    clerkId: v.string(),
-    status: v.string(),
-    slug: v.string(),
+    change: v.union(
+      v.object({
+        kind: v.literal("replace"),
+        clerkId: v.string(),
+        planSlugs: v.array(v.string()),
+      }),
+      v.object({
+        kind: v.literal("item"),
+        clerkId: v.string(),
+        status: v.string(),
+        slug: v.string(),
+      }),
+    ),
   },
   returns: v.boolean(),
-  handler: async (ctx, { clerkId, status, slug }) => {
-    const user = await getUserByClerkId(ctx, clerkId);
-    if (!user) return false;
-    await ctx.db.patch(user._id, {
-      planSlugs: applyItemToPlanSlugs(user.planSlugs ?? [], {
-        status,
-        plan: { slug },
-      }),
-    });
-    return true;
-  },
+  handler: (ctx, { change }) => vPro.writeBillingChange(ctx, change),
 });
 
 export const listClerkIdsPageInternal = internalQuery({

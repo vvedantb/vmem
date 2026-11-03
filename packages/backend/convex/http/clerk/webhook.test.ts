@@ -36,6 +36,7 @@ describe("POST /clerk/webhooks", () => {
       body: "{}",
     });
     expect(res.status).toBe(400);
+    expect(await res.text()).toBe("Webhook not configured");
     expect(verify).not.toHaveBeenCalled();
   });
 
@@ -47,6 +48,7 @@ describe("POST /clerk/webhooks", () => {
       body: "{}",
     });
     expect(res.status).toBe(400);
+    expect(await res.text()).toBe("Invalid webhook");
   });
 
   it("replaces slugs from a subscription event", async () => {

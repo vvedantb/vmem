@@ -1,7 +1,7 @@
 import { query, internalQuery } from "./_generated/server";
 import { authQuery, getUserByClerkId } from "./auth";
 import { v } from "convex/values";
-import { userHasVPlan } from "./lib/vPlan";
+import { hasVPro, parseVProCompUserIds } from "@vvedantb/server";
 
 export const getMe = query({
   args: {},
@@ -19,9 +19,10 @@ export const hasVPlan = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity?.subject) return false;
     const user = await getUserByClerkId(ctx, identity.subject);
-    return userHasVPlan({
+    return hasVPro({
       clerkId: identity.subject,
       planSlugs: user?.planSlugs,
+      compIds: parseVProCompUserIds(process.env.V_PRO_COMP_USER_IDS),
     });
   },
 });
