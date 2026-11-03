@@ -215,8 +215,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       '@vvedantb/ui':
-        specifier: ^0.31.0
-        version: 0.31.0(cb93512f1221430ad0808cdf031a70a0)
+        specifier: ^0.34.0
+        version: 0.34.0(cb93512f1221430ad0808cdf031a70a0)
       '@webext-core/messaging':
         specifier: ^2.3.0
         version: 2.3.0
@@ -358,8 +358,8 @@ importers:
         specifier: 0.3.0
         version: 0.3.0(@electron/asar@3.4.1)
       '@vvedantb/ui':
-        specifier: ^0.31.0
-        version: 0.31.0(feedd6c005eeebe05e0a7be822346852)
+        specifier: ^0.34.0
+        version: 0.34.0(feedd6c005eeebe05e0a7be822346852)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -492,8 +492,8 @@ importers:
         specifier: ^0.10.0
         version: 0.10.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       '@vvedantb/ui':
-        specifier: ^0.31.0
-        version: 0.31.0(e242a12aa0ce8d4b8856f16eb95c9b82)
+        specifier: ^0.34.0
+        version: 0.34.0(e242a12aa0ce8d4b8856f16eb95c9b82)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -5244,8 +5244,8 @@ packages:
       zod:
         optional: true
 
-  '@vvedantb/ui@0.31.0':
-    resolution: {integrity: sha512-P6C6XF0err8rV8oZvreWrr7PAAem3mb5H1OBhyfWM5ASVZjmSoWL7dPYO3Jc8eyjrjeFxZQpdhmWRmbblGw1ww==}
+  '@vvedantb/ui@0.34.0':
+    resolution: {integrity: sha512-AWfygAMnEyLDPANQg2Tt26EJqrFVl65KfSTNpXq61FqcpVjWB62St7ecEY3VL8dBHIJXDHLyjrFEx8WVvz6hKA==}
     peerDependencies:
       '@clerk/clerk-react': '>=5'
       '@radix-ui/react-accordion': ^1.2.12
@@ -5331,6 +5331,14 @@ packages:
   '@wallet-standard/wallet@1.1.0':
     resolution: {integrity: sha512-Gt8TnSlDZpAl+RWOOAB/kuvC7RpcdWAlFbHNoi4gsXsfaWa1QCT6LBcfIYTPdOZC9OVZUDwqGuGAcqZejDmHjg==}
     engines: {node: '>=16'}
+
+  '@web-kits/motion-blur@0.1.0':
+    resolution: {integrity: sha512-lAOkIj7KOeMgCWDIjgRjZV4sbLpcGuiwHp8r4h6Z4MsJF+D8/b+j35rRddZJsZ9GY84wQTrMlmIwiDE/o8Kt0g==}
+    peerDependencies:
+      react: '>=19'
+    peerDependenciesMeta:
+      react:
+        optional: true
 
   '@webext-core/fake-browser@1.5.2':
     resolution: {integrity: sha512-nkDQwOJ23X5Q7cEtN6LRuBtVFf1KVOFi5GoQAro0lzqdh59F5E+K350j1isbnqYbzsXRh1NJtboudIcHfZtvOQ==}
@@ -15194,7 +15202,7 @@ snapshots:
       convex: 1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.31.0(cb93512f1221430ad0808cdf031a70a0)':
+  '@vvedantb/ui@0.34.0(cb93512f1221430ad0808cdf031a70a0)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
@@ -15225,6 +15233,7 @@ snapshots:
       '@streamdown/math': 1.0.3(react@19.3.0)
       '@streamdown/mermaid': 1.0.3(react@19.3.0)
       '@tabler/icons-react': 3.41.1(react@19.3.0)
+      '@web-kits/motion-blur': 0.1.0(react@19.3.0)
       ai: 7.0.108(zod@3.25.76)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
@@ -15252,7 +15261,7 @@ snapshots:
       motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.31.0(e242a12aa0ce8d4b8856f16eb95c9b82)':
+  '@vvedantb/ui@0.34.0(e242a12aa0ce8d4b8856f16eb95c9b82)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
@@ -15283,6 +15292,7 @@ snapshots:
       '@streamdown/math': 1.0.3(react@19.3.0)
       '@streamdown/mermaid': 1.0.3(react@19.3.0)
       '@tabler/icons-react': 3.41.1(react@19.3.0)
+      '@web-kits/motion-blur': 0.1.0(react@19.3.0)
       ai: 7.0.108(zod@3.25.76)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
@@ -15310,7 +15320,7 @@ snapshots:
       motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.31.0(feedd6c005eeebe05e0a7be822346852)':
+  '@vvedantb/ui@0.34.0(feedd6c005eeebe05e0a7be822346852)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
@@ -15341,6 +15351,7 @@ snapshots:
       '@streamdown/math': 1.0.3(react@19.3.0)
       '@streamdown/mermaid': 1.0.3(react@19.3.0)
       '@tabler/icons-react': 3.41.1(react@19.3.0)
+      '@web-kits/motion-blur': 0.1.0(react@19.3.0)
       ai: 7.0.108(zod@3.25.76)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
@@ -15394,6 +15405,10 @@ snapshots:
   '@wallet-standard/wallet@1.1.0':
     dependencies:
       '@wallet-standard/base': 1.1.0
+
+  '@web-kits/motion-blur@0.1.0(react@19.3.0)':
+    optionalDependencies:
+      react: 19.3.0
 
   '@webext-core/fake-browser@1.5.2':
     dependencies:
