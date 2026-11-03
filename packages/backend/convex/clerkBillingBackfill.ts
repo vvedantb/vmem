@@ -1,11 +1,10 @@
 "use node";
 
 import { createClerkClient } from "@clerk/backend";
-import { getClerkClient } from "@vvedantb/server";
+import { activePlanSlugs, getClerkClient } from "@vvedantb/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
-import { planSlugsFromItems } from "./lib/vPlan";
 
 const PAGE_SIZE = 50;
 
@@ -42,15 +41,13 @@ export const backfillUserPlanSlugs = internalAction({
           const subscription =
             await clerk.billing.getUserBillingSubscription(clerkId);
           await ctx.runMutation(
-            internal.clerkBilling.replacePlanSlugsInternal,
+            internal.clerkBilling.applyBillingChangeInternal,
             {
-              clerkId,
-              planSlugs: planSlugsFromItems(
-                subscription.subscriptionItems.map((item) => ({
-                  status: item.status,
-                  plan: item.plan,
-                })),
-              ),
+              change: {
+                kind: "replace",
+                clerkId,
+                planSlugs: activePlanSlugs(subscription.subscriptionItems),
+              },
             },
           );
           synced += 1;

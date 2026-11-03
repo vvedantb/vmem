@@ -83,7 +83,6 @@ import type * as lib_systemOneKey from "../lib/systemOneKey.js";
 import type * as lib_userFacingError from "../lib/userFacingError.js";
 import type * as lib_userMemoryCount from "../lib/userMemoryCount.js";
 import type * as lib_versionSnapshot from "../lib/versionSnapshot.js";
-import type * as lib_vPlan from "../lib/vPlan.js";
 import type * as lib_wellFormed from "../lib/wellFormed.js";
 import type * as mcp_bundled_memoryGraphHtml from "../mcp/bundled/memoryGraphHtml.js";
 import type * as mcp_content from "../mcp/content.js";
@@ -170,6 +169,7 @@ import type * as userMemoryCounts from "../userMemoryCounts.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
+import type * as vPro from "../vPro.js";
 import type * as workpools from "../workpools.js";
 
 import type {
@@ -254,7 +254,6 @@ declare const fullApi: ApiFromModules<{
   "lib/userFacingError": typeof lib_userFacingError;
   "lib/userMemoryCount": typeof lib_userMemoryCount;
   "lib/versionSnapshot": typeof lib_versionSnapshot;
-  "lib/vPlan": typeof lib_vPlan;
   "lib/wellFormed": typeof lib_wellFormed;
   "mcp/bundled/memoryGraphHtml": typeof mcp_bundled_memoryGraphHtml;
   "mcp/content": typeof mcp_content;
@@ -341,6 +340,7 @@ declare const fullApi: ApiFromModules<{
   userSettings: typeof userSettings;
   users: typeof users;
   validators: typeof validators;
+  vPro: typeof vPro;
   workpools: typeof workpools;
 }>;
 
