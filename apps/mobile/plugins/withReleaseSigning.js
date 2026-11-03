@@ -13,27 +13,27 @@ const MARKER = "// Added by apps/mobile/plugins/withReleaseSigning.js";
 
 const RELEASE_SIGNING = `
 ${MARKER}
-def vmemSigningProps = new Properties()
-def vmemSigningFile = rootProject.file("../../../keystore.properties")
-if (vmemSigningFile.exists()) {
-    vmemSigningFile.withInputStream { vmemSigningProps.load(it) }
+def releaseSigningProps = new Properties()
+def releaseSigningFile = rootProject.file("../../../keystore.properties")
+if (releaseSigningFile.exists()) {
+    releaseSigningFile.withInputStream { releaseSigningProps.load(it) }
 }
-def vmemSigning = [
+def releaseSigning = [
     "ANDROID_KEYSTORE_PATH",
     "ANDROID_KEYSTORE_PASSWORD",
     "ANDROID_KEY_ALIAS",
     "ANDROID_KEY_PASSWORD",
-].collectEntries { name -> [(name): System.getenv(name) ?: vmemSigningProps.getProperty(name)] }
-def vmemSigningMissing = vmemSigning.findAll { !it.value }.keySet()
+].collectEntries { name -> [(name): System.getenv(name) ?: releaseSigningProps.getProperty(name)] }
+def releaseSigningMissing = releaseSigning.findAll { !it.value }.keySet()
 
 android {
     signingConfigs {
         release {
-            if (vmemSigningMissing.isEmpty()) {
-                storeFile file(vmemSigning.ANDROID_KEYSTORE_PATH)
-                storePassword vmemSigning.ANDROID_KEYSTORE_PASSWORD
-                keyAlias vmemSigning.ANDROID_KEY_ALIAS
-                keyPassword vmemSigning.ANDROID_KEY_PASSWORD
+            if (releaseSigningMissing.isEmpty()) {
+                storeFile file(releaseSigning.ANDROID_KEYSTORE_PATH)
+                storePassword releaseSigning.ANDROID_KEYSTORE_PASSWORD
+                keyAlias releaseSigning.ANDROID_KEY_ALIAS
+                keyPassword releaseSigning.ANDROID_KEY_PASSWORD
             }
         }
     }
@@ -46,8 +46,8 @@ android {
 
 gradle.taskGraph.whenReady { graph ->
     def release = graph.allTasks.any { it.project == project && it.name.toLowerCase().contains("release") }
-    if (release && !vmemSigningMissing.isEmpty()) {
-        throw new GradleException("Release signing needs ${vmemSigningMissing.join(", ")} in the environment or keystore.properties in the repository root.")
+    if (release && !releaseSigningMissing.isEmpty()) {
+        throw new GradleException("Release signing needs \${releaseSigningMissing.join(", ")} in the environment or keystore.properties in the repository root.")
     }
 }
 `;
