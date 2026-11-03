@@ -1,24 +1,27 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
-import pkg from "./package.json";
 
 /**
  * Android-only tracker. The scheme (`vmem`) and package (`com.vis1.vmem`) are
  * the ones the archived vmem Expo app shipped with, so Google sign-in reuses
  * the `vmem://sso-callback` redirect that app already used. See README.md.
  *
- * The release workflow sets `VMEM_ANDROID_VERSION_CODE` (highest published
- * code + 1) and `VMEM_ANDROID_VERSION_NAME`.
+ * `scripts/build-android-release.sh` sets `VERSION_NAME` and `VERSION_CODE`.
+ * `.github/workflows/release-android.yml` reads the `DEFAULT_VERSION_NAME`
+ * line with sed as the versionName floor, so keep it a one-line literal.
  */
+const DEFAULT_VERSION_NAME = "0.1.0";
+const DEFAULT_VERSION_CODE = 1;
+
 function versionCode(): number {
-  const raw = process.env["VMEM_ANDROID_VERSION_CODE"];
+  const raw = process.env["VERSION_CODE"];
   const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_VERSION_CODE;
 }
 
 export default (_context: ConfigContext): ExpoConfig => ({
   name: "vmem",
   slug: "vmem-mobile",
-  version: process.env["VMEM_ANDROID_VERSION_NAME"] || pkg.version,
+  version: process.env["VERSION_NAME"] || DEFAULT_VERSION_NAME,
   orientation: "portrait",
   scheme: "vmem",
   icon: "./assets/icon.png",
@@ -39,6 +42,7 @@ export default (_context: ConfigContext): ExpoConfig => ({
     "expo-font",
     "expo-web-browser",
     "expo-secure-store",
+    "./plugins/withReleaseSigning.js",
   ],
   experiments: {
     typedRoutes: false,
