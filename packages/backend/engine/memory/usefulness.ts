@@ -35,6 +35,7 @@ const HIGH_SOURCES = new Set([
   "web",
 ]);
 const LOW_SOURCES = new Set([
+  "android",
   "bookmarks",
   "browsing-history",
   "desktop",
@@ -98,7 +99,7 @@ export function classifySource(
 }
 
 /**
- * Low-prior sources (browsing history, bookmarks, desktop) skip LLM entity
+ * Low-prior sources (browsing history, bookmarks, desktop, android) skip LLM entity
  * extraction. They still get embeddings.
  */
 export function isLowPriorSource(

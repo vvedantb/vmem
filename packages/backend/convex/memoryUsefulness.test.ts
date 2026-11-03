@@ -308,6 +308,7 @@ describe("Jev queue", () => {
       ["h", "browsing-history"],
       ["b", "bookmarks"],
       ["d", "desktop"],
+      ["a", "android"],
     ] as const) {
       const created = await t.mutation(
         internal.memoryStore.functions.createMemoryInternal,

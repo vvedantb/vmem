@@ -242,7 +242,7 @@ export function deterministicStats<M extends string>(
 
 /**
  * Rows the AI pass may look at: visible, not already a loser in rule A/B,
- * not a low-prior source (browsing history, bookmarks, desktop).
+ * not a low-prior source (browsing history, bookmarks, desktop, android).
  */
 export function aiEligibleRows<M extends string>(
   rows: readonly PlanRow<M>[],

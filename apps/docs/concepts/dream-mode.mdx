@@ -83,7 +83,7 @@ The AI steps run only when `AI_GATEWAY_API_KEY` is set on the deployment and `dr
 
 Decay archives browsing rows that you do not use. A row is archived only when all of these are true:
 
-- it comes from a low-prior source: browsing history, bookmarks or desktop capture
+- it comes from a low-prior source: browsing history, bookmarks, desktop or Android capture
 - `lastVisitAt` is more than 30 days ago
 - `visitCount` is at most 2
 - `usefulnessScore` is below 0.2 (a row with no score yet is kept)
@@ -116,7 +116,7 @@ Settings → Preferences → Dream Mode. MCP `settings_update` takes the same fi
 | Setting               | Default                                         | Effect                                                                                                              |
 | --------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `dreamModeAutomatic`  | on                                              | Nightly dreaming. Off: only manual runs.                                                                            |
-| `dreamModeDecay`      | on                                              | Archive stale browsing history, bookmarks and desktop rows.                                                         |
+| `dreamModeDecay`      | on                                              | Archive stale browsing history, bookmarks, desktop and Android rows.                                                |
 | `dreamModeUseAi`      | on when the deployment has `AI_GATEWAY_API_KEY` | Ask the AI judge about candidates. Off: only exact and same-page merges.                                            |
 | `dreamModeAutoAccept` | off                                             | Apply AI merges and updates with confidence ≥ 0.9 at once. Off: they wait as proposals. Contradictions always wait. |
 

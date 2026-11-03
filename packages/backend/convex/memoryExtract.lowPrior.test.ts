@@ -47,10 +47,12 @@ function memoryArgs(source: string, sourceType?: string) {
 }
 
 describe("isLowPriorSource", () => {
-  it("matches browsing-history, bookmarks and desktop on source or sourceType", () => {
+  it("matches browsing-history, bookmarks, desktop and android on source or sourceType", () => {
     expect(isLowPriorSource("browsing-history")).toBe(true);
     expect(isLowPriorSource("bookmarks")).toBe(true);
     expect(isLowPriorSource("desktop")).toBe(true);
+    expect(isLowPriorSource("android")).toBe(true);
+    expect(isLowPriorSource("android", "android")).toBe(true);
     expect(isLowPriorSource("browser-extension", "browsing-history")).toBe(
       true,
     );
@@ -73,6 +75,7 @@ describe("entity extraction for low-prior sources", () => {
     ["browsing-history", "browsing-history"],
     ["bookmarks", "bookmarks"],
     ["desktop", undefined],
+    ["android", "android"],
   ])(
     "createMemory action embeds but skips extraction for %s",
     async (source, sourceType) => {

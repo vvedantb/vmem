@@ -23,7 +23,7 @@ import { findByMemoryId } from "./memoryStore/helpers";
 // Write-time dream candidates (plan §3a step 3). After a memory is embedded,
 // its nearest vector neighbours in the same user + profile become
 // dreamCandidates rows. No AI and no merge here: nightly dreaming judges them.
-// Low-prior sources (browsing history, bookmarks, desktop) are skipped; the
+// Low-prior sources (browsing history, bookmarks, desktop, android) are skipped; the
 // source-key dedupe covers them.
 
 const PURGE_PAGE = 200;
