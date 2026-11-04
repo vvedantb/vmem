@@ -1,6 +1,7 @@
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { Button } from "@vvedantb/native-ui/button";
 import {
+  MoreFromProjectV,
   PageHeader,
   ScreenContainer,
   SettingsSection,
@@ -108,6 +109,8 @@ export default function SettingsScreen() {
             Delete all local data
           </Button>
         </SettingsSection>
+
+        <MoreFromProjectV current="vmem" />
 
         <SettingsSection
           title="Account"

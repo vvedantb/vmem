@@ -21,7 +21,7 @@
     "@rn-primitives/switch": "^1.5.2",
     "@tabler/icons-react-native": "^3.49.0",
     "@vmem/sdk": "workspace:*",
-    "@vvedantb/native-ui": "^0.7.0",
+    "@vvedantb/native-ui": "^0.8.0",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "expo": "~57.0.31",
