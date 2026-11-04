@@ -65,6 +65,22 @@ Sign in on `https://vmem.projectv.uk` in the same Chrome profile, then:
 7. Settings deep-link `https://vmem.projectv.uk/settings/extension` has auto-sync + selection popup, no codebase prompts
 8. Delete any memories created during the check
 
+## Chrome Web Store release
+
+`.github/workflows/release-extension.yml` builds and publishes the extension.
+
+1. Bump the version in `package.json` **and** `wxt.config.ts` (`manifest.version`). They must match.
+2. Commit, then tag and push: `git tag extension-vX.Y.Z && git push origin extension-vX.Y.Z`.
+3. The workflow builds with the production Convex + Clerk values, zips `dist/chrome-mv3/`, uploads and publishes it to the Chrome Web Store, and attaches the zip to a GitHub Release for the tag.
+
+The job fails if the tag version, the built `manifest.json` version, and `package.json` do not all match.
+
+Manual **Run workflow** on a branch only builds, zips, and uploads a workflow artifact. It does not publish. Run it on an `extension-v*` tag to publish.
+
+Required GitHub secrets: `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN`, `CWS_EXTENSION_ID`.
+
+The workflow publishes with `publishTarget=default` and sets no visibility. The store item keeps its current visibility (unlisted). To go public, change it in the Chrome Web Store dashboard.
+
 ## Features
 
 - **Export to vmem** — Button injected into ChatGPT/Claude to export conversations as episodic memories

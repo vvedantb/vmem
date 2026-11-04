@@ -1,12 +1,55 @@
 name: Release Chrome Extension
 
+# Tag push `extension-vX.Y.Z` → build, zip, upload + publish to the Chrome Web Store,
+# attach the zip to a GitHub Release.
+# Manual dispatch on a branch → build + zip + workflow artifact only (no CWS publish).
+# Manual dispatch on an `extension-v*` tag behaves like a tag push.
+# Never runs on push to main.
+
 on:
+  push:
+    tags:
+      - "extension-v*"
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-extension-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      PUBLISH: ${{ startsWith(github.ref, 'refs/tags/extension-v') }}
+      REF_NAME: ${{ github.ref_name }}
+      EXT_DIR: apps/chrome-extension/dist/chrome-mv3
     steps:
+      - name: Check Chrome Web Store secrets
+        if: env.PUBLISH == 'true'
+        env:
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+        run: |
+          missing=""
+          for name in CWS_CLIENT_ID CWS_CLIENT_SECRET CWS_REFRESH_TOKEN CWS_EXTENSION_ID; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing"
+            exit 1
+          fi
+
+      - name: Note build-only run
+        if: env.PUBLISH != 'true'
+        run: echo "::notice::Ref '$REF_NAME' is not an extension-v* tag. Build + artifact only; Chrome Web Store publish skipped."
+
       - uses: actions/checkout@v6
 
       - uses: pnpm/action-setup@v6
@@ -18,15 +61,120 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Decode PEM key
-        run: |
-          mkdir -p apps/chrome-extension/keys
-          echo "${{ secrets.EXTENSION_PEM_KEY_B64 }}" | base64 -d > apps/chrome-extension/keys/extension.pem
-
-      - name: Release extension
+      # Production values. Publishable keys and the Convex URL are public by design.
+      - name: Build extension
         env:
-          NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL }}
-          EXTENSION_ADMIN_KEY: ${{ secrets.EXTENSION_ADMIN_KEY }}
-          EXTENSION_UPDATE_URL: ${{ secrets.EXTENSION_UPDATE_URL }}
-          CHROME_PATH: google-chrome-stable
-        run: npx tsx scripts/release-extension.ts
+          VITE_CONVEX_URL: https://clear-bear-690.eu-west-1.convex.cloud
+          VITE_CLERK_PUBLISHABLE_KEY: pk_live_Y2xlcmsucHJvamVjdHYudWsk
+          VITE_CLERK_SYNC_HOST: https://vmem.projectv.uk
+        run: pnpm ext:build
+
+      - name: Check version
+        id: version
+        run: |
+          manifest_version="$(jq -r .version "$EXT_DIR/manifest.json")"
+          package_version="$(jq -r .version apps/chrome-extension/package.json)"
+          echo "manifest.json version: $manifest_version"
+          echo "package.json version:  $package_version"
+          if [ "$manifest_version" != "$package_version" ]; then
+            echo "::error::Built manifest version ($manifest_version) does not match package.json ($package_version). Bump both package.json and wxt.config.ts manifest.version."
+            exit 1
+          fi
+          if [ "$PUBLISH" = "true" ]; then
+            tag_version="${REF_NAME#extension-v}"
+            if [ "$tag_version" != "$manifest_version" ]; then
+              echo "::error::Tag $REF_NAME expects version $tag_version, but built manifest.json has $manifest_version."
+              exit 1
+            fi
+          fi
+          echo "value=$manifest_version" >> "$GITHUB_OUTPUT"
+
+      - name: Zip extension
+        id: zip
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          zip_path="$GITHUB_WORKSPACE/vmem-chrome-extension-$VERSION.zip"
+          (cd "$EXT_DIR" && zip -r -q "$zip_path" .)
+          ls -l "$zip_path"
+          echo "path=$zip_path" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vmem-chrome-extension-${{ steps.version.outputs.value }}
+          path: ${{ steps.zip.outputs.path }}
+          if-no-files-found: error
+
+      # Upload + publish with plain curl. Visibility is not set, so the item keeps
+      # its current store visibility (unlisted). Tokens are never printed.
+      - name: Upload and publish to Chrome Web Store
+        if: env.PUBLISH == 'true'
+        env:
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+          ZIP_PATH: ${{ steps.zip.outputs.path }}
+        run: |
+          set -euo pipefail
+          api="https://www.googleapis.com/chromewebstore/v1.1/items/$CWS_EXTENSION_ID"
+          upload_api="https://www.googleapis.com/upload/chromewebstore/v1.1/items/$CWS_EXTENSION_ID"
+
+          echo "Exchanging refresh token for access token"
+          status="$(curl -sS -o token.json -w '%{http_code}' \
+            -X POST https://oauth2.googleapis.com/token \
+            --data-urlencode "client_id=$CWS_CLIENT_ID" \
+            --data-urlencode "client_secret=$CWS_CLIENT_SECRET" \
+            --data-urlencode "refresh_token=$CWS_REFRESH_TOKEN" \
+            --data-urlencode "grant_type=refresh_token")"
+          access_token="$(jq -r '.access_token // empty' token.json)"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ] || [ -z "$access_token" ]; then
+            echo "::error::OAuth token exchange failed (HTTP $status)"
+            jq '{error, error_description}' token.json || true
+            rm -f token.json
+            exit 1
+          fi
+          rm -f token.json
+          echo "::add-mask::$access_token"
+
+          echo "Uploading $(basename "$ZIP_PATH")"
+          status="$(curl -sS -o upload.json -w '%{http_code}' \
+            -X PUT "$upload_api" \
+            -H "Authorization: Bearer $access_token" \
+            -H "x-goog-api-version: 2" \
+            -T "$ZIP_PATH")"
+          cat upload.json
+          upload_state="$(jq -r '.uploadState // empty' upload.json)"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ] || [ "$upload_state" != "SUCCESS" ] \
+            || jq -e '(.error != null) or ((.itemError // []) | length > 0)' upload.json >/dev/null; then
+            echo "::error::Chrome Web Store upload failed (HTTP $status, uploadState '$upload_state')"
+            exit 1
+          fi
+
+          echo "Publishing (publishTarget=default, visibility unchanged)"
+          status="$(curl -sS -o publish.json -w '%{http_code}' \
+            -X POST "$api/publish?publishTarget=default" \
+            -H "Authorization: Bearer $access_token" \
+            -H "x-goog-api-version: 2" \
+            -H "Content-Length: 0")"
+          cat publish.json
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ] \
+            || jq -e '.error // empty' publish.json >/dev/null \
+            || ! jq -e '(.status // []) | all(. == "OK" or . == "ITEM_PENDING_REVIEW") and length > 0' publish.json >/dev/null; then
+            echo "::error::Chrome Web Store publish failed (HTTP $status)"
+            exit 1
+          fi
+          echo "Published. Status: $(jq -c .status publish.json)"
+
+      - name: Attach zip to GitHub Release
+        if: env.PUBLISH == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ZIP_PATH: ${{ steps.zip.outputs.path }}
+        run: |
+          if gh release view "$REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$REF_NAME" "$ZIP_PATH" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$REF_NAME" "$ZIP_PATH" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --title "vmem Chrome extension $REF_NAME" --generate-notes
+          fi
