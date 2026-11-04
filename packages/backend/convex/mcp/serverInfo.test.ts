@@ -9,14 +9,27 @@ import {
 
 describe("MCP server info", () => {
   it("is 2.6.0 and names personal vs team servers", () => {
+    const branding = {
+      title: "vmem",
+      websiteUrl: "https://vmem.projectv.uk",
+      icons: [
+        {
+          src: "https://vmem.projectv.uk/icon.png",
+          mimeType: "image/png",
+          sizes: ["512x512"],
+        },
+      ],
+    };
     expect(MCP_SERVER_VERSION).toBe("2.6.0");
     expect(mcpServerInfo("personal")).toEqual({
       name: "vmem-mcp",
       version: "2.6.0",
+      ...branding,
     });
     expect(mcpServerInfo("team")).toEqual({
       name: "vmem-mcp-team",
       version: "2.6.0",
+      ...branding,
     });
   });
 
