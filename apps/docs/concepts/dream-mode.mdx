@@ -69,6 +69,8 @@ A draft is never published, also with auto-accept. It waits on the Proposals tab
 
 An agent can send a whole session with the MCP tool [`transcript_submit`](/mcp/tools#transcript_submit) or `POST /api/v1/transcripts` (plain text, Markdown, JSON or JSONL, at most 1.5 MB). The text waits in file storage as a `pending` transcript. Nothing is saved yet.
 
+Claude Code users can send every finished session automatically with a `SessionEnd` hook. See [MCP Setup → Claude Code](/mcp/setup#claude-code-send-session-transcripts).
+
 In the next nightly or manual run (AI steps on), each pending transcript gets one call (a transcript longer than one prompt is split into parts, one call each). The AI picks out durable facts, preferences, dated decisions, commands and values that worked, and lessons (what failed and why). API keys, tokens and passwords are removed, and the skill safety filter drops a memory that recommends bypassing a safeguard.
 
 Each memory then follows the AI merge rule: with `dreamModeAutoAccept` and confidence ≥ 0.9 it is saved at once, else it waits on the Proposals tab as a `transcript` proposal. An exact repeat of a visible memory is skipped. Saved memories have source `transcript` and the app as a tag (for example `claude-code`). They are embedded like other memories, so write-time candidates and the Jev judge find their duplicates and conflicts on later nights.

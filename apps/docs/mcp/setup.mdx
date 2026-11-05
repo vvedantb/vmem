@@ -40,6 +40,28 @@ Find your deployment slug in the Convex dashboard. The URL uses `.convex.site` (
 3. URL: `https://<deployment>.convex.site/mcp`
 4. Complete OAuth sign-in when prompted
 
+## Claude Code: send session transcripts
+
+A `SessionEnd` hook can send each finished Claude Code session to vmem. Nightly [Dream Mode](/concepts/dream-mode#session-transcripts) then takes durable memories from it. The hook uses `POST /api/v1/transcripts` with an API key, not MCP OAuth.
+
+1. Install the hook (it adds a `SessionEnd` entry to `~/.claude/settings.json` and keeps your other hooks):
+
+   ```bash
+   npm install -g @vmem/sdk
+   node "$(npm root -g)/@vmem/sdk/claude-code/install.mjs"
+   ```
+
+   From a clone of this repo: `node packages/sdk/claude-code/install.mjs`.
+
+2. Create an API key (**Settings → API → Keys**) and export it in the shell that starts Claude Code:
+
+   ```bash
+   export VMEM_API_KEY="vmem_sk_..."
+   export VMEM_BASE_URL="https://<your-deployment>.convex.site"
+   ```
+
+The hook skips sessions with fewer than 3 user messages and sessions it already sent. It drops thinking blocks, shortens tool output, removes API keys, tokens and passwords, and cuts the text to 1.5 MiB. It never blocks or fails the session. Each outcome is one line in `~/.claude/vmem-transcript-hook.log`.
+
 ## OAuth Flow
 
 vmem MCP uses standard OAuth 2.0 with PKCE:
