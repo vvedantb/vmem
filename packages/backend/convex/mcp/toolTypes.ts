@@ -13,6 +13,8 @@ export interface ToolHandlerContext {
   ctx: ActionCtx;
   clerkUserId: string;
   scope: McpScope;
+  /** clientInfo.name from this request's initialize; see mcpClientName */
+  clientName?: string | null;
 }
 
 export function scopedClerk(ctx: ToolHandlerContext) {
@@ -32,6 +34,28 @@ export async function requireUserId(
   );
   if (userId === null) throw new Error("User not found");
   return userId;
+}
+
+/**
+ * The connected app's MCP client name: this request's initialize, else the
+ * name stored at the last initialize. Null when unknown or the lookup fails.
+ * Pass it to resolveMcpSource for a write's source.
+ */
+export async function mcpClientName(
+  h: ToolHandlerContext,
+): Promise<string | null> {
+  if (h.clientName) return h.clientName;
+  try {
+    return await h.ctx.runQuery(internal.mcp.clientInfo.getClientNameInternal, {
+      clerkId: h.clerkUserId,
+    });
+  } catch (err) {
+    console.warn(
+      "[MCP][clientInfo] lookup failed:",
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
 }
 
 // the ctx an authAction handler gets, for tools that reuse action handlers

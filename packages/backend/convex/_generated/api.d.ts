@@ -85,6 +85,7 @@ import type * as lib_userMemoryCount from "../lib/userMemoryCount.js";
 import type * as lib_versionSnapshot from "../lib/versionSnapshot.js";
 import type * as lib_wellFormed from "../lib/wellFormed.js";
 import type * as mcp_bundled_memoryGraphHtml from "../mcp/bundled/memoryGraphHtml.js";
+import type * as mcp_clientInfo from "../mcp/clientInfo.js";
 import type * as mcp_content from "../mcp/content.js";
 import type * as mcp_fileOps from "../mcp/fileOps.js";
 import type * as mcp_graph from "../mcp/graph.js";
@@ -256,6 +257,7 @@ declare const fullApi: ApiFromModules<{
   "lib/versionSnapshot": typeof lib_versionSnapshot;
   "lib/wellFormed": typeof lib_wellFormed;
   "mcp/bundled/memoryGraphHtml": typeof mcp_bundled_memoryGraphHtml;
+  "mcp/clientInfo": typeof mcp_clientInfo;
   "mcp/content": typeof mcp_content;
   "mcp/fileOps": typeof mcp_fileOps;
   "mcp/graph": typeof mcp_graph;

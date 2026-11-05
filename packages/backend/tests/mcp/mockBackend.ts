@@ -806,6 +806,15 @@ async function dispatchName(
       clerkIdArgsSchema.parse(args);
       return null;
     }
+    // no stored MCP client name and no open dream pairs in the mock
+    case "mcp/clientInfo:getClientNameInternal": {
+      clerkIdArgsSchema.parse(args);
+      return null;
+    }
+    case "dreamCandidates:openPairsAmongInternal": {
+      z.object({ memoryIds: z.array(z.string()) }).parse(args);
+      return [];
+    }
     default:
       throw new Error(`unmocked Convex function: ${name}`);
   }

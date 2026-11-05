@@ -67,7 +67,9 @@ describe("buildContextPack", () => {
     expect(pack.truncated).toBe(false);
     const md = pack.markdown;
     expect(md).toContain("Task: set up the monorepo");
-    expect(md).toContain("**Prefers pnpm** (id: m1, knowledge)");
+    expect(md).toContain(
+      "**Prefers pnpm** (id: m1, knowledge) — Use pnpm workspaces (saved 2026-01-01, via mcp)",
+    );
     expect(md).toContain("_why: fulltext match_");
     expect(md.indexOf("## Relevant memories")).toBeLessThan(
       md.indexOf("## Suggested skills"),
@@ -96,6 +98,41 @@ describe("buildContextPack", () => {
     expect(pack.memoryIds.length).toBeLessThan(10);
     expect(pack.truncated).toBe(true);
     expect(pack.markdown).toContain("…");
+  });
+
+  it("trims content, not the line, to fit the saved suffix", () => {
+    const pack = buildContextPack({
+      task: "anything",
+      memories: [candidate("m1", "Long", "word ".repeat(300).trim())],
+      skills: [],
+      profile: null,
+      maxChars: 8000,
+    });
+    const line = pack.markdown
+      .split("\n")
+      .find((row) => row.startsWith("- **Long**"));
+    const prefix = "- **Long** (id: m1, knowledge) — ";
+    expect(line?.endsWith("… (saved 2026-01-01, via mcp)")).toBe(true);
+    // content + suffix stays within the old 600-char clip (+ the ellipsis)
+    expect((line ?? "").length - prefix.length).toBeLessThanOrEqual(600 + 1);
+  });
+
+  it("marks maybe-conflict partners on the line", () => {
+    const pack = buildContextPack({
+      task: "anything",
+      memories: [
+        {
+          ...candidate("m1", "A", "Deploys go to Vercel"),
+          conflictsWith: ["m2"],
+        },
+      ],
+      skills: [],
+      profile: null,
+      maxChars: 8000,
+    });
+    expect(pack.markdown).toContain(
+      "Deploys go to Vercel (saved 2026-01-01, via mcp, may conflict with m2)",
+    );
   });
 
   it("says so when nothing matched and omits empty sections", () => {

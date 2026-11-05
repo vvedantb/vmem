@@ -73,6 +73,22 @@ export const memoryWithTagsSchema = memoryNodeSchema.extend({
   visitCount: z.number().optional(),
 });
 
+/** A visible memory whose words overlap a new memory_add write (no LLM). */
+export const memoryConflictSchema = z.object({
+  id: z.string(),
+  content: z.string(),
+  /** ISO date-time the existing memory was saved. */
+  createdAt: z.string(),
+});
+
+/** memory_add result: the stored row plus near matches and retired rows. */
+export const memoryAddResultSchema = memoryWithTagsSchema.extend({
+  /** Set when other memories look like the same fact; review, then pass `supersedes`. */
+  conflicts: z.array(memoryConflictSchema).optional(),
+  /** Count of `supersedes` ids retired as prior versions of this memory. */
+  superseded: z.number().optional(),
+});
+
 export const graphPathTraceSchema = z.object({
   seedTitle: z.string(),
   bridgingEntity: z.string().nullable(),
@@ -127,6 +143,8 @@ export const agentProposalSchema = z.object({
 
 export type MemoryNode = z.infer<typeof memoryNodeSchema>;
 export type MemoryWithTags = z.infer<typeof memoryWithTagsSchema>;
+export type MemoryConflict = z.infer<typeof memoryConflictSchema>;
+export type MemoryAddResult = z.infer<typeof memoryAddResultSchema>;
 export type MemoryUsefulness = z.infer<typeof memoryUsefulnessSchema>;
 export type GraphPathTrace = z.infer<typeof graphPathTraceSchema>;
 export type ScoreBreakdown = z.infer<typeof scoreBreakdownSchema>;

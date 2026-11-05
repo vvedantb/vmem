@@ -20,6 +20,7 @@ import {
   RECALL_MIN_TOKENS,
   RECALL_RETRIEVE_LIMIT,
 } from "../../engine/memory/recallContext";
+import { applyOpenPairs, type OpenPair } from "../../engine/memory/openPairs";
 import {
   classifyQueryTemporal,
   parseReferenceMs,
@@ -129,6 +130,25 @@ async function packProfile(h: ToolHandlerContext): Promise<string | null> {
   }
 }
 
+// open dreamCandidates pairs among retrieved rows (both rows already passed
+// the retrieve scope check); a failure means no pairs, never a failed tool
+async function openPairsAmong(
+  h: ToolHandlerContext,
+  memoryIds: string[],
+): Promise<OpenPair[]> {
+  if (memoryIds.length < 2) return [];
+  try {
+    return await h.ctx.runQuery(
+      internal.dreamCandidates.openPairsAmongInternal,
+      { memoryIds },
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "unknown error";
+    console.warn("[MCP] open dream pairs failed:", message);
+    return [];
+  }
+}
+
 const PERIOD_SUMMARY_CAP = 3;
 
 // stored rollups for a task that names a time ("last week", a date); one
@@ -194,7 +214,7 @@ export const contextToolSpecs = {
     name: "recall_context",
     schema: recallContextSchema,
     description:
-      "Call at the start of every turn with the user's message. Returns a compact text block (default 1500 tokens, ~4 chars a token) with the most relevant memories (hybrid search, no LLM rerank; browsing-history page visits rank last), the 'Use when' lines of skills that match on their name or 2+ meaningful words, and a few profile facts (personal connector only), filled in that order until maxTokens. Prior versions of changed facts are left out. counts has memories, skills, facts and approxTokens; memoryIds / skillNames list what was included and truncated flags a cut. Use context_pack for a larger pack at task start.",
+      "Call at the start of every turn with the user's message. Returns a compact text block (default 1500 tokens, ~4 chars a token) with the most relevant memories (hybrid search, no LLM rerank; browsing-history page visits rank last), the 'Use when' lines of skills that match on their name or 2+ meaningful words, and a few profile facts (personal connector only), filled in that order until maxTokens. Prior versions of changed facts are left out. Each memory line ends with (saved YYYY-MM-DD, via <source>). When two retrieved memories are an open near-duplicate pair, only the newer one is shown (hiddenDuplicates lists the older id and the kept id); an open possible-conflict pair stays, each line marked 'may conflict with <id>'. counts has memories, skills, facts and approxTokens; memoryIds / skillNames list what was included and truncated flags a cut. Use context_pack for a larger pack at task start.",
     errorLabel: "Recall context failed",
     async run(h, params): Promise<unknown> {
       const startedAt = Date.now();
@@ -260,10 +280,17 @@ export const contextToolSpecs = {
             }),
         }),
       );
+      const [pairs, pairsMs] = await measured(() =>
+        openPairsAmong(
+          h,
+          memories.map((hit) => hit.id),
+        ),
+      );
+      const paired = applyOpenPairs(memories, pairs);
       const [recall, buildMs] = await measured(async () =>
         buildRecallContext({
           message: params.message,
-          memories: rankRecallMemories(memories),
+          memories: rankRecallMemories(paired.memories),
           skills: matchRecallSkills(params.message, prelude.skills),
           facts: profileFacts(prelude.profile),
           maxTokens: clampRecallTokens(params.maxTokens),
@@ -288,19 +315,22 @@ export const contextToolSpecs = {
           preludeMs,
           ...timing,
           retrieveMs,
+          pairsMs,
           buildMs,
           trackMs,
           totalMs: Date.now() - startedAt,
         }),
       );
-      return recall;
+      return paired.hidden.length === 0
+        ? recall
+        : { ...recall, hiddenDuplicates: paired.hidden };
     },
   }),
   context_pack: toolSpec({
     name: "context_pack",
     schema: contextPackSchema,
     description:
-      "One call at task start: returns a budgeted markdown pack with the memories most relevant to the task (same retrieve + Jev rerank as memory_retrieve), the best-fit skills (same as skills_recommend), and the user profile from context_prompt_get (personal connector only). When the task names a time window (yesterday, last week, a date), periodSummaries adds up to 3 stored rollup summaries for it (see memory_timeline). Sections fill in that order until maxChars; memoryIds / skillNames list what was included and truncated flags a cut. Call skills_get before following a suggested skill.",
+      "One call at task start: returns a budgeted markdown pack with the memories most relevant to the task (same retrieve + Jev rerank as memory_retrieve), the best-fit skills (same as skills_recommend), and the user profile from context_prompt_get (personal connector only). When the task names a time window (yesterday, last week, a date), periodSummaries adds up to 3 stored rollup summaries for it (see memory_timeline). Sections fill in that order until maxChars; memoryIds / skillNames list what was included and truncated flags a cut. Memory lines carry (saved YYYY-MM-DD, via <source>); open near-duplicate and possible-conflict pairs are handled as in recall_context (hiddenDuplicates, 'may conflict with <id>'). Call skills_get before following a suggested skill.",
     errorLabel: "Context pack failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
@@ -332,9 +362,16 @@ export const contextToolSpecs = {
               packProfile(h),
               packPeriodSummaries(h, scope, params.task, params.referenceDate),
             ]);
+          const paired = applyOpenPairs(
+            memories,
+            await openPairsAmong(
+              h,
+              memories.map((hit) => hit.id),
+            ),
+          );
           const pack = buildContextPack({
             task: params.task,
-            memories,
+            memories: paired.memories,
             skills: skills?.skills ?? [],
             profile,
             maxChars: params.maxChars ?? CONTEXT_PACK_DEFAULT_CHARS,
@@ -343,6 +380,9 @@ export const contextToolSpecs = {
           return {
             ...pack,
             skillSource: skills?.source ?? null,
+            ...(paired.hidden.length === 0
+              ? {}
+              : { hiddenDuplicates: paired.hidden }),
             ...(periodSummaries === null ? {} : { periodSummaries }),
           };
         },

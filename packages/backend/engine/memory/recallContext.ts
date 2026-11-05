@@ -1,6 +1,11 @@
 import type { MemoryCandidate } from "@vmem/sdk";
 import { truncateAtWord } from "../llm/truncateAtWord";
 import type { SkillIndexSlice } from "./jevSkillRecommend";
+import {
+  contentBudget,
+  provenanceSuffix,
+  type LineProvenance,
+} from "./recallLine";
 import { contentTokens } from "./tokens";
 import { isLowPriorSource } from "./usefulness";
 
@@ -168,7 +173,11 @@ export function profileFacts(profile: string | null): string[] {
 
 export function buildRecallContext(args: {
   message: string;
-  memories: readonly Pick<MemoryCandidate, "id" | "title" | "content">[];
+  memories: readonly (Pick<
+    MemoryCandidate,
+    "id" | "title" | "content" | "createdAt" | "source"
+  > &
+    Pick<LineProvenance, "conflictsWith">)[];
   skills: readonly SkillIndexSlice[];
   facts: readonly string[];
   maxTokens: number;
@@ -211,12 +220,14 @@ export function buildRecallContext(args: {
     return added;
   };
 
-  const memories = addSection(
-    "## Memories",
-    args.memories,
-    (memory) =>
-      `- ${memory.title} (id: ${memory.id}): ${clip(memory.content, MEMORY_CONTENT_CHARS)}`,
-  );
+  const memories = addSection("## Memories", args.memories, (memory) => {
+    const suffix = provenanceSuffix(memory);
+    const content = clip(
+      memory.content,
+      contentBudget(MEMORY_CONTENT_CHARS, suffix),
+    );
+    return `- ${memory.title} (id: ${memory.id}): ${content}${suffix}`;
+  });
   const skills = addSection(
     "## Skills (call skills_get before following one)",
     args.skills,

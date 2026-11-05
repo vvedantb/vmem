@@ -57,6 +57,8 @@ const schema = defineSchema({
     isAdmin: v.optional(v.boolean()),
     // Active Clerk Billing plan slugs, synced by the /clerk/webhooks route.
     planSlugs: v.optional(v.array(v.string())),
+    // last MCP initialize clientInfo.name (normalized), the source of MCP writes
+    mcpClientName: v.optional(v.string()),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"]),

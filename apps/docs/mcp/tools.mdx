@@ -68,6 +68,8 @@ Call at the start of every turn with the user's message. Returns a compact text 
 
 Sections fill in priority order until `maxTokens`: relevant memories (up to 8), the "Use when" lines of matching skills (up to 3), then a few profile facts (personal connector only).
 
+Each memory line ends with `(saved YYYY-MM-DD, via <source>)`: the UTC date it was saved and the app that wrote it. The content is clipped to make room, so a line is no longer than before. When two retrieved memories form an open Dream Mode pair, a near-duplicate pair shows only the newer row, and a possible-conflict pair keeps both rows, each marked `may conflict with <id>`.
+
 <ParamField body="message" type="string" required>
   The user's current message or task
 </ParamField>
@@ -78,7 +80,7 @@ Sections fill in priority order until `maxTokens`: relevant memories (up to 8), 
   Token budget, clamped to 200–6000 (default 1500)
 </ParamField>
 
-**Returns:** `{ text, memoryIds, skillNames, counts: { memories, skills, facts, approxTokens }, truncated }`.
+**Returns:** `{ text, memoryIds, skillNames, counts: { memories, skills, facts, approxTokens }, truncated, hiddenDuplicates? }`. `hiddenDuplicates` lists `{ id, keptId }` for each older near-duplicate left out.
 
 ---
 
@@ -107,7 +109,7 @@ Sections fill in priority order until `maxChars`: relevant memories (same retrie
   ISO date used as “now” for temporal scoring
 </ParamField>
 
-**Returns:** `{ markdown, memoryIds, skillNames, includesProfile, truncated, skillSource, periodSummaries? }`. `truncated` is `true` when the budget cut a memory, skill, or the profile. `skillSource` is `jev`, `lexical`, or `null` when skills were skipped. `periodSummaries` is present only when the task names a time window (“yesterday”, “last week”, a date) and stored rollups exist for it: up to 3 rows shaped like `memory_timeline` summaries. It is not part of `markdown`.
+**Returns:** `{ markdown, memoryIds, skillNames, includesProfile, truncated, skillSource, periodSummaries? }`. `truncated` is `true` when the budget cut a memory, skill, or the profile. `skillSource` is `jev`, `lexical`, or `null` when skills were skipped. Memory lines carry the same `(saved …, via …)` suffix and open Dream Mode pairs are handled as in `recall_context`, with `hiddenDuplicates` when a row was left out. `periodSummaries` is present only when the task names a time window (“yesterday”, “last week”, a date) and stored rollups exist for it: up to 3 rows shaped like `memory_timeline` summaries. It is not part of `markdown`.
 
 ---
 
@@ -214,7 +216,8 @@ Store a new memory.
   `profile`, `episodic`, or `knowledge`
 </ParamField>
 <ParamField body="source" type="string" required>
-  Origin (e.g. `claude`, `chatgpt`, `manual`)
+  Fallback origin (e.g. `claude`, `chatgpt`, `manual`). The server records the
+  connected app's MCP client name instead when it knows it.
 </ParamField>
 <ParamField body="tags" type="string[]">
   Tags for categorization
@@ -222,13 +225,21 @@ Store a new memory.
 <ParamField body="confidence" type="number">
   0–1 (default 1.0)
 </ParamField>
+<ParamField body="supersedes" type="string[]">
+  Up to 20 memory IDs this memory replaces. Each is retired as a prior version
+  of the new memory (see `memory_history`). IDs outside the profile are skipped.
+</ParamField>
 <ParamField body="profileId" type="string">
   Profile to add to (defaults to active profile)
 </ParamField>
 
-**Returns:** Created memory object.
+**Returns:** Created memory object, plus `conflicts?: [{ id, content, createdAt }]` and `superseded?` (the count of `supersedes` IDs retired).
 
 An exact repeat (same title and content, ignoring case and spacing) of a visible memory in the same profile is not stored again. The tool returns the existing memory with `deduped: true`, bumps its visit count, and merges its tags and confidence. A pinned memory only gets the visit count. A suppressed or expired match does not count.
+
+Before the write, one full-text search finds visible memories in the profile that share most of the new memory's words (the same word-overlap rule as instruction supersede; no AI call). The new memory is always stored. Matches come back in `conflicts`, so the agent can check them and pass their IDs in `supersedes` on a later write, or edit or delete them.
+
+**Source:** on `initialize`, the server stores the MCP client's `clientInfo.name` (lowercased, for example `claude-code` or `cursor-vscode`) on the user. Later writes record that name as `source`. Without a stored name, the agent's `source` is used, else `mcp`. One name is kept per user, so two apps connected at the same time share the name of the last one to connect.
 
 A new memory is not merged with similar rows at write time. When its embedding is stored, near pairs are saved as Dream Mode candidates, and the nightly run judges them. See [Dream Mode](/concepts/dream-mode#write-time-candidates).
 
@@ -240,13 +251,13 @@ Store up to 50 memories in one call, for example a ChatGPT or Claude export. Ite
 
 <ParamField body="items" type="object[]" required>
   1–50 items, each with the `memory_add` fields (`title`, `content`, `type`,
-  `source`, optional `tags`, `confidence`)
+  `source`, optional `tags`, `confidence`, `supersedes`)
 </ParamField>
 <ParamField body="profileId" type="string">
   Profile to add to (defaults to active profile)
 </ParamField>
 
-**Returns:** `{ profileId, created: [{ index, id, title, deduped? }], failed: [{ index, error }] }`
+**Returns:** `{ profileId, created: [{ index, id, title, deduped?, conflicts?, superseded? }], failed: [{ index, error }] }`
 
 ---
 

@@ -15,8 +15,9 @@ function handlerContext(
   clerkUserId: string,
   ctx: ActionCtx,
   scope: McpScope,
+  clientName: string | null,
 ): ToolHandlerContext {
-  return { ctx, clerkUserId, scope };
+  return { ctx, clerkUserId, scope, clientName };
 }
 
 type CatalogEntry = (typeof toolSpecs)[keyof typeof toolSpecs];
@@ -80,9 +81,11 @@ export function registerTools(
   clerkUserId: string,
   ctx: ActionCtx,
   scope: McpScope,
+  // clientInfo.name when this request is an initialize, else null
+  clientName: string | null = null,
 ): void {
   const scopeLabel = scope === "team" ? "team" : "personal";
-  const h = handlerContext(clerkUserId, ctx, scope);
+  const h = handlerContext(clerkUserId, ctx, scope, clientName);
 
   for (const key of Object.keys(toolSpecs)) {
     if (!isToolSpecKey(key)) continue;

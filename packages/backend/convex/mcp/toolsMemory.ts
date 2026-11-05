@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
   deleteBodySchema,
+  type MemoryAddResult,
+  type MemoryConflict,
   instructionStoreBodySchema,
   memoryStatusSchema,
   memoryTypeSchema,
@@ -13,9 +15,12 @@ import type { Doc } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import type { MemoryListResult, MemoryWithTags } from "../memoryApi/types";
 import { enqueueMemoryAccess } from "../memoryUsefulness";
-import { scopedMemory, toolSpec } from "./toolTypes";
+import { findNearMatches } from "../../engine/memory/supersede";
+import { resolveMcpSource } from "./clientInfo";
+import { mcpClientName, scopedMemory, toolSpec } from "./toolTypes";
 import {
   loadMemoryForMcpScope,
+  memoryReadScopeForMcp,
   runForMcpScope,
   updateMemoryInMcpScope,
   withMcpMemoryScope,
@@ -31,6 +36,7 @@ import {
   retrieveMemoriesForClerk,
   retrieveMemoriesForTeamProfile,
   storeMemoryFromInstruction,
+  supersedeMemoryTargets,
   toMemoryStatus,
   toMemoryType,
 } from "../memoryRuntime";
@@ -160,6 +166,8 @@ const memoryRetrieveSchema = retrieveBodySchema
       .describe("ISO date used for last-week / currently temporal scoring"),
   });
 
+const SUPERSEDES_MAX = 20;
+
 const memoryAddSchema = structuredStoreBodySchema
   .omit({
     expiresAt: true,
@@ -177,7 +185,7 @@ const memoryAddSchema = structuredStoreBodySchema
       "Memory type: profile, episodic, or knowledge",
     ),
     source: structuredStoreBodySchema.shape.source.describe(
-      "Where this memory came from (e.g. 'claude', 'chatgpt', 'manual')",
+      "Fallback source label (e.g. 'claude', 'chatgpt', 'manual'). The server records the connected app's MCP client name instead when it knows it",
     ),
     tags: z
       .array(z.string())
@@ -191,6 +199,13 @@ const memoryAddSchema = structuredStoreBodySchema
       .max(1)
       .optional()
       .describe("Confidence score 0-1 (default 1.0)"),
+    supersedes: z
+      .array(z.string())
+      .max(SUPERSEDES_MAX)
+      .optional()
+      .describe(
+        "Memory IDs this memory replaces (e.g. ids from a previous result's conflicts). Each is retired as a prior version of the new memory (see memory_history). IDs outside the profile are skipped",
+      ),
     profileId: z
       .string()
       .optional()
@@ -205,7 +220,7 @@ const memoryAddBatchSchema = z.object({
     .min(1)
     .max(MEMORY_ADD_BATCH_MAX)
     .describe(
-      "Up to 50 memories, each shaped like memory_add (title, content, type, source?, tags?, confidence?)",
+      "Up to 50 memories, each shaped like memory_add (title, content, type, source?, tags?, confidence?, supersedes?)",
     ),
   profileId: z
     .string()
@@ -293,21 +308,88 @@ const memoryRelatedSchema = z.object({
 
 type MemoryAddFields = Omit<z.infer<typeof memoryAddSchema>, "profileId">;
 
-function addMemoryInScope(
+// the near-match search reads this much of the new memory
+const CONFLICT_QUERY_CHARS = 300;
+
+// visible memories in the scope that share words with the new one: one
+// bounded full-text query (the retrieve text pass). A failed search means no
+// conflicts, never a failed write
+async function conflictCandidates(
+  ctx: ActionCtx,
+  scope: McpResolvedScope,
+  fields: Pick<MemoryAddFields, "title" | "content">,
+): Promise<MemoryWithTags[]> {
+  const query = `${fields.title}\n${fields.content}`.slice(
+    0,
+    CONFLICT_QUERY_CHARS,
+  );
+  try {
+    const hits = await ctx.runQuery(
+      internal.memoryStore.functions.searchMemoriesTextInternal,
+      scope.mcpScope === "team"
+        ? { kind: "team", profileId: scope.profileId, query }
+        : {
+            kind: "personal",
+            userId: scope.clerkId,
+            profileId: scope.profileId,
+            query,
+          },
+    );
+    return hits.map((hit) => hit.memory);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "unknown error";
+    console.warn("[MCP][memory_add] conflict search failed:", message);
+    return [];
+  }
+}
+
+function toConflict(memory: MemoryWithTags): MemoryConflict {
+  return {
+    id: memory.id,
+    content: memory.content,
+    createdAt: memory.createdAt,
+  };
+}
+
+/**
+ * Writes one memory (exact-hash dedupe as before), retires `supersedes`
+ * through the supersede path, and returns other near matches (word overlap
+ * at the supersede threshold, no LLM) as `conflicts`.
+ */
+async function addMemoryInScope(
   ctx: ActionCtx,
   scope: McpResolvedScope,
   fields: MemoryAddFields,
-): Promise<MemoryWithTags> {
-  return createMemoryForClerk(ctx, {
+  source: string,
+): Promise<MemoryAddResult> {
+  const nearby = await conflictCandidates(ctx, scope, fields);
+  const created = await createMemoryForClerk(ctx, {
     clerkId: scope.clerkId,
     profileId: scope.profileId,
     title: fields.title,
     content: fields.content,
     type: toMemoryType(fields.type) ?? "knowledge",
-    source: fields.source ?? "mcp",
+    source,
     tags: fields.tags ?? [],
     confidence: fields.confidence ?? 1.0,
   });
+  const supersedes = fields.supersedes ?? [];
+  const superseded = await supersedeMemoryTargets(
+    ctx,
+    memoryReadScopeForMcp(scope),
+    supersedes,
+    created.id,
+  );
+  const retired = new Set([created.id, ...supersedes]);
+  const conflicts = findNearMatches(
+    fields,
+    nearby.filter((memory) => !retired.has(memory.id)),
+  ).map(toConflict);
+  return {
+    ...created,
+    ...(conflicts.length > 0 ? { conflicts } : {}),
+    ...(supersedes.length > 0 ? { superseded } : {}),
+  };
 }
 
 export const memoryToolSpecs = {
@@ -413,13 +495,22 @@ export const memoryToolSpecs = {
     name: "memory_add",
     schema: memoryAddSchema,
     description:
-      "Store a new memory. Use type 'profile' for stable user facts, 'episodic' for past events/interactions, 'knowledge' for durable extracted knowledge. An exact repeat (same title and content) of a visible memory in the profile is not stored again: the existing memory comes back with deduped: true, its visit count bumped and tags merged. Adds to the active profile unless profileId is specified.",
+      "Store a new memory. Use type 'profile' for stable user facts, 'episodic' for past events/interactions, 'knowledge' for durable extracted knowledge. An exact repeat (same title and content) of a visible memory in the profile is not stored again: the existing memory comes back with deduped: true, its visit count bumped and tags merged. Otherwise the memory is always stored; when other memories share most of its words, conflicts lists them (id, content, createdAt). If the new memory replaces them, call memory_add with supersedes: [ids] next time, or memory_update / memory_delete the old ones. supersedes retires the given ids as prior versions of the new memory (superseded is the count retired). source is recorded from the connected app when the server knows it. Adds to the active profile unless profileId is specified.",
     errorLabel: "Add memory failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
         h.ctx,
         { ...scopedMemory(h), profileId: params.profileId },
-        (scope) => addMemoryInScope(h.ctx, scope, params),
+        async (scope) =>
+          addMemoryInScope(
+            h.ctx,
+            scope,
+            params,
+            resolveMcpSource({
+              clientName: await mcpClientName(h),
+              agentSource: params.source,
+            }),
+          ),
       );
     },
   }),
@@ -427,28 +518,42 @@ export const memoryToolSpecs = {
     name: "memory_add_batch",
     schema: memoryAddBatchSchema,
     description:
-      "Store up to 50 memories in one call (bulk import, e.g. a ChatGPT or Claude export). Each item takes the same fields as memory_add. Items are stored one by one in order; returns created ids (deduped: true when an item repeated an existing memory) and per-item errors, so a failed item does not undo the others. Adds to the active profile unless profileId is specified.",
+      "Store up to 50 memories in one call (bulk import, e.g. a ChatGPT or Claude export). Each item takes the same fields as memory_add, including supersedes. Items are stored one by one in order; returns created ids (deduped: true when an item repeated an existing memory, conflicts when it overlaps other memories, superseded when it retired supersedes ids) and per-item errors, so a failed item does not undo the others. Adds to the active profile unless profileId is specified.",
     errorLabel: "Add memory batch failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
         h.ctx,
         { ...scopedMemory(h), profileId: params.profileId },
         async (scope) => {
-          const created: Array<{
-            index: number;
-            id: string;
-            title: string;
-            deduped?: boolean;
-          }> = [];
+          const clientName = await mcpClientName(h);
+          const created: Array<
+            {
+              index: number;
+              id: string;
+              title: string;
+              deduped?: boolean;
+            } & Pick<MemoryAddResult, "conflicts" | "superseded">
+          > = [];
           const failed: Array<{ index: number; error: string }> = [];
           for (const [index, item] of params.items.entries()) {
             try {
-              const memory = await addMemoryInScope(h.ctx, scope, item);
+              const memory = await addMemoryInScope(
+                h.ctx,
+                scope,
+                item,
+                resolveMcpSource({ clientName, agentSource: item.source }),
+              );
               created.push({
                 index,
                 id: memory.id,
                 title: memory.title,
                 ...(memory.deduped === true ? { deduped: true } : {}),
+                ...(memory.conflicts === undefined
+                  ? {}
+                  : { conflicts: memory.conflicts }),
+                ...(memory.superseded === undefined
+                  ? {}
+                  : { superseded: memory.superseded }),
               });
             } catch (err) {
               failed.push({

@@ -1,6 +1,7 @@
 ﻿"use node";
 
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { createClerkClient } from "@clerk/backend";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -13,6 +14,7 @@ import {
 } from "@vvedantb/server";
 import { registerTools } from "./tools";
 import { registerResources } from "./resources";
+import { initializeClientName } from "./clientInfo";
 import { registerMemoryGraphApp } from "./memoryGraphApp";
 import { mcpScopeValidator } from "../profiles/mcpAccess";
 import {
@@ -81,8 +83,27 @@ export const handleMcpRequest = internalAction({
     status: v.number(),
     body: v.string(),
   }),
-  handler: async (ctx, { clerkUserId, body, scope }) =>
-    runSdkMcpRequest({
+  handler: async (ctx, { clerkUserId, body, scope }) => {
+    // stateless MCP: only an initialize request carries clientInfo, so keep
+    // the name for later requests; a failed write never blocks the request
+    const clientName = initializeClientName(body);
+    if (clientName !== null) {
+      try {
+        await ctx.runMutation(
+          internal.mcp.clientInfo.recordClientNameInternal,
+          {
+            clerkId: clerkUserId,
+            name: clientName,
+          },
+        );
+      } catch (err) {
+        console.warn(
+          "[MCP][clientInfo] record failed:",
+          err instanceof Error ? err.message : err,
+        );
+      }
+    }
+    return runSdkMcpRequest({
       body,
       url:
         scope === "team" ? "http://localhost/mcp/team" : "http://localhost/mcp",
@@ -91,10 +112,11 @@ export const handleMcpRequest = internalAction({
         const server = new McpServer(mcpServerInfo(scope), {
           instructions: MCP_SERVER_INSTRUCTIONS,
         });
-        registerTools(server, clerkUserId, ctx, scope);
+        registerTools(server, clerkUserId, ctx, scope, clientName);
         registerMemoryGraphApp(server, clerkUserId, ctx, scope);
         await registerResources(server, clerkUserId, ctx, scope);
         return server;
       },
-    }),
+    });
+  },
 });
