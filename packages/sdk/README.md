@@ -46,6 +46,16 @@ const vmem = new VMemory({
 });
 ```
 
+## Claude Code transcript hook
+
+`claude-code/` holds a Claude Code `SessionEnd` hook. It sends each finished session (3+ user messages, secrets removed, at most 1.5 MiB) to `POST /api/v1/transcripts` for Dream Mode. Plain Node, no dependencies.
+
+```bash
+node "$(npm root -g)/@vmem/sdk/claude-code/install.mjs"   # or: node packages/sdk/claude-code/install.mjs
+```
+
+The hook reads `VMEM_API_KEY` and `VMEM_BASE_URL`. It always exits 0 and logs to `~/.claude/vmem-transcript-hook.log`. Tests: `pnpm --filter @vmem/sdk test`.
+
 ## Requirements
 
 - **API key** (`VMEM_API_KEY` or `apiKey`) — required for all calls.
