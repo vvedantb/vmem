@@ -1,6 +1,11 @@
 import type { MemoryCandidate } from "@vmem/sdk";
 import { truncateAtWord } from "../llm/truncateAtWord";
 import type { SkillIndexSlice } from "./jevSkillRecommend";
+import {
+  contentBudget,
+  provenanceSuffix,
+  type LineProvenance,
+} from "./recallLine";
 
 // One bounded markdown bundle an agent can load at task start instead of
 // chaining context_prompt_get, memory_retrieve, and skills_recommend.
@@ -28,9 +33,16 @@ function clip(text: string, maxLen: number): string {
   return cut.length < text.length ? `${cut}…` : cut;
 }
 
-function memoryLine(memory: MemoryCandidate): string {
+type PackMemory = MemoryCandidate & Pick<LineProvenance, "conflictsWith">;
+
+function memoryLine(memory: PackMemory): string {
+  const suffix = provenanceSuffix(memory);
+  const content = clip(
+    memory.content,
+    contentBudget(MEMORY_CONTENT_CHARS, suffix),
+  );
   return [
-    `- **${memory.title}** (id: ${memory.id}, ${memory.type}) — ${clip(memory.content, MEMORY_CONTENT_CHARS)}`,
+    `- **${memory.title}** (id: ${memory.id}, ${memory.type}) — ${content}${suffix}`,
     `  _why: ${memory.trace.reason}_`,
   ].join("\n");
 }
@@ -42,7 +54,7 @@ function stripProfileSkills(profile: string): string {
 
 export function buildContextPack(args: {
   task: string;
-  memories: readonly MemoryCandidate[];
+  memories: readonly PackMemory[];
   skills: readonly SkillIndexSlice[];
   profile: string | null;
   maxChars: number;

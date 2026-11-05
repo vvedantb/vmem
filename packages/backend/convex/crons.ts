@@ -122,4 +122,12 @@ crons.interval(
   {},
 );
 
+// drops MCP connection client names not seen for 30 days, 500 rows a batch
+crons.interval(
+  "purge expired mcp sessions",
+  { hours: 1 },
+  internal.mcp.clientInfo.purgeExpiredInternal,
+  {},
+);
+
 export default crons;

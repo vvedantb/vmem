@@ -61,6 +61,18 @@ const schema = defineSchema({
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"]),
 
+  // MCP initialize clientInfo.name (normalized) per user connection; the
+  // source of MCP writes. connectionKey is "sid:<Mcp-Session-Id>" or
+  // "ua:<User-Agent>". Purged 30 days after lastSeen.
+  mcpSessions: defineTable({
+    clerkId: v.string(),
+    connectionKey: v.string(),
+    clientName: v.string(),
+    lastSeen: v.number(),
+  })
+    .index("by_clerkId_and_connectionKey", ["clerkId", "connectionKey"])
+    .index("by_lastSeen", ["lastSeen"]),
+
   apiKeys: defineTable(apiKeyFields)
     .index("by_user", ["userId"])
     .index("by_key_hash", ["keyHash"]),

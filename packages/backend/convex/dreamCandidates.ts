@@ -56,6 +56,52 @@ export const candidateScopeInternal = internalQuery({
   },
 });
 
+// a recall or context pack retrieves at most this many rows
+const OPEN_PAIRS_MEMORY_MAX = 50;
+// pairs read per memory: a few per embedding, so this is generous
+const OPEN_PAIRS_PER_MEMORY = 20;
+
+/**
+ * Open pairs whose two rows are both in `memoryIds` (public ids). The caller
+ * passes ids it already read through its own scope check; ids past the cap
+ * are ignored. Recall and context_pack use this to drop or mark one side.
+ */
+export const openPairsAmongInternal = internalQuery({
+  args: { memoryIds: v.array(v.string()) },
+  returns: v.array(
+    v.object({
+      a: v.string(),
+      b: v.string(),
+      kind: v.union(v.literal("near_dup"), v.literal("maybe_conflict")),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const publicIds = new Map<Id<"memories">, string>();
+    for (const memoryId of args.memoryIds.slice(0, OPEN_PAIRS_MEMORY_MAX)) {
+      const doc = await findByMemoryId(ctx, memoryId);
+      if (doc) publicIds.set(doc._id, doc.memoryId);
+    }
+    const pairs: Array<{
+      a: string;
+      b: string;
+      kind: Doc<"dreamCandidates">["kind"];
+    }> = [];
+    for (const [docId, publicId] of publicIds) {
+      const rows = await ctx.db
+        .query("dreamCandidates")
+        .withIndex("by_memory", (q) => q.eq("memoryId", docId))
+        .take(OPEN_PAIRS_PER_MEMORY);
+      for (const row of rows) {
+        if (row.status !== "open") continue;
+        const neighbor = publicIds.get(row.neighborId);
+        if (neighbor === undefined) continue;
+        pairs.push({ a: publicId, b: neighbor, kind: row.kind });
+      }
+    }
+    return pairs;
+  },
+});
+
 async function entityIdsOf(
   ctx: MutationCtx,
   memoryId: string,

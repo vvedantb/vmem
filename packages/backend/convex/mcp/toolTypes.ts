@@ -13,7 +13,21 @@ export interface ToolHandlerContext {
   ctx: ActionCtx;
   clerkUserId: string;
   scope: McpScope;
+  /** which MCP client this request came from; see mcpClientName */
+  connection?: McpConnection;
 }
+
+export interface McpConnection {
+  /** clientInfo.name of this request's initialize, else null */
+  readonly clientName: string | null;
+  /** keys of this connection in mcpSessions (see mcpConnectionKeys) */
+  readonly connectionKeys: readonly string[];
+}
+
+export const NO_MCP_CONNECTION: McpConnection = {
+  clientName: null,
+  connectionKeys: [],
+};
 
 export function scopedClerk(ctx: ToolHandlerContext) {
   return { clerkId: ctx.clerkUserId, scope: ctx.scope };
@@ -32,6 +46,35 @@ export async function requireUserId(
   );
   if (userId === null) throw new Error("User not found");
   return userId;
+}
+
+/**
+ * The connected app's MCP client name: this request's initialize, else the
+ * name stored at this connection's initialize (by session id, then
+ * User-Agent). Null when unknown or the lookup fails. Pass it to
+ * resolveMcpSource for a write's source.
+ */
+export async function mcpClientName(
+  h: ToolHandlerContext,
+): Promise<string | null> {
+  const connection = h.connection ?? NO_MCP_CONNECTION;
+  if (connection.clientName) return connection.clientName;
+  if (connection.connectionKeys.length === 0) return null;
+  try {
+    return await h.ctx.runMutation(
+      internal.mcp.clientInfo.resolveClientNameInternal,
+      {
+        clerkId: h.clerkUserId,
+        connectionKeys: [...connection.connectionKeys],
+      },
+    );
+  } catch (err) {
+    console.warn(
+      "[MCP][clientInfo] lookup failed:",
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
 }
 
 // the ctx an authAction handler gets, for tools that reuse action handlers

@@ -115,6 +115,36 @@ describe("buildRecallContext", () => {
     id,
     title: `Title ${id}`,
     content,
+    createdAt: "2026-11-04T10:00:00.000Z",
+    source: "cursor",
+  });
+
+  it("ends each memory line with the saved date and source, inside the line budget", () => {
+    const short = buildRecallContext({
+      message: "deploy",
+      memories: [memory("m1", "Deploys go to Vercel")],
+      skills: [],
+      facts: [],
+      maxTokens: 1500,
+    });
+    expect(short.text).toContain(
+      "- Title m1 (id: m1): Deploys go to Vercel (saved 2026-11-04, via cursor)",
+    );
+
+    const long = buildRecallContext({
+      message: "deploy",
+      memories: [memory("m2", "word ".repeat(200))],
+      skills: [],
+      facts: [],
+      maxTokens: 1500,
+    });
+    const line = long.text
+      .split("\n")
+      .find((row) => row.startsWith("- Title m2"));
+    const prefix = "- Title m2 (id: m2): ";
+    // the clipped content plus suffix is no longer than the old 300-char clip
+    expect((line ?? "").length - prefix.length).toBeLessThanOrEqual(300 + 1);
+    expect(line?.endsWith("… (saved 2026-11-04, via cursor)")).toBe(true);
   });
 
   it("clamps the token budget", () => {

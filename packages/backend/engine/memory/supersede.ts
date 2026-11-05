@@ -4,7 +4,7 @@ import { isVisibleStatus } from "./scope";
 import { contentTokens, uniqueTokens } from "./tokens";
 
 export const UPDATES_LINK_REASON = "updates";
-const SUPERSEDE_JACCARD = 0.6;
+export const SUPERSEDE_JACCARD = 0.6;
 
 export type FactDecisionEvent = "ADD" | "UPDATE" | "DELETE" | "NONE";
 
@@ -131,4 +131,27 @@ export function decideFactDeterministic(
     };
   }
   return { event: "ADD", text: trimmed };
+}
+
+const NEAR_MATCH_LIMIT = 5;
+
+/**
+ * Visible memories whose title + content overlap the probe at the supersede
+ * threshold (word Jaccard, no LLM), best match first. memory_add returns
+ * them as possible conflicts; it does not retire them.
+ */
+export function findNearMatches<
+  T extends Pick<MemoryWithTags, "id" | "title" | "content" | "status">,
+>(
+  probe: Pick<DecisionCandidate, "title" | "content">,
+  memories: readonly T[],
+  limit: number = NEAR_MATCH_LIMIT,
+): T[] {
+  return memories
+    .filter((memory) => isVisibleStatus(memory.status))
+    .map((memory) => ({ memory, score: textJaccard(probe, memory) }))
+    .filter(({ score }) => score >= SUPERSEDE_JACCARD)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ memory }) => memory);
 }

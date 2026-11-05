@@ -1079,14 +1079,19 @@ async function collectInstructionCandidates(
   return { memories, candidates: visibleDecisionCandidates(memories) };
 }
 
-async function supersedeInstructionTargets(
+/**
+ * Retires predecessors through the supersede path: suppressed, an "updates"
+ * link and, with a successor, a prior version of it (supersededBy). Rows
+ * outside `scope` are skipped. Returns the count retired.
+ */
+export async function supersedeMemoryTargets(
   ctx: Pick<ActionCtx, "runMutation">,
   scope: MemoryReadScope,
   predecessorIds: string[],
   successorId?: string,
-): Promise<void> {
-  if (predecessorIds.length === 0) return;
-  await ctx.runMutation(
+): Promise<number> {
+  if (predecessorIds.length === 0) return 0;
+  return await ctx.runMutation(
     internal.memoryStore.functions.supersedeMemoriesInternal,
     {
       ...scopeMutationArgs(scope),
@@ -1189,7 +1194,7 @@ async function applyInstructionDecision(
   }
   if (decision.event === "DELETE") {
     if (decision.targetId !== undefined) {
-      await supersedeInstructionTargets(ctx, args.scope, [decision.targetId]);
+      await supersedeMemoryTargets(ctx, args.scope, [decision.targetId]);
       args.memoriesById.delete(decision.targetId);
     }
     return {
@@ -1210,7 +1215,7 @@ async function applyInstructionDecision(
     eventEnd: args.fact.eventEnd,
   });
   if (decision.event === "UPDATE" && decision.targetId !== undefined) {
-    await supersedeInstructionTargets(
+    await supersedeMemoryTargets(
       ctx,
       args.scope,
       [decision.targetId],

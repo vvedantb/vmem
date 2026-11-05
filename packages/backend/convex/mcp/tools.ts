@@ -9,14 +9,20 @@ import {
 } from "./content";
 import { toolSpecs } from "./toolCatalog";
 import { buildToolTrace } from "./traceSummary";
-import { bindToolSpec, type ToolHandlerContext } from "./toolTypes";
+import {
+  bindToolSpec,
+  NO_MCP_CONNECTION,
+  type McpConnection,
+  type ToolHandlerContext,
+} from "./toolTypes";
 
 function handlerContext(
   clerkUserId: string,
   ctx: ActionCtx,
   scope: McpScope,
+  connection: McpConnection,
 ): ToolHandlerContext {
-  return { ctx, clerkUserId, scope };
+  return { ctx, clerkUserId, scope, connection };
 }
 
 type CatalogEntry = (typeof toolSpecs)[keyof typeof toolSpecs];
@@ -80,9 +86,10 @@ export function registerTools(
   clerkUserId: string,
   ctx: ActionCtx,
   scope: McpScope,
+  connection: McpConnection = NO_MCP_CONNECTION,
 ): void {
   const scopeLabel = scope === "team" ? "team" : "personal";
-  const h = handlerContext(clerkUserId, ctx, scope);
+  const h = handlerContext(clerkUserId, ctx, scope, connection);
 
   for (const key of Object.keys(toolSpecs)) {
     if (!isToolSpecKey(key)) continue;
