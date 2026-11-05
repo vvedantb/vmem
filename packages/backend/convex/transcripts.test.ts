@@ -500,7 +500,7 @@ describe("transcript near-duplicates", () => {
     expect(evaluate).toHaveBeenCalledTimes(1);
     expect(
       (await pendingProposals(t, owner))
-        .map((p) => p.proposedTitle)
+        .map((p) => p.proposedTitle ?? "")
         .sort((a, b) => a.localeCompare(b)),
     ).toEqual(["Deploy target", "Package manager"]);
   });
