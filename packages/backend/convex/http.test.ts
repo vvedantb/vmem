@@ -7,6 +7,7 @@ import { clerkWebhook } from "./http/clerk/webhook";
 import { deleteMemory } from "./http/v1Memories/delete";
 import { retrieveMemories } from "./http/v1Memories/retrieve";
 import { storeMemory } from "./http/v1Memories/store";
+import { submitTranscriptHttp } from "./http/v1Memories/transcripts";
 import { updateMemory } from "./http/v1Memories/update";
 import {
   health,
@@ -31,6 +32,7 @@ const EXPECTED: Array<[string, RoutableMethod, PublicHttpAction]> = [
   ["/api/v1/memories", "PATCH", updateMemory],
   ["/api/v1/memories", "POST", storeMemory],
   ["/api/v1/memories/retrieve", "POST", retrieveMemories],
+  ["/api/v1/transcripts", "POST", submitTranscriptHttp],
   ["/clerk/webhooks", "POST", clerkWebhook],
   ["/health", "GET", health],
   ["/mcp", "DELETE", mcpHandler],

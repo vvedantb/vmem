@@ -1,8 +1,13 @@
 import { v } from "convex/values";
-import { authAction, getUserByClerkId, requireClerkId } from "./auth";
+import {
+  authAction,
+  authQuery,
+  getUserByClerkId,
+  requireClerkId,
+} from "./auth";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
-import type { ActionCtx, MutationCtx } from "./_generated/server";
+import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { SYSTEMONE_DEFAULT_MODEL } from "../engine/llm/systemOneClient";
 import { mergeGroup, supersedeRow } from "./dream";
@@ -12,6 +17,7 @@ import type { MemoryReadScope } from "../engine/memory/scope";
 import { UPDATES_LINK_REASON } from "../engine/memory/supersede";
 import { auditLog, ResourceTypes } from "./auditLog";
 import { createDreamSkill } from "./skills";
+import { saveTranscriptMemory, TRANSCRIPT_SOURCE } from "./transcripts";
 import type { ProposedUpdateNode } from "./memoryApi/types";
 import {
   getProposedUpdate,
@@ -20,6 +26,8 @@ import {
 } from "./proposedUpdateStore";
 import { assertAccessibleProfileIfPresent } from "./profiles/accessibleProfile";
 import { canAccessProfileForMcpScope } from "./profiles/mcpAccess";
+import { runAssertProfileAccessInternal } from "./teams/auth";
+import { proposedUpdateKindValidator } from "./validators";
 import {
   createMemory,
   findByMemoryId,
@@ -29,6 +37,13 @@ import {
 export type ResolveResult = {
   status: "approved" | "rejected";
   materializedMemoryId?: string;
+};
+
+// what an approval made: the memory to show, and the dream action (merge,
+// update or transcript save under a dream run) that proposal history can undo
+type Approval = {
+  materializedMemoryId?: string;
+  dreamActionId?: Id<"dreamActions"> | null;
 };
 
 function writeScope(
@@ -100,9 +115,9 @@ async function applyDreamMergeProposal(
   proposal: Doc<"proposedUpdates">,
   runId: Id<"dreamRuns">,
   selected: readonly string[] | undefined,
-): Promise<string | undefined> {
+): Promise<Approval> {
   const keeper = await findByMemoryId(ctx, proposal.memoryId);
-  if (!keeper) return undefined;
+  if (!keeper) return {};
   const loserIds: Id<"memories">[] = [];
   for (const memoryId of selectedMergeSources(proposal, selected)) {
     const doc = await findByMemoryId(ctx, memoryId);
@@ -110,7 +125,7 @@ async function applyDreamMergeProposal(
   }
   const run = await ctx.db.get(runId);
   const merged = proposalMergedText(proposal);
-  await mergeGroup(ctx, {
+  const dreamActionId = await mergeGroup(ctx, {
     runId,
     keeperId: keeper._id,
     loserIds,
@@ -123,7 +138,7 @@ async function applyDreamMergeProposal(
     },
     ...(merged === undefined ? {} : { merged }),
   });
-  return keeper.memoryId;
+  return { materializedMemoryId: keeper.memoryId, dreamActionId };
 }
 
 // AI-judged nightly update: memoryId is the older row, the other source the
@@ -133,15 +148,15 @@ async function applyDreamUpdateProposal(
   ctx: MutationCtx,
   proposal: Doc<"proposedUpdates">,
   runId: Id<"dreamRuns">,
-): Promise<string | undefined> {
+): Promise<Approval> {
   const older = await findByMemoryId(ctx, proposal.memoryId);
   const newerId = proposal.sourceMemoryIds.find(
     (id) => id !== proposal.memoryId,
   );
   const newer =
     newerId === undefined ? null : await findByMemoryId(ctx, newerId);
-  if (!older || !newer) return undefined;
-  await supersedeRow(ctx, {
+  if (!older || !newer) return {};
+  const dreamActionId = await supersedeRow(ctx, {
     runId,
     keeperId: newer._id,
     olderId: older._id,
@@ -152,7 +167,7 @@ async function applyDreamUpdateProposal(
       model: LLM_MODEL,
     },
   });
-  return newer.memoryId;
+  return { materializedMemoryId: newer.memoryId, dreamActionId };
 }
 
 // Dream Mode skill draft: approving creates the skill in the proposal's
@@ -179,6 +194,34 @@ async function applySkillProposal(
   });
 }
 
+// Dream Mode transcript memory: approving saves it under the id the
+// proposal promised, with the app it came from as a tag. Under the proposal's
+// dream run the save is a "create" action that history can undo.
+async function applyTranscriptProposal(
+  ctx: MutationCtx,
+  proposal: Doc<"proposedUpdates">,
+): Promise<Approval> {
+  const saved = await saveTranscriptMemory(ctx, {
+    clerkId: proposal.userId,
+    ...(proposal.profileId === undefined
+      ? {}
+      : { profileId: proposal.profileId }),
+    memoryId: proposal.memoryId,
+    ...(proposal.dreamRunId === undefined
+      ? {}
+      : { runId: proposal.dreamRunId }),
+    title: proposal.proposedTitle ?? "Transcript memory",
+    content: proposal.proposedContent,
+    type: proposal.transcript?.type ?? "knowledge",
+    confidence: proposal.confidence ?? 0.8,
+    appSource: proposal.transcript?.source ?? TRANSCRIPT_SOURCE,
+  });
+  return {
+    materializedMemoryId: saved.memoryId,
+    dreamActionId: saved.dreamActionId,
+  };
+}
+
 async function applyApproval(
   ctx: MutationCtx,
   params: {
@@ -187,7 +230,7 @@ async function applyApproval(
     winnerMemoryId?: string;
     selectedSourceMemoryIds?: string[];
   },
-): Promise<string | undefined> {
+): Promise<Approval> {
   const { clerkId, proposal, winnerMemoryId, selectedSourceMemoryIds } = params;
   const kind = await profileKind(ctx, proposal.profileId);
   const scope = writeScope(clerkId, proposal.profileId, kind);
@@ -197,7 +240,7 @@ async function applyApproval(
       scope,
       predecessorIds: [proposal.memoryId],
     });
-    return undefined;
+    return {};
   }
 
   if (proposal.kind === "contradiction") {
@@ -212,14 +255,18 @@ async function applyApproval(
         reason: UPDATES_LINK_REASON,
         asVersion: true,
       });
-      return winnerMemoryId;
+      return { materializedMemoryId: winnerMemoryId };
     }
-    return undefined;
+    return {};
   }
 
   if (proposal.kind === "skill") {
     await applySkillProposal(ctx, clerkId, proposal);
-    return undefined;
+    return {};
+  }
+
+  if (proposal.kind === "transcript") {
+    return await applyTranscriptProposal(ctx, proposal);
   }
 
   if (proposal.kind === "merge" && proposal.dreamRunId !== undefined) {
@@ -257,7 +304,7 @@ async function applyApproval(
       reason: UPDATES_LINK_REASON,
       asVersion: true,
     });
-    return created.id;
+    return { materializedMemoryId: created.id };
   }
 
   const created = await createMemory(ctx, {
@@ -280,7 +327,7 @@ async function applyApproval(
     successorId: created.id,
     reason: UPDATES_LINK_REASON,
   });
-  return created.id;
+  return { materializedMemoryId: created.id };
 }
 
 // The caller must be able to use the proposal's profile, with the same check
@@ -330,14 +377,22 @@ export async function resolveProposedUpdate(
     return { status: "rejected" };
   }
 
-  const materializedMemoryId = await applyApproval(ctx, {
+  const approval = await applyApproval(ctx, {
     clerkId: args.clerkId,
     proposal,
     winnerMemoryId: args.winnerMemoryId,
     selectedSourceMemoryIds: args.selectedSourceMemoryIds,
   });
-  await markProposedUpdateResolved(ctx, args.proposalId, "approved");
-  return { status: "approved", materializedMemoryId };
+  await markProposedUpdateResolved(
+    ctx,
+    args.proposalId,
+    "approved",
+    approval.dreamActionId ?? undefined,
+  );
+  return {
+    status: "approved",
+    materializedMemoryId: approval.materializedMemoryId,
+  };
 }
 
 export const listPendingInternal = internalQuery({
@@ -434,5 +489,92 @@ export const resolveProposal = authAction({
       winnerMemoryId: args.winnerMemoryId,
       selectedSourceMemoryIds: args.selectedSourceMemoryIds,
     });
+  },
+});
+
+// Dreaming page History: resolved proposals of one profile, newest first
+const HISTORY_TAKE = 30;
+
+const proposalHistoryRowValidator = v.object({
+  proposalId: v.string(),
+  kind: proposedUpdateKindValidator,
+  status: v.union(v.literal("approved"), v.literal("rejected")),
+  title: v.string(),
+  reason: v.string(),
+  createdAt: v.number(),
+  resolvedAt: v.number(),
+  // the dream action an approval made, while it can still be undone: null
+  // when there is none, it is not the caller's, its log row was purged or
+  // a row it hid was deleted
+  undo: v.union(
+    v.null(),
+    v.object({
+      actionId: v.id("dreamActions"),
+      undoExpiresAt: v.number(),
+      undoneAt: v.optional(v.number()),
+    }),
+  ),
+});
+
+function proposalTitle(proposal: Doc<"proposedUpdates">): string {
+  return (
+    proposal.proposedTitle ??
+    proposal.skill?.name ??
+    proposal.memorySnapshot?.title ??
+    proposal.sourceMemorySnapshots[0]?.title ??
+    "Untitled"
+  );
+}
+
+async function undoOf(
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  actionId: Id<"dreamActions"> | undefined,
+) {
+  const action = actionId === undefined ? null : await ctx.db.get(actionId);
+  if (!action || action.userId !== userId) return null;
+  for (const id of action.memoryIds) {
+    if ((await ctx.db.get(id)) === null) return null;
+  }
+  return {
+    actionId: action._id,
+    undoExpiresAt: action.undoExpiresAt,
+    ...(action.undoneAt === undefined ? {} : { undoneAt: action.undoneAt }),
+  };
+}
+
+export const listResolved = authQuery({
+  args: { profileId: v.id("profiles") },
+  returns: v.array(proposalHistoryRowValidator),
+  handler: async (ctx, args) => {
+    await runAssertProfileAccessInternal(ctx, {
+      profileId: args.profileId,
+      userId: ctx.userId,
+    });
+    const rows = await ctx.db
+      .query("proposedUpdates")
+      .withIndex("by_profile_resolved", (q) =>
+        q.eq("profileId", args.profileId).gt("resolvedAt", 0),
+      )
+      .order("desc")
+      .take(HISTORY_TAKE);
+    const history = [];
+    for (const row of rows) {
+      if (row.status === "pending" || row.resolvedAt === undefined) continue;
+      history.push({
+        proposalId: row.proposalId,
+        kind: row.kind,
+        status: row.status,
+        title: proposalTitle(row),
+        reason: row.reason,
+        createdAt: row.createdAt,
+        resolvedAt: row.resolvedAt,
+        undo:
+          row.status === "approved"
+            ? await undoOf(ctx, ctx.userId, row.dreamActionId)
+            : null,
+      });
+    }
+    return history;
   },
 });

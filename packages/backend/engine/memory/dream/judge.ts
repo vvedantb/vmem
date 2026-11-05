@@ -2,6 +2,7 @@ import { z } from "zod";
 import { parseJsonString } from "../../llm/extractJsonString";
 import { truncateAtWord } from "../../llm/truncateAtWord";
 import type { MemoryOutcome } from "./outcome";
+import { wrapUntrustedData, withUntrustedRule } from "./untrusted";
 
 // Qwen judge for one maybe-conflict pair (nightly dreaming step 4): same
 // fact, newer version, contradiction, or unrelated. Pure: the caller makes
@@ -10,8 +11,9 @@ import type { MemoryOutcome } from "./outcome";
 const CONTENT_CHARS = 600;
 const REASON_CHARS = 300;
 
-export const DREAM_JUDGE_ROLE =
-  "You compare two saved memories of one user and say how they relate.";
+export const DREAM_JUDGE_ROLE = withUntrustedRule(
+  "You compare two saved memories of one user and say how they relate.",
+);
 
 export const DREAM_RELATIONS = [
   "duplicate",
@@ -67,7 +69,7 @@ export function buildDreamJudgePrompt(pair: DreamJudgePair): string {
     "confidence: 0 to 1. reason: one short sentence.",
     'Reply as JSON: {"relation": "...", "keeperId": "m0" | "m1" | null, "confidence": 0.0, "reason": "..."}',
     "",
-    JSON.stringify({ memories }, null, 2),
+    wrapUntrustedData(JSON.stringify({ memories }, null, 2)),
   ].join("\n");
 }
 

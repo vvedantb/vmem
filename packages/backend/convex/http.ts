@@ -5,6 +5,7 @@ import { clerkWebhook } from "./http/clerk/webhook";
 import { deleteMemory } from "./http/v1Memories/delete";
 import { retrieveMemories } from "./http/v1Memories/retrieve";
 import { storeMemory } from "./http/v1Memories/store";
+import { submitTranscriptHttp } from "./http/v1Memories/transcripts";
 import { updateMemory } from "./http/v1Memories/update";
 import {
   oauthMetadata,
@@ -51,6 +52,12 @@ http.route({
   path: "/api/v1/memories",
   method: "DELETE",
   handler: deleteMemory,
+});
+
+http.route({
+  path: "/api/v1/transcripts",
+  method: "POST",
+  handler: submitTranscriptHttp,
 });
 
 registerMcpRoutes(http, {

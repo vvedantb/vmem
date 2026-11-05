@@ -10,6 +10,7 @@ import {
 import { isUnsafeSkill } from "../skills/safety";
 import { slugify } from "../skills/words";
 import type { MemoryOutcome } from "./outcome";
+import { wrapUntrustedData, withUntrustedRule } from "./untrusted";
 
 // nightly dreaming skill step: one call per profile run drafts reusable
 // skills from the run window's memories that record what worked, with
@@ -25,8 +26,9 @@ const MAX_PITFALLS = 5;
 // existing skill names listed in the prompt (dedupe checks all of them)
 const PROMPT_SKILL_NAMES = 40;
 
-export const DREAM_SKILL_ROLE =
-  "You turn saved memories of one user into reusable skills: short procedures a future AI agent follows.";
+export const DREAM_SKILL_ROLE = withUntrustedRule(
+  "You turn saved memories of one user into reusable skills: short procedures a future AI agent follows.",
+);
 
 export interface DreamSkillMemory {
   id: string;
@@ -104,7 +106,7 @@ export function buildDreamSkillPrompt(
     'Reply as JSON: {"skills": [{"name": "...", "description": "Use when a task ...", "steps": ["..."], "pitfalls": ["..."], "sourceIds": ["m0"]}]}',
     `Existing skills: ${names.length > 0 ? names.join(", ") : "(none)"}`,
     "",
-    JSON.stringify({ memories: rows }, null, 2),
+    wrapUntrustedData(JSON.stringify({ memories: rows }, null, 2)),
   ].join("\n");
 }
 

@@ -196,6 +196,29 @@ curl -X DELETE "https://<deployment>.convex.site/api/v1/memories" \
 
 ---
 
+## Submit a session transcript
+
+`POST /api/v1/transcripts`
+
+Queues a session transcript for [Dream Mode](/concepts/dream-mode#session-transcripts), like the MCP tool `transcript_submit`. Source is `api`.
+
+```bash
+curl -X POST "https://<deployment>.convex.site/api/v1/transcripts" \
+  -H "Authorization: Bearer vmem_sk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "transcript": "user: we deploy to Vercel\n...", "title": "Deploy session" }'
+```
+
+| Field        | Type   | Required                          |
+| ------------ | ------ | --------------------------------- |
+| `transcript` | string | yes (text, Markdown, JSON, JSONL) |
+| `title`      | string | no                                |
+| `profileId`  | string | no (default profile)              |
+
+**Returns:** `{ "id", "status": "pending", "source": "api", "byteLength", "createdAt" }`. An empty transcript returns `400` and one over 1.5 MB (1,572,864 bytes) returns `413`, both with `{ "error": "invalid_transcript", "message" }`.
+
+---
+
 ## Errors
 
 | Status | `error`               | Meaning                                        |
@@ -205,6 +228,7 @@ curl -X DELETE "https://<deployment>.convex.site/api/v1/memories" \
 | `400`  | `invalid_request`     | Zod validation failed (`issues` present)       |
 | `403`  | `forbidden`           | No access to the given `profileId`             |
 | `404`  | `not_found`           | Memory not found                               |
+| `413`  | `invalid_transcript`  | Transcript over 1.5 MB                         |
 | `422`  | `openrouter_required` | Instruction write without `AI_GATEWAY_API_KEY` |
 | `500`  | `internal_error`      | Server error (generic message)                 |
 

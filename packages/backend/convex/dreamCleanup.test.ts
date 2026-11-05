@@ -6,6 +6,7 @@ import { ConvexError } from "convex/values";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { CLUSTER_MERGE_JUDGE } from "../engine/memory/dream/clusterMerge";
+import { UNTRUSTED_DATA_END } from "../engine/memory/dream/untrusted";
 import { MEMORY_EMBEDDING_DIMENSIONS } from "../engine/memory/searchableText";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -67,9 +68,11 @@ const promptSchema = z.object({
 // the memories one judge call saw, named m0, m1, ... as in the prompt
 function promptMemories(call: GenerateCall) {
   const prompt = call.messages.find((m) => m.role === "user")?.content ?? "";
-  return promptSchema.parse(
-    JSON.parse(prompt.slice(prompt.indexOf('{\n  "memories"'))),
-  ).memories;
+  const data = prompt.slice(
+    prompt.indexOf('{\n  "memories"'),
+    prompt.lastIndexOf(UNTRUSTED_DATA_END),
+  );
+  return promptSchema.parse(JSON.parse(data)).memories;
 }
 
 type ReplyFields = Record<string, string | number | boolean | string[] | null>;

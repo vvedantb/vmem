@@ -5,6 +5,7 @@ import {
   IconArrowsJoin,
   IconBolt,
   IconBulb,
+  IconFileText,
   IconLink,
   IconPencil,
   IconQuestionMark,
@@ -112,6 +113,18 @@ const PROPOSAL_KIND_CONFIG: Record<ProposedUpdateKind, ProposalKindConfig> = {
     synthesisApproveLabel: "Create skill",
     synthesisRejectLabel: "Reject",
     sourceListPrefix: "Drafted from",
+  },
+  // a memory Dream Mode distilled from a session transcript; approving
+  // saves it, nothing is saved before that
+  transcript: {
+    label: "From a transcript",
+    Icon: IconFileText,
+    badgeVariant: "secondary",
+    accentClass: "bg-accent",
+    approveToast: "Saved as a new memory",
+    synthesisContentLabel: "Memory",
+    synthesisApproveLabel: "Save memory",
+    synthesisRejectLabel: "Reject",
   },
 };
 

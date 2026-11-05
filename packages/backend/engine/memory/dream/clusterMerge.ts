@@ -2,6 +2,7 @@ import type { MemoryStatus } from "@vmem/sdk";
 import { z } from "zod";
 import { parseJsonString } from "../../llm/extractJsonString";
 import { truncateAtWord } from "../../llm/truncateAtWord";
+import { wrapUntrustedData, withUntrustedRule } from "./untrusted";
 
 // AI judge for one candidate cluster of the one-off cleanup: which members
 // hold the same information, which row to keep, and the one merged text the
@@ -16,8 +17,9 @@ export const CLUSTER_MERGE_CONTENT_CHARS = 3_000;
 const CLUSTER_MERGE_MIN = 0.7;
 const REASON_CHARS = 300;
 
-export const CLUSTER_MERGE_ROLE =
-  "You find saved memories of one user that hold the same information and merge them into one memory.";
+export const CLUSTER_MERGE_ROLE = withUntrustedRule(
+  "You find saved memories of one user that hold the same information and merge them into one memory.",
+);
 
 // marks the plan groups this judge decided (aiJudge). A later scan reuses
 // only these verdicts; older pair-judge groups have no marker.
@@ -73,7 +75,7 @@ export function buildClusterMergePrompt<M extends string>(
     'Reply as JSON: {"duplicate": true, "keepId": "m0", "removeIds": ["m1"], "mergedTitle": "...", "mergedContent": "...", "confidence": 0.0, "reason": "..."}',
     'When none are duplicates, reply: {"duplicate": false, "confidence": 0.0, "reason": "..."}',
     "",
-    JSON.stringify({ memories }, null, 2),
+    wrapUntrustedData(JSON.stringify({ memories }, null, 2)),
   ].join("\n");
 }
 

@@ -283,7 +283,9 @@ function ActionRow({ action, nowMs }: { action: DreamAction; nowMs: number }) {
         <p className="truncate text-xs text-muted">
           {action.kind === "merge" || action.kind === "supersede"
             ? `hid ${plural(hidden, "row")}`
-            : plural(hidden, "row")}
+            : action.kind === "create"
+              ? `saved ${plural(hidden, "row")}`
+              : plural(hidden, "row")}
           {" · "}
           {action.reason}
           {action.ai
@@ -336,7 +338,8 @@ function UndoRunButton({ runId }: { runId: DreamRun["_id"] }) {
           <ConfirmDialog.Header>
             <ConfirmDialog.Title>Undo this run?</ConfirmDialog.Title>
             <ConfirmDialog.Description>
-              Restores every memory this run merged, archived or expired.
+              Restores every memory this run merged, archived or expired,
+              and deletes the memories it saved from transcripts.
             </ConfirmDialog.Description>
           </ConfirmDialog.Header>
           <ConfirmDialog.Footer>

@@ -484,20 +484,28 @@ export const applyMerge = internalMutation({
 
 const UNDO_ROWS_GONE =
   "This dream action can no longer be undone: the hidden memories were permanently deleted after the 30-day undo window.";
+const UNDO_CREATED_GONE =
+  "This dream action can no longer be undone: the saved memory was already deleted.";
 
-// undo writes the hidden rows back, so it refuses (and changes nothing) once
-// one of them was deleted
+// undo writes the hidden rows back (or deletes the created row), so it
+// refuses (and changes nothing) once one of them was deleted
 async function assertHiddenRowsExist(
   ctx: MutationCtx,
   action: Doc<"dreamActions">,
 ): Promise<void> {
   for (const id of action.memoryIds) {
-    if ((await ctx.db.get(id)) === null) throw new ConvexError(UNDO_ROWS_GONE);
+    if ((await ctx.db.get(id)) === null) {
+      throw new ConvexError(
+        action.kind === "create" ? UNDO_CREATED_GONE : UNDO_ROWS_GONE,
+      );
+    }
   }
 }
 
 // writes every snapshot back and removes the link and mention rows the action
-// added. Throws once undone or after the window.
+// added; a "create" deletes the memory it saved (with its embedding, links
+// and mentions), as it did not exist before. Throws once undone or after the
+// window.
 async function undoOne(
   ctx: MutationCtx,
   action: Doc<"dreamActions">,
@@ -505,6 +513,14 @@ async function undoOne(
 ): Promise<void> {
   if (action.undoneAt !== undefined) throw new Error("Already undone");
   if (now > action.undoExpiresAt) throw new Error("Undo window has passed");
+  if (action.kind === "create") {
+    for (const id of action.memoryIds) {
+      const doc = await ctx.db.get(id);
+      if (doc) await deleteMemory(ctx, doc.userId, doc.memoryId);
+    }
+    await ctx.db.patch(action._id, { undoneAt: now });
+    return;
+  }
   for (const snapshot of action.before) {
     const doc = await ctx.db.get(snapshot.memoryId);
     // every snapshot row was visible, so it was never a prior version

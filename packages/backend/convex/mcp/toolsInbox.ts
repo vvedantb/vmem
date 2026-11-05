@@ -60,7 +60,7 @@ export const inboxToolSpecs = {
     name: "proposals_list",
     schema: proposalsListSchema,
     description:
-      "List pending inbox proposals for a profile, newest first (the web Dreaming page Proposals tab): Dream Mode merges, skill drafts, and update, delete, insight, connection, contradiction and anomaly suggestions. Each has id, kind, reason, proposedTitle / proposedContent, sourceMemoryIds and snapshots. Resolve with proposals_resolve.",
+      "List pending inbox proposals for a profile, newest first (the web Dreaming page Proposals tab): Dream Mode merges, skill drafts, transcript memories, and update, delete, insight, connection, contradiction and anomaly suggestions. Each has id, kind, reason, proposedTitle / proposedContent, sourceMemoryIds and snapshots. Resolve with proposals_resolve.",
     errorLabel: "List proposals failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(

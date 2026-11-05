@@ -25,6 +25,7 @@ import {
   SETTINGS_TOOL_NAMES,
   SKILLS_TOOL_NAMES,
   TEAMS_TOOL_NAMES,
+  TRANSCRIPT_TOOL_NAMES,
   USAGE_TOOL_NAMES,
 } from "./catalog";
 
@@ -33,6 +34,7 @@ const ALL_TOOL_GROUPS = [
   CONTEXT_TOOL_NAMES,
   MEMORY_TOOL_NAMES,
   MEMORY_MANAGE_TOOL_NAMES,
+  TRANSCRIPT_TOOL_NAMES,
   INBOX_TOOL_NAMES,
   SKILLS_TOOL_NAMES,
   FILES_TOOL_NAMES,
@@ -81,6 +83,10 @@ describe("MCP tool catalog", () => {
     expect(team).toContain(MEMORY_GRAPH_TOOL);
     expect(team).not.toContain("context_prompt_get");
     expect(personal).toEqual(expect.arrayContaining([...INBOX_TOOL_NAMES]));
+    expect(team).toEqual(expect.arrayContaining([...TRANSCRIPT_TOOL_NAMES]));
+    expect(personal).toEqual(
+      expect.arrayContaining([...TRANSCRIPT_TOOL_NAMES]),
+    );
     expect(team).toContain("proposals_list");
     expect(team).toContain("proposals_resolve");
     for (const name of PERSONAL_ONLY_INBOX_TOOL_NAMES) {

@@ -8,11 +8,13 @@ import {
   DreamingActions,
   DreamingPanel,
 } from "@/components/dreaming/DreamingPanel";
+import { ProposalHistory } from "@/components/dreaming/ProposalHistory";
 import { ProposalsPanel } from "@/components/proposals/ProposalsPanel";
 import { useProposals } from "@/hooks/useProposals";
 import { dreamingSearchParams } from "@/lib/url-state/dreaming";
 
-// `/dreaming`: Proposals (default) and History tabs. The cleanup card sits
+// `/dreaming`: Proposals (default) and History tabs (dream runs, then
+// resolved proposals with undo). The cleanup card sits
 // above both tabs so a scan started from the header shows on either tab.
 export const Route = createFileRoute("/_main/$profileId/dreaming")({
   component: DreamingRoute,
@@ -60,7 +62,14 @@ function DreamingRoute() {
     >
       <div className="flex flex-col gap-4">
         <DreamCleanupCard />
-        {tab === "proposals" ? <ProposalsPanel /> : <DreamingPanel />}
+        {tab === "proposals" ? (
+          <ProposalsPanel />
+        ) : (
+          <>
+            <DreamingPanel />
+            <ProposalHistory />
+          </>
+        )}
       </div>
     </PageContainer>
   );

@@ -85,6 +85,7 @@ export async function insertProposedUpdate(
     }>;
     dreamRunId?: Id<"dreamRuns">;
     skill?: { name: string; description: string; instructions: string };
+    transcript?: Doc<"proposedUpdates">["transcript"];
   },
 ): Promise<ProposedUpdateNode> {
   const proposalId = crypto.randomUUID();
@@ -115,6 +116,9 @@ export async function insertProposedUpdate(
       ? {}
       : { dreamRunId: params.dreamRunId }),
     ...(params.skill === undefined ? {} : { skill: params.skill }),
+    ...(params.transcript === undefined
+      ? {}
+      : { transcript: params.transcript }),
   });
   const created = await findByProposalId(ctx, proposalId);
   if (!created) throw new Error("Failed to create proposed update");
@@ -128,14 +132,21 @@ export async function getProposedUpdate(
   return findByProposalId(ctx, proposalId);
 }
 
+// dreamActionId: the dream action the approval made (merge or update under
+// a dream run), so proposal history can undo it
 export async function markProposedUpdateResolved(
   ctx: MutationCtx,
   proposalId: string,
   status: "approved" | "rejected",
+  dreamActionId?: Id<"dreamActions">,
 ): Promise<ProposedUpdateNode | null> {
   const doc = await findByProposalId(ctx, proposalId);
   if (!doc) return null;
-  await ctx.db.patch(doc._id, { status, resolvedAt: Date.now() });
+  await ctx.db.patch(doc._id, {
+    status,
+    resolvedAt: Date.now(),
+    ...(dreamActionId === undefined ? {} : { dreamActionId }),
+  });
   const updated = await findByProposalId(ctx, proposalId);
   return updated ? toProposedUpdateNode(updated) : null;
 }

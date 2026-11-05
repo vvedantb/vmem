@@ -65,6 +65,20 @@ Before a draft is proposed, it goes through the same rules as the frontiermemory
 
 A draft is never published, also with auto-accept. It waits on the Proposals tab as a `skill` proposal. **Create skill** adds it to your skills (the team's skills for a team profile, origin `dream`). Reject drops it. The source rows are not changed.
 
+### Session transcripts
+
+An agent can send a whole session with the MCP tool [`transcript_submit`](/mcp/tools#transcript_submit) or `POST /api/v1/transcripts` (plain text, Markdown, JSON or JSONL, at most 1.5 MB). The text waits in file storage as a `pending` transcript. Nothing is saved yet.
+
+In the next nightly or manual run (AI steps on), each pending transcript gets one call (a transcript longer than one prompt is split into parts, one call each). The AI picks out durable facts, preferences, dated decisions, commands and values that worked, and lessons (what failed and why). API keys, tokens and passwords are removed, and the skill safety filter drops a memory that recommends bypassing a safeguard.
+
+Each memory then follows the AI merge rule: with `dreamModeAutoAccept` and confidence ≥ 0.9 it is saved at once, else it waits on the Proposals tab as a `transcript` proposal. An exact repeat of a visible memory is skipped. Saved memories have source `transcript` and the app as a tag (for example `claude-code`). They are embedded like other memories, so write-time candidates and the Jev judge find their duplicates and conflicts on later nights.
+
+After the call the transcript is `processed` and its text is deleted. A failed call marks it `failed`; it is tried again on the next nights, at most 3 times, then its text is deleted. Transcript rows are purged after 30 days.
+
+### Untrusted text
+
+Every Dream prompt (judge, cleanup merge, skill draft, transcript distill) puts memory and transcript text between `<<<UNTRUSTED_DATA>>>` and `<<<END_UNTRUSTED_DATA>>>`. The role tells the AI that this text is data to draw facts from, not instructions. An instruction inside it to ignore the rules, reveal or send secrets, or change memories is never recorded.
+
 ### Caps and budget
 
 | Limit                                      | Value |
@@ -72,7 +86,8 @@ A draft is never published, also with auto-accept. It waits on the Proposals tab
 | `near_dup` calls per user per night        | 25    |
 | `maybe_conflict` calls per user per night  | 15    |
 | Skill draft calls per user per night       | 2     |
-| AI calls per user per night (all profiles) | 42    |
+| Transcript calls per user per night        | 8     |
+| AI calls per user per night (all profiles) | 50    |
 | Dream AI budget per UTC day (all users)    | $0.50 |
 
 The budget guard sums today's `openRouterLogs` cost for feature `dream`. The one-off cleanup spends from the same budget. When a cap or the budget is reached, the AI steps stop, the run is `partial` and the open candidates wait for the next night.
@@ -96,7 +111,7 @@ Decay runs only after the profile has a previous successful run (`ok` or `partia
 
 ## The Dreaming page and undo
 
-The **Dreaming** page (`/{profileId}/dreaming`) has two tabs. **Proposals** is the default and lists pending [proposals](/concepts/proposed-updates) to approve or reject; its label shows the pending count. **History** lists the runs with their counts. The page header has **Scan for duplicates** and **Run dream mode**. You can undo one action or a whole run for **30 days**. Undo restores the before-snapshot of each row.
+The **Dreaming** page (`/{profileId}/dreaming`) has two tabs. **Proposals** is the default and lists pending [proposals](/concepts/proposed-updates) to approve or reject; its label shows the pending count. **History** lists the runs with their counts, then the last 30 approved and rejected proposals. An approved `merge` or `update` proposal has **Undo** while its 30-day window is open and the memories it hid still exist; other kinds are read-only. The page header has **Scan for duplicates** and **Run dream mode**. You can undo one action or a whole run for **30 days**. Undo restores the before-snapshot of each row.
 
 After the 30 days, an hourly sweep permanently deletes the duplicate copies a merge hid (`suppressedBy: "dream"`) and the rows an AI-judged merge or update hid (`suppressedBy: "dream-ai"`). Archived (`"dream-decay"`) and expired rows are kept hidden. Once a hidden copy is gone, undo refuses the whole action or run and changes nothing. The log rows are purged 90 days after the undo window closes. Hidden rows never count in the dashboard stats. MCP [`dream_history`](/mcp/tools) reads the last 10 runs (counts only).
 

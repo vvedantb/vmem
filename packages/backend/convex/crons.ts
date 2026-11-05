@@ -122,6 +122,16 @@ crons.interval(
   {},
 );
 
+// drops session transcripts older than 30 days, with any text still stored
+// (a processed transcript's text is deleted when Dream reads it), 200 rows
+// a batch
+crons.interval(
+  "purge expired session transcripts",
+  { hours: 1 },
+  internal.transcripts.purgeExpiredInternal,
+  {},
+);
+
 // drops MCP connection client names not seen for 30 days, 500 rows a batch
 crons.interval(
   "purge expired mcp sessions",
