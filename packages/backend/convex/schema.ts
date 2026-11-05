@@ -39,6 +39,7 @@ import {
   dreamActionFields,
   dreamPlanGroupFields,
   dreamCandidateFields,
+  sessionTranscriptFields,
   artifactFields,
   artifactBodyFields,
   artifactVersionFields,
@@ -204,6 +205,13 @@ const schema = defineSchema({
     // retention sweep (dreamCandidates.purgeInternal)
     .index("by_created", ["createdAt"]),
 
+  // session transcripts for the nightly Dream distill (transcripts.ts)
+  sessionTranscripts: defineTable(sessionTranscriptFields)
+    // nightly pickup: pending (then failed) rows of one profile, oldest first
+    .index("by_profile_status_created", ["profileId", "status", "createdAt"])
+    // 30-day retention purge
+    .index("by_created", ["createdAt"]),
+
   // cached "user profile" prose for the mcp vmem,//context_prompt resource
   contextPromptCache: defineTable(contextPromptCacheFields).index("by_user", [
     "userId",
@@ -321,7 +329,9 @@ const schema = defineSchema({
   proposedUpdates: defineTable(proposedUpdateFields)
     .index("by_proposal_id", ["proposalId"])
     .index("by_user_status", ["userId", "status"])
-    .index("by_profile_status", ["profileId", "status"]),
+    .index("by_profile_status", ["profileId", "status"])
+    // Dreaming page proposal history: resolved rows, newest first
+    .index("by_profile_resolved", ["profileId", "resolvedAt"]),
 
   // artifacts: metadata rows; bodies, versions, state and refs hang off them
   artifacts: defineTable(artifactFields)

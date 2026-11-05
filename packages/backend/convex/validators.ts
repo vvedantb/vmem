@@ -268,6 +268,8 @@ export const proposedUpdateKindValidator = v.union(
   v.literal("anomaly"),
   v.literal("merge"),
   v.literal("skill"),
+  // a memory Dream distilled from a session transcript; approving saves it
+  v.literal("transcript"),
 );
 
 export const proposedUpdateStatusValidator = v.union(
@@ -320,6 +322,14 @@ export const proposedUpdateFields = {
   dreamRunId: v.optional(v.id("dreamRuns")),
   // kind "skill": the drafted skill; approving creates it in skills
   skill: v.optional(v.object(proposedSkillFields)),
+  // the dream action an approved merge or update made: proposal history
+  // undoes it (api.dream.undoAction)
+  dreamActionId: v.optional(v.id("dreamActions")),
+  // kind "transcript": the app that sent the transcript (e.g. "claude-code")
+  // and the memory type the AI chose; approving saves the memory with them
+  transcript: v.optional(
+    v.object({ source: v.string(), type: memoryTypeValidator }),
+  ),
 };
 
 // table field validators, used in schema.ts and return validators
@@ -712,6 +722,8 @@ export const dreamRunFields = {
     aiFlagged: v.number(),
     // tag groups merged by tag consolidation (absent on older runs)
     tagsMerged: v.optional(v.number()),
+    // memories saved from session transcripts with auto-accept (absent: none)
+    transcriptSaved: v.optional(v.number()),
   }),
   aiCalls: v.number(),
   costUsd: v.number(),
@@ -803,6 +815,35 @@ export const dreamCandidateFields = {
   kind: v.union(v.literal("near_dup"), v.literal("maybe_conflict")),
   status: v.union(v.literal("open"), v.literal("judged"), v.literal("dropped")),
   createdAt: v.number(),
+};
+
+export const sessionTranscriptStatusValidator = v.union(
+  v.literal("pending"),
+  v.literal("processed"),
+  v.literal("failed"),
+);
+
+// a session transcript waiting for the nightly Dream distill
+// (transcripts.ts). The text is in file storage: a document holds at most
+// 1 MiB and a transcript may be 1.5 MB. The file is deleted once the
+// transcript is processed; the row is dropped after 30 days.
+export const sessionTranscriptFields = {
+  // clerk id, as on memories
+  userId: v.string(),
+  profileId: v.string(),
+  // the connected app (MCP client name) or "api"
+  source: v.string(),
+  title: v.optional(v.string()),
+  status: sessionTranscriptStatusValidator,
+  // the text; absent once processed or purged
+  storageId: v.optional(v.id("_storage")),
+  byteLength: v.number(),
+  // distill attempts so far; a failed transcript is retried up to a limit
+  attempts: v.number(),
+  error: v.optional(v.string()),
+  createdAt: v.number(),
+  processedAt: v.optional(v.number()),
+  failedAt: v.optional(v.number()),
 };
 
 // the memory fields a dream action may change, as they were before it.

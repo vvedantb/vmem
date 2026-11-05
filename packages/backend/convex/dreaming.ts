@@ -75,6 +75,7 @@ import { readOpenRouterApiKey } from "./lib/openRouterKey";
 import { callJsonChatWithUsage } from "./lib/openRouter/jsonChat";
 import { LLM_MODEL, scheduleLog } from "./lib/openRouter/shared";
 import { consolidateProfileTags } from "./tagConsolidate";
+import { runTranscriptStep } from "./transcripts";
 import { runGetOwnerUserIdInternal } from "./teams/auth";
 import { dreamSettingsOf, getSettingsDoc } from "./userSettings";
 import {
@@ -87,7 +88,8 @@ import {
 // Nightly dreaming (plan §3c). Per profile, in bounded batches: exact and
 // source-key dedupe over the rows changed since the last run, then the AI
 // judge over the open write-time candidates (near-dup: Jev; maybe-conflict:
-// Qwen, thinking off), expire, decay (personal profiles only), tag
+// Qwen, thinking off), skill drafts, session transcript distill
+// (transcripts.ts), expire, decay (personal profiles only), tag
 // consolidation, log. Every
 // change is a dreamActions row with undo. Manual "Run now" runs the same pass.
 
@@ -1300,6 +1302,14 @@ async function dreamProfile(
         from: start.windowFrom,
         until: start.until,
       });
+      // step 4c: distill pending session transcripts into proposals
+      const transcriptsLeft = await runTranscriptStep(ctx, {
+        runId,
+        userId: args.userId,
+        profileId: args.profileId,
+        ai: args.ai,
+      });
+      if (transcriptsLeft) truncated = true;
     }
 
     // step 5: expire
@@ -1378,6 +1388,10 @@ async function dreamProfile(
   }
 }
 
+function plural(count: number, one: string, many: string): string {
+  return `${String(count)} ${count === 1 ? one : many}`;
+}
+
 function describeCounts(counts: DreamCounts): string {
   const merged = counts.exactMerged + counts.keyMerged + counts.nearDupMerged;
   const parts: string[] = [];
@@ -1392,6 +1406,12 @@ function describeCounts(counts: DreamCounts): string {
   if (counts.proposals > 0) {
     parts.push(
       `queued ${String(counts.proposals)} proposal${counts.proposals === 1 ? "" : "s"} for review in Dreaming`,
+    );
+  }
+  const fromTranscripts = counts.transcriptSaved ?? 0;
+  if (fromTranscripts > 0) {
+    parts.push(
+      `saved ${plural(fromTranscripts, "memory", "memories")} from session transcripts`,
     );
   }
   if (counts.expired > 0) parts.push(`expired ${String(counts.expired)}`);

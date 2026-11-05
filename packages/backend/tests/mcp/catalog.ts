@@ -31,6 +31,9 @@ export const MEMORY_MANAGE_TOOL_NAMES = [
   "memory_import_file",
 ] as const;
 
+// session transcripts for Dream Mode (both scopes)
+export const TRANSCRIPT_TOOL_NAMES: readonly string[] = ["transcript_submit"];
+
 export const INBOX_TOOL_NAMES = [
   "proposals_list",
   "proposals_resolve",

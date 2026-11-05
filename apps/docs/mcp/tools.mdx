@@ -547,9 +547,28 @@ MCP App: interactive memory graph. Requires an MCP Apps–capable host.
 
 ---
 
+## transcript_submit
+
+Send a session transcript to [Dream Mode](/concepts/dream-mode#session-transcripts). Nothing is saved at once: the next nightly or manual run picks out durable facts, preferences, decisions, commands that worked and lessons (secrets removed). They go to the Proposals tab, or are saved at once only with auto-accept and confidence ≥ 0.9. The text is deleted once it is read. `source` is the connected app (`clientInfo.name`), else `mcp`. Works on `/mcp` and `/mcp/team`.
+
+<ParamField body="transcript" type="string" required>
+  Plain text, Markdown, JSON or JSONL. At most 1.5 MB (1,572,864 bytes of
+  UTF-8); a larger transcript is refused, not cut
+</ParamField>
+<ParamField body="title" type="string">
+  Short name of the session
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile (defaults to active profile)
+</ParamField>
+
+**Returns:** `{ id, status: "pending", source, byteLength, createdAt }`
+
+---
+
 ## proposals_list
 
-Pending proposals for a profile, newest first (the web Dreaming page Proposals tab): Dream Mode merges, skill drafts, and update, delete, insight, connection, contradiction and anomaly suggestions.
+Pending proposals for a profile, newest first (the web Dreaming page Proposals tab): Dream Mode merges, skill drafts, transcript memories, and update, delete, insight, connection, contradiction and anomaly suggestions.
 
 <ParamField body="profileId" type="string">
   Profile (defaults to active profile)
@@ -583,11 +602,11 @@ Approve or reject one pending proposal.
 
 ## dream_run
 
-Personal connector only. Run the nightly [Dream Mode](/concepts/dream-mode) pass now, as the web **Run dream mode** button does: your personal profiles and the team profiles you own. It merges exact and same-page duplicates, merges duplicate tags (see `memory_tags_consolidate`), sends open write-time candidates to the AI judge (when `dreamModeUseAi` is on and the deployment has `AI_GATEWAY_API_KEY`, within the nightly AI caps and daily budget), expires rows past `expiresAt` and archives stale browsing history. Each change can be undone for 30 days. Limited to one run per hour. No notification.
+Personal connector only. Run the nightly [Dream Mode](/concepts/dream-mode) pass now, as the web **Run dream mode** button does: your personal profiles and the team profiles you own. It merges exact and same-page duplicates, merges duplicate tags (see `memory_tags_consolidate`), sends open write-time candidates to the AI judge and distills pending session transcripts (when `dreamModeUseAi` is on and the deployment has `AI_GATEWAY_API_KEY`, within the nightly AI caps and daily budget), expires rows past `expiresAt` and archives stale browsing history. Each change can be undone for 30 days. Limited to one run per hour. No notification.
 
 **Parameters:** none
 
-**Returns:** `{ reason, runIds, counts: { exactMerged, keyMerged, nearDupMerged, superseded, proposals, expired, archived, aiFlagged, tagsMerged? }, failed }`. `runIds` has one dreaming log row (`dreamRuns` id) per profile; `dream_history` lists the same ids. `failed` counts profiles whose run threw. `reason` is `ok`, `rate-limited` when Dream Mode ran in the last hour, `disabled` when the deployment set `DREAM_DISABLED=1`, or `no-user`.
+**Returns:** `{ reason, runIds, counts: { exactMerged, keyMerged, nearDupMerged, superseded, proposals, expired, archived, aiFlagged, tagsMerged?, transcriptSaved? }, failed }`. `runIds` has one dreaming log row (`dreamRuns` id) per profile; `dream_history` lists the same ids. `failed` counts profiles whose run threw. `reason` is `ok`, `rate-limited` when Dream Mode ran in the last hour, `disabled` when the deployment set `DREAM_DISABLED=1`, or `no-user`.
 
 ---
 

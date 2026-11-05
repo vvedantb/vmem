@@ -5,6 +5,9 @@ export type DreamRun = FunctionReturnType<typeof api.dream.listRuns>[number];
 export type DreamAction = FunctionReturnType<
   typeof api.dream.listActions
 >["page"][number];
+export type ProposalHistoryRow = FunctionReturnType<
+  typeof api.proposedUpdateApi.listResolved
+>[number];
 type DreamSampleGroup = NonNullable<DreamRun["sample"]>[number];
 type DreamCounts = DreamRun["counts"];
 
@@ -46,6 +49,7 @@ const COUNT_LABELS: readonly [keyof DreamCounts, string][] = [
   ["expired", "expired"],
   ["archived", "archived"],
   ["aiFlagged", "AI flagged"],
+  ["transcriptSaved", "saved from transcripts"],
 ];
 
 export function dreamRunCountParts(

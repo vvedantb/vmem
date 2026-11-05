@@ -62,6 +62,7 @@ export const PROPOSED_UPDATE_KINDS = [
   "anomaly",
   "merge",
   "skill",
+  "transcript",
 ] as const;
 
 export type ProposedUpdateKind = (typeof PROPOSED_UPDATE_KINDS)[number];

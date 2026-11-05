@@ -20,13 +20,15 @@ export const DECAY_IDLE_MS = 30 * DAY_MS;
 const DECAY_MAX_VISITS = 2;
 const DECAY_MAX_USEFULNESS = 0.2;
 
-// AI steps (near-dup judge, conflict judge, skill drafts): calls per user
-// per night, all profiles together. A profile run makes at most one
-// skill_draft call, and only when its window holds a memory that worked.
-export type DreamAiStep = DreamCandidateKind | "skill_draft";
+// AI steps (near-dup judge, conflict judge, skill drafts, transcript
+// distill): calls per user per night, all profiles together. A profile run
+// makes at most one skill_draft call, and only when its window holds a
+// memory that worked. A transcript takes one transcript call per prompt
+// part; transcripts left over wait for the next night.
+export type DreamAiStep = DreamCandidateKind | "skill_draft" | "transcript";
 export const DREAM_MAX_AI_CALLS_BY_KIND: Readonly<Record<DreamAiStep, number>> =
-  { near_dup: 25, maybe_conflict: 15, skill_draft: 2 };
-export const DREAM_MAX_AI_CALLS = 42;
+  { near_dup: 25, maybe_conflict: 15, skill_draft: 2, transcript: 8 };
+export const DREAM_MAX_AI_CALLS = 50;
 // all users together, per UTC day, summed from openRouterLogs feature "dream";
 // shared with the one-off cleanup
 export const DREAM_DAILY_BUDGET_USD = 0.5;
@@ -156,6 +158,8 @@ export interface DreamCounts {
   expired: number;
   archived: number;
   aiFlagged: number;
+  // memories saved from session transcripts with auto-accept (absent: none)
+  transcriptSaved?: number;
 }
 
 export function emptyDreamCounts(): DreamCounts {
@@ -175,6 +179,7 @@ export function addDreamCounts(
   a: DreamCounts,
   b: Partial<DreamCounts>,
 ): DreamCounts {
+  const transcriptSaved = (a.transcriptSaved ?? 0) + (b.transcriptSaved ?? 0);
   return {
     exactMerged: a.exactMerged + (b.exactMerged ?? 0),
     keyMerged: a.keyMerged + (b.keyMerged ?? 0),
@@ -184,6 +189,7 @@ export function addDreamCounts(
     expired: a.expired + (b.expired ?? 0),
     archived: a.archived + (b.archived ?? 0),
     aiFlagged: a.aiFlagged + (b.aiFlagged ?? 0),
+    ...(transcriptSaved > 0 ? { transcriptSaved } : {}),
   };
 }
 
@@ -195,7 +201,8 @@ export function changedRows(counts: DreamCounts): number {
     counts.superseded +
     counts.proposals +
     counts.expired +
-    counts.archived
+    counts.archived +
+    (counts.transcriptSaved ?? 0)
   );
 }
 
