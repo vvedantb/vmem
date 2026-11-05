@@ -84,6 +84,9 @@ const searchPageArgsSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 const memoryIdsArgsSchema = z.object({ ids: z.array(z.string()) });
+const openPairsAmongArgsSchema = z.object({
+  memoryIds: z.array(z.string()),
+});
 const paginateScopedArgsSchema = z.object({
   kind: z.enum(["personal", "team"]),
   userId: z.string().optional(),
@@ -812,7 +815,7 @@ async function dispatchName(
       return null;
     }
     case "dreamCandidates:openPairsAmongInternal": {
-      z.object({ memoryIds: z.array(z.string()) }).parse(args);
+      openPairsAmongArgsSchema.parse(args);
       return [];
     }
     default:

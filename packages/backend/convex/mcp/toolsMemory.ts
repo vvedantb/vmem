@@ -184,9 +184,12 @@ const memoryAddSchema = structuredStoreBodySchema
     type: memoryTypeSchema.describe(
       "Memory type: profile, episodic, or knowledge",
     ),
-    source: structuredStoreBodySchema.shape.source.describe(
-      "Fallback source label (e.g. 'claude', 'chatgpt', 'manual'). The server records the connected app's MCP client name instead when it knows it",
-    ),
+    source: z
+      .string()
+      .optional()
+      .describe(
+        "Fallback source label (e.g. 'chatgpt', 'manual') when the server does not know the connected app. Prefer omitting it: the server records the MCP client's name from initialize",
+      ),
     tags: z
       .array(z.string())
       .optional()
