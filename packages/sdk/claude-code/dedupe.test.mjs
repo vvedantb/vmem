@@ -10,7 +10,7 @@ import {
   withSubmitted,
 } from "./dedupe.mjs";
 
-test("skips a session with fewer than 3 user turns", () => {
+void test("skips a session with fewer than 3 user turns", () => {
   assert.match(
     skipReason({ sessionId: "s1", userTurns: 2, submitted: [] }) ?? "",
     /user turn/u,
@@ -21,19 +21,19 @@ test("skips a session with fewer than 3 user turns", () => {
   );
 });
 
-test("skips a session id that was already submitted", () => {
+void test("skips a session id that was already submitted", () => {
   assert.match(
     skipReason({ sessionId: "s1", userTurns: 5, submitted: ["s1"] }) ?? "",
     /already submitted/u,
   );
 });
 
-test("caps the list and keeps the newest ids", () => {
+void test("caps the list and keeps the newest ids", () => {
   assert.deepEqual(withSubmitted(["a", "b", "c"], "d", 3), ["b", "c", "d"]);
   assert.deepEqual(withSubmitted(["a", "b"], "a", 3), ["b", "a"]);
 });
 
-test("records submitted ids in the state file", async () => {
+void test("records submitted ids in the state file", async () => {
   const dir = await mkdtemp(join(tmpdir(), "vmem-hook-"));
   try {
     const path = join(dir, "nested", "state.json");

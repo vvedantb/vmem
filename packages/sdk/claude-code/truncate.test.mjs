@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { MAX_TRANSCRIPT_BYTES, truncateToBytes } from "./truncate.mjs";
 
-test("keeps text under the cap as is", () => {
+void test("keeps text under the cap as is", () => {
   assert.equal(truncateToBytes("short"), "short");
 });
 
-test("cuts text over the cap to the byte cap, keeping the start", () => {
+void test("cuts text over the cap to the byte cap, keeping the start", () => {
   const line = `${"é".repeat(99)}\n`;
   const text = line.repeat(
     Math.ceil((MAX_TRANSCRIPT_BYTES * 2) / Buffer.byteLength(line)),
@@ -21,7 +21,7 @@ test("cuts text over the cap to the byte cap, keeping the start", () => {
   for (const row of kept.split("\n")) assert.equal(row.length, 99);
 });
 
-test("cuts multi-byte text with a small cap", () => {
+void test("cuts multi-byte text with a small cap", () => {
   const out = truncateToBytes("ab\n".repeat(20) + "😀".repeat(50), 60);
   assert.ok(Buffer.byteLength(out, "utf8") <= 60);
   assert.doesNotMatch(out, /�/u);

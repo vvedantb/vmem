@@ -42,7 +42,7 @@ const jsonl = [
   .concat(["not json", ""])
   .join("\n");
 
-test("renders user, assistant text, tool calls and tool results", () => {
+void test("renders user, assistant text, tool calls and tool results", () => {
   const { text } = renderTranscript(parseJsonl(jsonl));
   assert.match(text, /## User\nFix the login bug/u);
   assert.match(text, /## Assistant\nI will read the file\./u);
@@ -50,14 +50,14 @@ test("renders user, assistant text, tool calls and tool results", () => {
   assert.match(text, /← result: x+… \[\+4000 chars\]/u);
 });
 
-test("drops thinking, meta and non-message records", () => {
+void test("drops thinking, meta and non-message records", () => {
   const { text } = renderTranscript(parseJsonl(jsonl));
   assert.doesNotMatch(text, /SECRET PLAN/u);
   assert.doesNotMatch(text, /meta/u);
   assert.doesNotMatch(text, /ignored/u);
 });
 
-test("shortens a huge tool result", () => {
+void test("shortens a huge tool result", () => {
   const { text } = renderTranscript(parseJsonl(jsonl));
   const resultLine = text
     .split("\n")
@@ -66,6 +66,6 @@ test("shortens a huge tool result", () => {
   assert.ok(resultLine.length < MAX_TOOL_RESULT_CHARS + 50);
 });
 
-test("counts only user turns with text, not tool results", () => {
+void test("counts only user turns with text, not tool results", () => {
   assert.equal(renderTranscript(parseJsonl(jsonl)).userTurns, 1);
 });

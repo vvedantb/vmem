@@ -6,7 +6,7 @@ const command = hookCommand(
   "/opt/vmem/packages/sdk/claude-code/submit-session.mjs",
 );
 
-test("adds an async SessionEnd hook and keeps other settings", () => {
+void test("adds an async SessionEnd hook and keeps other settings", () => {
   const other = { hooks: [{ type: "command", command: "echo bye" }] };
   const next = withSessionEndHook(
     { model: "opus", hooks: { PreToolUse: [], SessionEnd: [other] } },
@@ -22,7 +22,7 @@ test("adds an async SessionEnd hook and keeps other settings", () => {
   });
 });
 
-test("is idempotent and replaces an old install path", () => {
+void test("is idempotent and replaces an old install path", () => {
   const old = withSessionEndHook(
     {},
     hookCommand("/old/claude-code/submit-session.mjs"),

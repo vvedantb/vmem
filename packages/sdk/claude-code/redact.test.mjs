@@ -13,7 +13,7 @@ const secrets = [
   "eyJhbGciOiJIUzI1.eyJzdWIiOiIxMjM0.SflKxwRJSMeKKF2QT4",
 ];
 
-test("redacts well-known key and token shapes", () => {
+void test("redacts well-known key and token shapes", () => {
   for (const secret of secrets) {
     const out = redactSecrets(`value ${secret} end`);
     assert.ok(!out.includes(secret), secret);
@@ -21,7 +21,7 @@ test("redacts well-known key and token shapes", () => {
   }
 });
 
-test("redacts bearer tokens, URL passwords, assignments and PEM keys", () => {
+void test("redacts bearer tokens, URL passwords, assignments and PEM keys", () => {
   const out = redactSecrets(
     [
       "Authorization: Bearer abcdef1234567890xyz",
@@ -43,7 +43,7 @@ test("redacts bearer tokens, URL passwords, assignments and PEM keys", () => {
   assert.match(out, /admin:\[REDACTED\]@db\.example\.com/u);
 });
 
-test("keeps ordinary text", () => {
+void test("keeps ordinary text", () => {
   const text = "Run pnpm test before you push.";
   assert.equal(redactSecrets(text), text);
 });

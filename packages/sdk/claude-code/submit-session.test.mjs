@@ -46,7 +46,7 @@ function fakeFetch(status = 201) {
   return { calls, fetchImpl };
 }
 
-test("posts a redacted transcript once per session", async () => {
+void test("posts a redacted transcript once per session", async () => {
   await withTempDir(async (dir) => {
     const transcriptPath = join(dir, "s.jsonl");
     await writeFile(transcriptPath, transcriptJsonl(3));
@@ -82,7 +82,7 @@ test("posts a redacted transcript once per session", async () => {
   });
 });
 
-test("skips a short session and does not record a failed upload", async () => {
+void test("skips a short session and does not record a failed upload", async () => {
   await withTempDir(async (dir) => {
     const short = join(dir, "short.jsonl");
     await writeFile(short, transcriptJsonl(2));
@@ -125,13 +125,13 @@ test("skips a short session and does not record a failed upload", async () => {
   });
 });
 
-test("skips when the env vars are missing", async () => {
+void test("skips when the env vars are missing", async () => {
   const { calls, fetchImpl } = fakeFetch();
   const out = await submitSession({ payload: "{}", env: {}, fetchImpl });
   assert.match(out, /VMEM_API_KEY/u);
   assert.equal(calls.length, 0);
 });
 
-test("builds a short title", () => {
+void test("builds a short title", () => {
   assert.equal(sessionTitle("", "1234567890"), "Claude Code · 12345678");
 });
