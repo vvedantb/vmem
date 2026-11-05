@@ -880,6 +880,8 @@ export const dreamActionFields = {
     v.literal("supersede"),
     v.literal("archive"),
     v.literal("expire"),
+    // a memory saved from a session transcript; undo deletes it
+    v.literal("create"),
   ),
   keeperId: v.optional(v.id("memories")),
   memoryIds: v.array(v.id("memories")),

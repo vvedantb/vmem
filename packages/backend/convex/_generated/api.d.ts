@@ -70,6 +70,7 @@ import type * as lib_clerkUser from "../lib/clerkUser.js";
 import type * as lib_connectorAccessToken from "../lib/connectorAccessToken.js";
 import type * as lib_contextPromptInvalidate from "../lib/contextPromptInvalidate.js";
 import type * as lib_crypto from "../lib/crypto.js";
+import type * as lib_memoryLimit from "../lib/memoryLimit.js";
 import type * as lib_openRouter from "../lib/openRouter.js";
 import type * as lib_openRouter_bestEffortEmbed from "../lib/openRouter/bestEffortEmbed.js";
 import type * as lib_openRouter_chat from "../lib/openRouter/chat.js";
@@ -245,6 +246,7 @@ declare const fullApi: ApiFromModules<{
   "lib/connectorAccessToken": typeof lib_connectorAccessToken;
   "lib/contextPromptInvalidate": typeof lib_contextPromptInvalidate;
   "lib/crypto": typeof lib_crypto;
+  "lib/memoryLimit": typeof lib_memoryLimit;
   "lib/openRouter": typeof lib_openRouter;
   "lib/openRouter/bestEffortEmbed": typeof lib_openRouter_bestEffortEmbed;
   "lib/openRouter/chat": typeof lib_openRouter_chat;

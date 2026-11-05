@@ -26,6 +26,7 @@ const ACTION_KINDS: readonly DreamAction["kind"][] = [
   "supersede",
   "archive",
   "expire",
+  "create",
 ];
 
 const ACTION_KIND_LABELS: Record<DreamAction["kind"], string> = {
@@ -33,6 +34,7 @@ const ACTION_KIND_LABELS: Record<DreamAction["kind"], string> = {
   supersede: "Superseded",
   archive: "Archived",
   expire: "Expired",
+  create: "Saved from transcripts",
 };
 
 export function dreamActionKindLabel(kind: DreamAction["kind"]): string {

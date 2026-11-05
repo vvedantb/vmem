@@ -39,8 +39,8 @@ export type ResolveResult = {
   materializedMemoryId?: string;
 };
 
-// what an approval made: the memory to show, and the dream action (merge or
-// update under a dream run) that proposal history can undo
+// what an approval made: the memory to show, and the dream action (merge,
+// update or transcript save under a dream run) that proposal history can undo
 type Approval = {
   materializedMemoryId?: string;
   dreamActionId?: Id<"dreamActions"> | null;
@@ -195,23 +195,31 @@ async function applySkillProposal(
 }
 
 // Dream Mode transcript memory: approving saves it under the id the
-// proposal promised, with the app it came from as a tag
+// proposal promised, with the app it came from as a tag. Under the proposal's
+// dream run the save is a "create" action that history can undo.
 async function applyTranscriptProposal(
   ctx: MutationCtx,
   proposal: Doc<"proposedUpdates">,
-): Promise<string> {
-  return await saveTranscriptMemory(ctx, {
+): Promise<Approval> {
+  const saved = await saveTranscriptMemory(ctx, {
     clerkId: proposal.userId,
     ...(proposal.profileId === undefined
       ? {}
       : { profileId: proposal.profileId }),
     memoryId: proposal.memoryId,
+    ...(proposal.dreamRunId === undefined
+      ? {}
+      : { runId: proposal.dreamRunId }),
     title: proposal.proposedTitle ?? "Transcript memory",
     content: proposal.proposedContent,
     type: proposal.transcript?.type ?? "knowledge",
     confidence: proposal.confidence ?? 0.8,
     appSource: proposal.transcript?.source ?? TRANSCRIPT_SOURCE,
   });
+  return {
+    materializedMemoryId: saved.memoryId,
+    dreamActionId: saved.dreamActionId,
+  };
 }
 
 async function applyApproval(
@@ -258,9 +266,7 @@ async function applyApproval(
   }
 
   if (proposal.kind === "transcript") {
-    return {
-      materializedMemoryId: await applyTranscriptProposal(ctx, proposal),
-    };
+    return await applyTranscriptProposal(ctx, proposal);
   }
 
   if (proposal.kind === "merge" && proposal.dreamRunId !== undefined) {
