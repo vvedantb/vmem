@@ -57,11 +57,21 @@ const schema = defineSchema({
     isAdmin: v.optional(v.boolean()),
     // Active Clerk Billing plan slugs, synced by the /clerk/webhooks route.
     planSlugs: v.optional(v.array(v.string())),
-    // last MCP initialize clientInfo.name (normalized), the source of MCP writes
-    mcpClientName: v.optional(v.string()),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"]),
+
+  // MCP initialize clientInfo.name (normalized) per user connection; the
+  // source of MCP writes. connectionKey is "sid:<Mcp-Session-Id>" or
+  // "ua:<User-Agent>". Purged 30 days after lastSeen.
+  mcpSessions: defineTable({
+    clerkId: v.string(),
+    connectionKey: v.string(),
+    clientName: v.string(),
+    lastSeen: v.number(),
+  })
+    .index("by_clerkId_and_connectionKey", ["clerkId", "connectionKey"])
+    .index("by_lastSeen", ["lastSeen"]),
 
   apiKeys: defineTable(apiKeyFields)
     .index("by_user", ["userId"])

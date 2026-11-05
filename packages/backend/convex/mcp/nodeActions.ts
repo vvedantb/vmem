@@ -14,7 +14,7 @@ import {
 } from "@vvedantb/server";
 import { registerTools } from "./tools";
 import { registerResources } from "./resources";
-import { initializeClientName } from "./clientInfo";
+import { initializeClientName, mcpConnectionKeys } from "./clientInfo";
 import { registerMemoryGraphApp } from "./memoryGraphApp";
 import { mcpScopeValidator } from "../profiles/mcpAccess";
 import {
@@ -78,23 +78,24 @@ export const handleMcpRequest = internalAction({
     clerkUserId: v.string(),
     body: v.string(),
     scope: mcpScopeValidator,
+    sessionId: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
   },
   returns: v.object({
     status: v.number(),
     body: v.string(),
   }),
-  handler: async (ctx, { clerkUserId, body, scope }) => {
+  handler: async (ctx, { clerkUserId, body, scope, sessionId, userAgent }) => {
     // stateless MCP: only an initialize request carries clientInfo, so keep
-    // the name for later requests; a failed write never blocks the request
+    // the name per connection for later requests; a failed write never
+    // blocks the request
+    const connectionKeys = mcpConnectionKeys({ sessionId, userAgent });
     const clientName = initializeClientName(body);
-    if (clientName !== null) {
+    if (clientName !== null && connectionKeys.length > 0) {
       try {
         await ctx.runMutation(
           internal.mcp.clientInfo.recordClientNameInternal,
-          {
-            clerkId: clerkUserId,
-            name: clientName,
-          },
+          { clerkId: clerkUserId, connectionKeys, name: clientName },
         );
       } catch (err) {
         console.warn(
@@ -112,7 +113,10 @@ export const handleMcpRequest = internalAction({
         const server = new McpServer(mcpServerInfo(scope), {
           instructions: MCP_SERVER_INSTRUCTIONS,
         });
-        registerTools(server, clerkUserId, ctx, scope, clientName);
+        registerTools(server, clerkUserId, ctx, scope, {
+          clientName,
+          connectionKeys,
+        });
         registerMemoryGraphApp(server, clerkUserId, ctx, scope);
         await registerResources(server, clerkUserId, ctx, scope);
         return server;

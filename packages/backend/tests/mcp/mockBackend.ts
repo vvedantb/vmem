@@ -809,11 +809,7 @@ async function dispatchName(
       clerkIdArgsSchema.parse(args);
       return null;
     }
-    // no stored MCP client name and no open dream pairs in the mock
-    case "mcp/clientInfo:getClientNameInternal": {
-      clerkIdArgsSchema.parse(args);
-      return null;
-    }
+    // no open dream pairs in the mock
     case "dreamCandidates:openPairsAmongInternal": {
       openPairsAmongArgsSchema.parse(args);
       return [];

@@ -1,12 +1,12 @@
 import { v } from "convex/values";
 import { z } from "zod";
-import { internalMutation, internalQuery } from "../_generated/server";
-import { getUserByClerkId } from "../auth";
+import { internalMutation } from "../_generated/server";
 
 // Which app wrote an MCP memory. MCP here is stateless: each HTTP request
 // builds a new server, so clientInfo from `initialize` is only known on that
-// request. handleMcpRequest stores the name on the user row; later tool
-// calls read it back. One name per user: the newest client to initialize.
+// request. handleMcpRequest stores the name in mcpSessions, keyed per user by
+// connection (Mcp-Session-Id, else User-Agent), so Claude, Cursor and others
+// connected at once each keep their own name. Later tool calls read it back.
 
 const CLIENT_NAME_MAX = 64;
 const DEFAULT_MCP_SOURCE = "mcp";
@@ -69,25 +69,97 @@ export function resolveMcpSource(args: {
   return agent ? agent : DEFAULT_MCP_SOURCE;
 }
 
-export const getClientNameInternal = internalQuery({
-  args: { clerkId: v.string() },
-  returns: v.union(v.string(), v.null()),
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+// lastSeen is touched at most this often, so tool calls rarely write
+const TOUCH_INTERVAL_MS = 60 * 60 * 1000;
+const PURGE_BATCH = 500;
+const KEY_PART_MAX = 256;
+
+/**
+ * Lookup keys for this MCP connection, best first: the Mcp-Session-Id
+ * header, then the User-Agent. Rows are also scoped by clerkId, so two
+ * users with the same User-Agent never share a row.
+ */
+export function mcpConnectionKeys(headers: {
+  sessionId?: string;
+  userAgent?: string;
+}): string[] {
+  const keys: string[] = [];
+  const sessionId = headers.sessionId?.trim();
+  if (sessionId) keys.push(`sid:${sessionId.slice(0, KEY_PART_MAX)}`);
+  const userAgent = headers.userAgent?.trim().toLowerCase();
+  if (userAgent) keys.push(`ua:${userAgent.slice(0, KEY_PART_MAX)}`);
+  return keys;
+}
+
+// on initialize: store the name under every key of this connection
+export const recordClientNameInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    connectionKeys: v.array(v.string()),
+    name: v.string(),
+  },
+  returns: v.null(),
   handler: async (ctx, args) => {
-    const user = await getUserByClerkId(ctx, args.clerkId);
-    return user?.mcpClientName ?? null;
+    const clientName = normalizeClientName(args.name);
+    if (clientName === null) return null;
+    const lastSeen = Date.now();
+    for (const connectionKey of args.connectionKeys) {
+      const row = await ctx.db
+        .query("mcpSessions")
+        .withIndex("by_clerkId_and_connectionKey", (q) =>
+          q.eq("clerkId", args.clerkId).eq("connectionKey", connectionKey),
+        )
+        .unique();
+      if (row === null) {
+        await ctx.db.insert("mcpSessions", {
+          clerkId: args.clerkId,
+          connectionKey,
+          clientName,
+          lastSeen,
+        });
+      } else {
+        await ctx.db.patch(row._id, { clientName, lastSeen });
+      }
+    }
+    return null;
   },
 });
 
-// writes only on a change, so a client that initializes often costs a read
-export const recordClientNameInternal = internalMutation({
-  args: { clerkId: v.string(), name: v.string() },
-  returns: v.null(),
+// on a tool write: the first key with a stored name wins; touches lastSeen
+export const resolveClientNameInternal = internalMutation({
+  args: { clerkId: v.string(), connectionKeys: v.array(v.string()) },
+  returns: v.union(v.string(), v.null()),
   handler: async (ctx, args) => {
-    const name = normalizeClientName(args.name);
-    if (name === null) return null;
-    const user = await getUserByClerkId(ctx, args.clerkId);
-    if (!user || user.mcpClientName === name) return null;
-    await ctx.db.patch(user._id, { mcpClientName: name });
+    const now = Date.now();
+    for (const connectionKey of args.connectionKeys) {
+      const row = await ctx.db
+        .query("mcpSessions")
+        .withIndex("by_clerkId_and_connectionKey", (q) =>
+          q.eq("clerkId", args.clerkId).eq("connectionKey", connectionKey),
+        )
+        .unique();
+      if (row === null) continue;
+      if (now - row.lastSeen > TOUCH_INTERVAL_MS) {
+        await ctx.db.patch(row._id, { lastSeen: now });
+      }
+      return row.clientName;
+    }
+    return null;
+  },
+});
+
+// drops connections not seen for 30 days, a bounded batch each run
+export const purgeExpiredInternal = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const cutoff = Date.now() - SESSION_TTL_MS;
+    const rows = await ctx.db
+      .query("mcpSessions")
+      .withIndex("by_lastSeen", (q) => q.lt("lastSeen", cutoff))
+      .take(PURGE_BATCH);
+    for (const row of rows) await ctx.db.delete(row._id);
     return null;
   },
 });

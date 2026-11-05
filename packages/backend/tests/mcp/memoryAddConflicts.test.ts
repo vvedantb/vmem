@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { internal } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { mcpConnectionKeys } from "../../convex/mcp/clientInfo";
 import {
   createConvexBackend,
   mcpCaller,
@@ -209,17 +210,56 @@ describe("MCP write source (convex-test backend)", () => {
     );
     expect(before.source).toBe("claude");
 
+    const connectionKeys = mcpConnectionKeys({ userAgent: "Cursor/1.0" });
     await t.mutation(internal.mcp.clientInfo.recordClientNameInternal, {
       clerkId: ALICE,
+      connectionKeys,
       name: "Cursor",
     });
+    const cursor = mcpCaller(t, ALICE, "personal", undefined, {
+      clientName: null,
+      connectionKeys,
+    });
     const after = addSchema.parse(
-      await alice.call("memory_add", {
+      await cursor.call("memory_add", {
         ...fact("Coffee is an oat latte"),
         title: "Coffee",
       }),
     );
     expect(after.source).toBe("cursor");
+  });
+
+  it("keeps a separate source for each client of one user", async () => {
+    const { t } = await setup();
+    const clients = [
+      {
+        name: "Claude Code",
+        userAgent: "claude-code/2.0",
+        source: "claude-code",
+      },
+      { name: "Cursor", userAgent: "Cursor/1.0", source: "cursor" },
+    ];
+    // both clients initialize before either writes
+    for (const client of clients) {
+      await t.mutation(internal.mcp.clientInfo.recordClientNameInternal, {
+        clerkId: ALICE,
+        connectionKeys: mcpConnectionKeys({ userAgent: client.userAgent }),
+        name: client.name,
+      });
+    }
+    for (const client of clients) {
+      const caller = mcpCaller(t, ALICE, "personal", undefined, {
+        clientName: null,
+        connectionKeys: mcpConnectionKeys({ userAgent: client.userAgent }),
+      });
+      const added = addSchema.parse(
+        await caller.call("memory_add", {
+          ...fact(`Written from ${client.name}`),
+          title: `From ${client.name}`,
+        }),
+      );
+      expect(added.source).toBe(client.source);
+    }
   });
 });
 

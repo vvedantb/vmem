@@ -52,11 +52,14 @@ function mcpEndpoint(scope: McpScope): PublicHttpAction {
             );
           },
         }),
-      handleRpc: ({ ctx, principal, body }) =>
+      // headers cross as strings: a Request is not a Convex value
+      handleRpc: ({ ctx, principal, body, request }) =>
         ctx.runAction(internal.mcp.nodeActions.handleMcpRequest, {
           clerkUserId: principal.clerkUserId,
           body,
           scope,
+          sessionId: request.headers.get("mcp-session-id") ?? undefined,
+          userAgent: request.headers.get("user-agent") ?? undefined,
         }),
     }),
   );

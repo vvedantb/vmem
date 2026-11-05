@@ -17,6 +17,7 @@ import schema from "../../convex/schema";
 import { toolSpecs } from "../../convex/mcp/toolCatalog";
 import {
   bindToolSpec,
+  type McpConnection,
   type ToolHandlerContext,
 } from "../../convex/mcp/toolTypes";
 import type { McpScope } from "../../convex/profiles/mcpAccess";
@@ -121,11 +122,14 @@ export function mcpCaller(
   clerkId: string,
   scope: McpScope = "personal",
   vectorSearch?: VectorSearch,
+  // the MCP connection the calls come from (session id / User-Agent keys)
+  connection?: McpConnection,
 ): McpCaller {
   const h: ToolHandlerContext = {
     ctx: convexActionCtx(t, vectorSearch),
     clerkUserId: clerkId,
     scope,
+    connection,
   };
   return {
     clerkId,
