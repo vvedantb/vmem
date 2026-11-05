@@ -499,7 +499,9 @@ describe("transcript near-duplicates", () => {
 
     expect(evaluate).toHaveBeenCalledTimes(1);
     expect(
-      (await pendingProposals(t, owner)).map((p) => p.proposedTitle).sort(),
+      (await pendingProposals(t, owner))
+        .map((p) => p.proposedTitle)
+        .sort((a, b) => a.localeCompare(b)),
     ).toEqual(["Deploy target", "Package manager"]);
   });
 
@@ -566,9 +568,7 @@ describe("transcript undo", () => {
     await owner.user.mutation(api.dream.undoAction, { actionId: action._id });
 
     expect(await memoriesFromTranscripts(t)).toEqual([]);
-    expect((await t.run((ctx) => ctx.db.get(action._id)))?.undoneAt).toBe(
-      NOW,
-    );
+    expect((await t.run((ctx) => ctx.db.get(action._id)))?.undoneAt).toBe(NOW);
   });
 
   it("refuses undo after the window or once the memory is deleted", async () => {
