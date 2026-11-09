@@ -1,4 +1,10 @@
-import { Breadcrumb, BreadcrumbPage, Input } from "@vvedantb/ui";
+import {
+  Breadcrumb,
+  BreadcrumbPage,
+  cn,
+  Input,
+  pageTitleClass,
+} from "@vvedantb/ui";
 
 interface SkillPageTitleProps {
   name: string;
@@ -26,7 +32,10 @@ export function SkillPageTitle({
           }}
           placeholder="Untitled skill"
           aria-label="Skill name"
-          className="h-auto min-w-0 rounded-none border-0 bg-transparent px-0 py-0 text-xl font-semibold tracking-tight shadow-none sm:text-xl focus-visible:ring-0 placeholder:text-muted/50"
+          className={cn(
+            pageTitleClass,
+            "h-auto min-w-0 rounded-none border-0 bg-transparent px-0 py-0 shadow-none focus-visible:ring-0 placeholder:text-muted/50",
+          )}
         />
       </BreadcrumbPage>
     </Breadcrumb>

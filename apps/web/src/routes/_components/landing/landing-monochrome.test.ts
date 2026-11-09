@@ -41,11 +41,22 @@ describe("landing is monochrome", () => {
 describe("landing wordmark", () => {
   const read = (name: string) => readFileSync(path.join(here, name), "utf8");
 
-  it("uses AppWordmark in header and footer", () => {
+  it("uses AppWordmark in header and shared app footer", () => {
     const nav = read("LandingNav.tsx");
     const footer = read("LandingFooter.tsx");
     expect(nav).toContain('<AppWordmark app="vmem" />');
-    expect(footer).toContain('<AppWordmark app="vmem" />');
+    expect(footer).toContain('app="vmem"');
+    expect(footer).toContain("LandingFooter as KitLandingFooter");
+    for (const prop of [
+      "brand=",
+      "size=",
+      "github=",
+      "socials=",
+      "legalLinks=",
+    ]) {
+      expect(footer).not.toContain(prop);
+    }
+    expect(footer).not.toContain("AppWordmark");
     expect(nav).not.toContain("LandingWordmark");
     expect(footer).not.toContain("LandingWordmark");
     expect(nav).not.toContain("VmemBrand");
