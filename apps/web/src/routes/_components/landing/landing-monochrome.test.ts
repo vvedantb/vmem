@@ -41,10 +41,14 @@ describe("landing is monochrome", () => {
 describe("landing wordmark", () => {
   const read = (name: string) => readFileSync(path.join(here, name), "utf8");
 
-  it("uses AppWordmark in header and shared app footer", () => {
-    const nav = read("LandingNav.tsx");
+  it("uses shared SiteHeader and shared app footer", () => {
+    const page = read("LandingPage.tsx");
     const footer = read("LandingFooter.tsx");
-    expect(nav).toContain('<AppWordmark app="vmem" />');
+    expect(page).toContain("SiteHeader");
+    expect(page).toContain('app="vmem"');
+    expect(page).not.toContain("AppWordmark");
+    expect(existsSync(path.join(here, "LandingNav.tsx"))).toBe(false);
+    expect(existsSync(path.join(here, "LandingNavMenu.tsx"))).toBe(false);
     expect(footer).toContain('app="vmem"');
     expect(footer).toContain("LandingFooter as KitLandingFooter");
     for (const prop of [
@@ -57,9 +61,9 @@ describe("landing wordmark", () => {
       expect(footer).not.toContain(prop);
     }
     expect(footer).not.toContain("AppWordmark");
-    expect(nav).not.toContain("LandingWordmark");
+    expect(page).not.toContain("LandingWordmark");
     expect(footer).not.toContain("LandingWordmark");
-    expect(nav).not.toContain("VmemBrand");
+    expect(page).not.toContain("VmemBrand");
     expect(footer).not.toContain("VmemBrand");
   });
 

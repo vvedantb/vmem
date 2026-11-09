@@ -222,8 +222,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       '@vvedantb/ui':
-        specifier: ^0.37.1
-        version: 0.37.1(2a2516d35bb6db034a0597a9c5aebe7c)
+        specifier: ^0.38.0
+        version: 0.38.0(2a2516d35bb6db034a0597a9c5aebe7c)
       '@webext-core/messaging':
         specifier: ^2.3.0
         version: 2.3.0
@@ -365,8 +365,8 @@ importers:
         specifier: 0.3.0
         version: 0.3.0(@electron/asar@3.4.1)
       '@vvedantb/ui':
-        specifier: ^0.37.1
-        version: 0.37.1(03269c87bd874b6d15b9437783408a6a)
+        specifier: ^0.38.0
+        version: 0.38.0(03269c87bd874b6d15b9437783408a6a)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -635,8 +635,8 @@ importers:
         specifier: ^0.14.0
         version: 0.14.0(@ai-sdk/gateway@4.0.88(zod@3.25.76))(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(ai@7.0.108(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.18.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       '@vvedantb/ui':
-        specifier: ^0.37.1
-        version: 0.37.1(543d62c63a275f6414cc05e0eafcf039)
+        specifier: ^0.38.0
+        version: 0.38.0(543d62c63a275f6414cc05e0eafcf039)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -6196,8 +6196,8 @@ packages:
       zod:
         optional: true
 
-  '@vvedantb/ui@0.37.1':
-    resolution: {integrity: sha512-WrFb6OurXpxISHrzz+zJEfFUUopHDEqmURc5tjco2/NRTMrt4pGoYm5jQVXtHykhxqxWHKP09AURKzGz7mRdnA==}
+  '@vvedantb/ui@0.38.0':
+    resolution: {integrity: sha512-ZNvTs5RtNh/C2gSI/t7M9FjtxXMfguR/w+BnT+S+rgkIBMaBUGqwOLW+23vqywZGBMvSiA2Q+K+tvfIXgjhpsw==}
     peerDependencies:
       '@clerk/clerk-react': '>=5'
       '@radix-ui/react-accordion': ^1.2.12
@@ -19319,7 +19319,7 @@ snapshots:
       convex: 1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.18.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.37.1(03269c87bd874b6d15b9437783408a6a)':
+  '@vvedantb/ui@0.38.0(03269c87bd874b6d15b9437783408a6a)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
@@ -19378,7 +19378,7 @@ snapshots:
       motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.37.1(2a2516d35bb6db034a0597a9c5aebe7c)':
+  '@vvedantb/ui@0.38.0(2a2516d35bb6db034a0597a9c5aebe7c)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
@@ -19437,7 +19437,7 @@ snapshots:
       motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.37.1(543d62c63a275f6414cc05e0eafcf039)':
+  '@vvedantb/ui@0.38.0(543d62c63a275f6414cc05e0eafcf039)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
