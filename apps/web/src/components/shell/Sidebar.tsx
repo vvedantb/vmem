@@ -13,7 +13,6 @@ import {
   DASHBOARD_STATS_STALE_MS,
   dashboardStatsQueryKey,
 } from "@/hooks/useDashboardStats";
-import { MorphingMenuIcon } from "@/components/icons/animations";
 import { SidebarNavigation } from "@/components/sidebar/SidebarNavigation";
 import { SidebarHeaderTrailingProvider } from "@/components/sidebar/SidebarHeaderTrailing";
 import {
@@ -33,10 +32,6 @@ import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
 import { useHasVPlan } from "@/lib/vPlan";
 import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
-
-function renderMobileMenuIcon(open: boolean) {
-  return <MorphingMenuIcon isOpen={open} size={20} />;
-}
 
 type SidebarProps = {
   isCollapsed: boolean;
@@ -149,7 +144,6 @@ export default function Sidebar({
         onMobileOpenChange={setMobileMenuOpen}
         asideProps={{ "data-vt": VIEW_TRANSITION_TARGET.sidebar }}
         mobileTitle={pageTitle}
-        mobileMenuIcon={renderMobileMenuIcon}
         rail={
           <VmemSidebarRail
             layout={layout}

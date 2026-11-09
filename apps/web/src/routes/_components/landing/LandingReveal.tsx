@@ -15,6 +15,5 @@ export const {
   LandingReveal,
   LandingRevealItem,
   LandingHero: KitLandingHero,
-  LandingNav: KitLandingNav,
   LandingCta: KitLandingCta,
 } = createLandingKit({ motion });

@@ -2,7 +2,6 @@ import type { MouseEventHandler } from "react";
 import { Link } from "@tanstack/react-router";
 import { IconSearch } from "@tabler/icons-react";
 import {
-  IconVmem,
   RailCollapseTile,
   RailDivider,
   RailTile,
@@ -131,10 +130,8 @@ export function VmemSidebarRail({
       footerClassName="border-t border-separator"
       top={
         <>
-          <RailTile asChild label="Home" active={homeActive}>
-            <Link to={homePath} onClick={onNavigate}>
-              <IconVmem size={26} className="text-current" />
-            </Link>
+          <RailTile asChild app="vmem" label="Home" active={homeActive}>
+            <Link to={homePath} onClick={onNavigate} />
           </RailTile>
           <RailNavItem
             item={inboxRailItem}
