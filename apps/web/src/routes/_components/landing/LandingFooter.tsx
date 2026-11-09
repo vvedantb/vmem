@@ -14,7 +14,7 @@ export function LandingFooter() {
       tagline="Graph storage, vector recall, and MCP-ready integrations for any agent stack."
       links={LANDING_NAV_LINKS}
       actions={
-        <>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <SignInButton mode="modal">
             <Button variant="link" className={landingFooterButtonClass}>
               Sign in
@@ -32,7 +32,7 @@ export function LandingFooter() {
               Continue without an account
             </Button>
           ) : null}
-        </>
+        </div>
       }
     />
   );
