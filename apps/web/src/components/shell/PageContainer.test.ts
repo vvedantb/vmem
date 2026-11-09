@@ -15,4 +15,12 @@ describe("PageContainer title row", () => {
     // the right slot uses the same height so both states line up
     expect(source).toMatch(/className="flex min-h-10[^"]*justify-self-end"/);
   });
+
+  it("uses the shared PageTitle without local title typography", () => {
+    expect(source).toContain("PageTitle");
+    expect(source).not.toContain("<h1");
+    expect(source).not.toMatch(
+      /text-xl|font-semibold|leading-tight|tracking-tight/,
+    );
+  });
 });

@@ -1,6 +1,12 @@
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
-import { cn, motionDuration, motionEase, motionDistance } from "@vvedantb/ui";
+import {
+  cn,
+  PageTitle,
+  motionDuration,
+  motionEase,
+  motionDistance,
+} from "@vvedantb/ui";
 import { usePageTitleSync } from "@/contexts/PageTitleContext";
 
 interface PageContainerProps {
@@ -125,9 +131,9 @@ export default function PageContainer({
                   </motion.div>
                 ) : (
                   showTitleInHeader && (
-                    <h1 className="hidden min-w-0 flex-1 truncate text-xl font-semibold leading-tight tracking-tight text-foreground text-balance md:block">
+                    <PageTitle className="hidden min-w-0 flex-1 truncate text-foreground text-balance md:block">
                       {title}
-                    </h1>
+                    </PageTitle>
                   )
                 )}
                 {leftSection && (

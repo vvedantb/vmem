@@ -47,6 +47,7 @@ docs/superpowers/
 scripts/*
 !scripts/compiler-check.mjs
 !scripts/compiler-check-baseline.json
+!scripts/check-shared-footer.mjs
 !scripts/build-android-release.sh
 
 # Chrome extension build + live-verification scripts — local only
