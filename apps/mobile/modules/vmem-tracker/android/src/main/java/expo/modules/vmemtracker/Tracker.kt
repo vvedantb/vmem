@@ -25,11 +25,22 @@ object Tracker {
     PauseTileService.refresh(context)
   }
 
+  /** Turning on starts from yesterday. Turning off keeps no calendar cursor. */
+  fun setCalendarEnabled(context: Context, enabled: Boolean) {
+    synchronized(CalendarCollector) {
+      val prefs = TrackerPrefs(context)
+      prefs.calendarEnabled = enabled
+      prefs.calendarCursorMs = 0L
+    }
+  }
+
   fun statusJson(context: Context): String {
     val prefs = TrackerPrefs(context)
     return JSONObject()
       .put("paused", prefs.paused)
       .put("usageAccess", UsageCollector.hasUsageAccess(context))
+      .put("calendarEnabled", prefs.calendarEnabled)
+      .put("calendarAccess", CalendarCollector.hasAccess(context))
       .put("collectedThroughMs", prefs.cursorMs)
       .put("lastCollectAtMs", prefs.lastCollectAtMs)
       .put("lastCollectError", prefs.lastCollectError ?: JSONObject.NULL)
@@ -49,6 +60,9 @@ object Tracker {
       val prefs = TrackerPrefs(context)
       prefs.setToken(null)
       prefs.skipTo(System.currentTimeMillis())
+    }
+    synchronized(CalendarCollector) {
+      TrackerPrefs(context).calendarCursorMs = System.currentTimeMillis()
     }
   }
 }

@@ -38,7 +38,7 @@ export default function SettingsScreen() {
       <ScreenContainer reserveTabBar>
         <SettingsSection
           title="Recording"
-          description="vmem records which apps you use and for how long. Every item waits for your review."
+          description="vmem records which apps you use and for how long. That usage stays on this phone. It is never uploaded."
         >
           <SettingsToggleRow
             title="Record app use"
@@ -89,8 +89,32 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         <SettingsSection
-          title="Sharing"
-          description="Share text or a link to vmem from any app. It waits in Review until you approve it. Sharing works while recording is paused."
+          title="Calendar"
+          description="Off by default. When on, vmem reads your calendar (read-only) when you open the app. It includes today's meetings. The server writes a summary of the day and of each meeting. Each summary waits in Review until you approve it. Declined events and all-day events without guests are skipped."
+        >
+          <SettingsToggleRow
+            title="Summarise my calendar"
+            description={
+              status?.calendarEnabled && !status.calendarAccess
+                ? "Calendar permission is off. Allow it in Android Settings."
+                : status?.calendarEnabled
+                  ? "On"
+                  : "Off"
+            }
+            action={
+              <Switch
+                checked={status?.calendarEnabled ?? false}
+                disabled={status === null}
+                onCheckedChange={(on) => void trackerActions.setCalendar(on)}
+                accessibilityLabel="Summarise my calendar"
+              />
+            }
+          />
+        </SettingsSection>
+
+        <SettingsSection
+          title="Sharing and Capture"
+          description="Share text or a link to vmem from any app, or use the Capture tab for a quick note, a voice note or the clipboard. The clipboard is read only when you tap Save clipboard. Each item waits in Review until you approve it. This works while recording is paused."
         />
 
         <SettingsSection

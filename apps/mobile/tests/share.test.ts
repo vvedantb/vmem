@@ -26,7 +26,8 @@ describe("shareItem", () => {
       /Shared to vmem from Chrome on Android at 2026-01-05 10:02 UTC\./,
     );
     assert.deepEqual(body.tags, ["android", "share", "link"]);
-    assert.equal(body.source, "android");
+    assert.equal(body.source, "android-share");
+    assert.equal(body.sourceType, "android-share");
     assert.equal(body.type, "episodic");
     assert.equal(item.kind, "share");
   });

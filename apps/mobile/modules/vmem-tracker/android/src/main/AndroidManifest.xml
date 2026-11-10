@@ -7,6 +7,8 @@
     tools:ignore="ProtectedPermissions" />
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
   <uses-permission android:name="android.permission.INTERNET" />
+  <!-- Read-only. Used only after the user turns on Calendar in Settings. -->
+  <uses-permission android:name="android.permission.READ_CALENDAR" />
 
   <!-- App names for the review queue and the blocked apps list (Android 11+ package visibility). -->
   <queries>

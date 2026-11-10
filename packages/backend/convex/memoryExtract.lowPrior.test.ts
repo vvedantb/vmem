@@ -56,6 +56,7 @@ describe("isLowPriorSource", () => {
     expect(isLowPriorSource("browser-extension", "browsing-history")).toBe(
       true,
     );
+    expect(isLowPriorSource("android-share", "android-share")).toBe(false);
     expect(isLowPriorSource("mcp")).toBe(false);
     expect(isLowPriorSource("browser-extension", null)).toBe(false);
     expect(isLowPriorSource("gmail", "gmail")).toBe(false);
@@ -85,6 +86,23 @@ describe("entity extraction for low-prior sources", () => {
         profileId,
       });
       expect(await jobNames(t)).toEqual([EMBED]);
+    },
+  );
+
+  it.each([
+    "android-share",
+    "android-note",
+    "android-clipboard",
+    "android-calendar",
+  ])(
+    "createMemory action embeds and extracts for %s",
+    async (source) => {
+      const { t, user, profileId } = await setup();
+      await user.action(api.memoryApi.createMemory, {
+        ...memoryArgs(source, source),
+        profileId,
+      });
+      expect((await jobNames(t)).sort()).toEqual([EMBED, EXTRACT]);
     },
   );
 

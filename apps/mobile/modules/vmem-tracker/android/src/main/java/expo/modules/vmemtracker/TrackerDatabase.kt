@@ -101,6 +101,62 @@ class TrackerDatabase private constructor(context: Context) :
     )
   }
 
+  /** A note or clipboard capture the user started in the app. `kind` is `NOTE` or `CLIPBOARD`. */
+  fun insertText(kind: String, text: String, at: Long) {
+    writableDatabase.insertOrThrow(
+      "events",
+      null,
+      ContentValues().apply {
+        put("kind", kind)
+        put("start_ms", at)
+        put("end_ms", at)
+        put("text", text)
+      },
+    )
+  }
+
+  /** True when a raw `calendar` event with this instance id is stored. */
+  fun hasCalendarEvent(id: String): Boolean =
+    readableDatabase.rawQuery(
+      "SELECT 1 FROM events WHERE kind = ? AND instr(text, ?) > 0 LIMIT 1",
+      arrayOf(CaptureKind.CALENDAR, JSONObject().put("id", id).toString().removeSurrounding("{", "}")),
+    ).use { it.moveToFirst() }
+
+  /** Raw calendar events that are not stored yet. `text` is the JSON from CalendarCollector. Returns how many were added. */
+  fun insertCalendar(events: List<CalendarEvent>): Int {
+    var inserted = 0
+    transaction { db ->
+      for (event in events) {
+        if (hasCalendarEvent(event.id)) continue
+        db.insertOrThrow(
+          "events",
+          null,
+          ContentValues().apply {
+            put("kind", CaptureKind.CALENDAR)
+            put("start_ms", event.startMs)
+            put("end_ms", event.endMs)
+            put("text", event.toJson().toString())
+          },
+        )
+        inserted += 1
+      }
+    }
+    return inserted
+  }
+
+  /** Replaces the body of an item that is still waiting for review. */
+  fun updateQueueBody(id: Long, body: String, now: Long) {
+    writableDatabase.update(
+      "queue",
+      ContentValues().apply {
+        put("body", body)
+        put("updated_at", now)
+      },
+      "id = ? AND status = ?",
+      arrayOf(id.toString(), QueueStatus.PENDING_REVIEW),
+    )
+  }
+
   fun eventsJson(): String {
     val out = JSONArray()
     readableDatabase.rawQuery(

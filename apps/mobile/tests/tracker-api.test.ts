@@ -8,6 +8,8 @@ import {
 const status = {
   paused: false,
   usageAccess: true,
+  calendarEnabled: false,
+  calendarAccess: false,
   collectedThroughMs: 10,
   lastCollectAtMs: 10,
   lastCollectError: null,
@@ -27,6 +29,10 @@ function fakeNative(overrides: Partial<VmemTrackerNative> = {}) {
     getStatus: () => record("getStatus", JSON.stringify(status)),
     collectNow: () => record("collectNow", JSON.stringify(status)),
     readEvents: () => record("readEvents", "[]"),
+    insertNote: (text) => record(`insertNote:${text}`, undefined),
+    insertClipboard: (text) => record(`insertClipboard:${text}`, undefined),
+    updateQueueBody: (id, json) =>
+      record(`updateQueueBody:${String(id)}:${json}`, undefined),
     promote: (json) => record(`promote:${json}`, 1),
     listQueue: () => record("listQueue", "[]"),
     approve: (json) => record(`approve:${json}`, 1),
@@ -52,6 +58,11 @@ function fakeNative(overrides: Partial<VmemTrackerNative> = {}) {
     resetDenyList: () => record("resetDenyList", undefined),
     listRecentApps: () => record("listRecentApps", "[]"),
     setAuthToken: (token) => record(`setAuthToken:${String(token)}`, undefined),
+    setCalendarEnabled: (enabled) =>
+      record(
+        `setCalendarEnabled:${String(enabled)}`,
+        JSON.stringify({ ...status, calendarEnabled: enabled }),
+      ),
     setBaseUrl: (url) => record(`setBaseUrl:${url}`, undefined),
     deleteAllData: () => record("deleteAllData", undefined),
     openUsageAccessSettings: () => {
@@ -68,6 +79,7 @@ describe("createTrackerApi", () => {
     const api = createTrackerApi(native);
     assert.deepEqual(await api.getStatus(), status);
     assert.equal((await api.setPaused(true)).paused, true);
+    assert.equal((await api.setCalendarEnabled(true)).calendarEnabled, true);
     assert.deepEqual(await api.getDenyList(), [
       { package: "com.whatsapp", label: "WhatsApp", installed: true },
     ]);
@@ -79,11 +91,17 @@ describe("createTrackerApi", () => {
     await api.approve([1, 2]);
     await api.discard([3]);
     await api.setDenyList(["com.whatsapp"]);
+    await api.insertNote("a");
+    await api.insertClipboard("b");
+    await api.updateQueueBody(7, "{}");
     await api.promote({ items: [], deleteEventIds: [4], trimEvents: [] });
     assert.deepEqual(calls, [
       "approve:[1,2]",
       "discard:[3]",
       'setDenyList:["com.whatsapp"]',
+      "insertNote:a",
+      "insertClipboard:b",
+      "updateQueueBody:7:{}",
       'promote:{"items":[],"deleteEventIds":[4],"trimEvents":[]}',
     ]);
   });

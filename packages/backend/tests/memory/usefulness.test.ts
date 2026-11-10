@@ -71,6 +71,21 @@ describe("source prior", () => {
     expect(classifySource("browsing-history")).toBe("low");
   });
 
+  it("keeps intentional Android captures out of the low bucket", () => {
+    for (const source of [
+      "android-share",
+      "android-note",
+      "android-clipboard",
+      "android-calendar",
+    ]) {
+      expect(classifySource(source, source)).toBe("medium");
+      expect(sourcePrior(source)).toBe(0.62);
+      expect(jevEligible(source, source)).toBe(true);
+    }
+    expect(classifySource("android", "android")).toBe("low");
+    expect(jevEligible("android", "android")).toBe(false);
+  });
+
   it("skips Jev for low-prior sources and tiers the rest", () => {
     for (const source of [
       "browsing-history",

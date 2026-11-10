@@ -32,10 +32,23 @@ class VmemTrackerModule : Module() {
 
     AsyncFunction("collectNow") {
       UsageCollector.collect(context)
+      CalendarCollector.collect(context)
       Tracker.statusJson(context)
     }
 
     AsyncFunction("readEvents") { db.eventsJson() }
+
+    AsyncFunction("insertNote") { text: String ->
+      db.insertText(CaptureKind.NOTE, text.take(MAX_TEXT_CHARS), System.currentTimeMillis())
+    }
+
+    AsyncFunction("insertClipboard") { text: String ->
+      db.insertText(CaptureKind.CLIPBOARD, text.take(MAX_TEXT_CHARS), System.currentTimeMillis())
+    }
+
+    AsyncFunction("updateQueueBody") { id: Long, body: String ->
+      db.updateQueueBody(id, body, System.currentTimeMillis())
+    }
 
     AsyncFunction("promote") { batchJson: String ->
       db.promote(JSONObject(batchJson), System.currentTimeMillis())
@@ -92,6 +105,11 @@ class VmemTrackerModule : Module() {
       if (token != null && db.approvedCount() > 0) TrackerScheduler.enqueueUpload(context)
     }
 
+    AsyncFunction("setCalendarEnabled") { enabled: Boolean ->
+      Tracker.setCalendarEnabled(context, enabled)
+      Tracker.statusJson(context)
+    }
+
     AsyncFunction("setBaseUrl") { url: String -> TrackerPrefs(context).baseUrl = url }
 
     AsyncFunction("deleteAllData") { Tracker.deleteAllData(context) }
@@ -146,6 +164,7 @@ class VmemTrackerModule : Module() {
 
   private companion object {
     const val RECENT_UPLOADED = 20
+    const val MAX_TEXT_CHARS = 20_000
     const val RECENT_APPS = 60
     const val WEEK_MS = 7L * 24 * 60 * 60 * 1000
   }

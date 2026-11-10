@@ -43,6 +43,11 @@ export default (_context: ConfigContext): ExpoConfig => ({
     "expo-font",
     "expo-web-browser",
     "expo-secure-store",
+    // RECORD_AUDIO for voice notes only. No background recording or playback.
+    [
+      "expo-audio",
+      { enableBackgroundRecording: false, enableBackgroundPlayback: false },
+    ],
     "./plugins/withReleaseSigning.js",
   ],
   experiments: {

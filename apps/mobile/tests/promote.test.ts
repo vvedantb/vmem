@@ -7,15 +7,15 @@ import { byNumber, INSTALL, MIN, share, T0, usage } from "./helpers";
 const options = { collectedThroughMs: T0 + 61 * MIN, installId: INSTALL };
 
 describe("buildPromotion", () => {
-  it("combines usage and share items and consumes their events", () => {
+  it("makes share items only and drains usage events", () => {
     const early = usage(0, 20);
     const note = share("note");
     const open = usage(55, 70);
     const promotion = buildPromotion([early, note, open], options);
-    assert.deepEqual(promotion.items.map((item) => item.kind).sort(), [
-      "app_usage",
-      "share",
-    ]);
+    assert.deepEqual(
+      promotion.items.map((item) => item.kind),
+      ["share"],
+    );
     assert.deepEqual(
       promotion.deleteEventIds.sort(byNumber),
       [early.id, note.id].sort(byNumber),

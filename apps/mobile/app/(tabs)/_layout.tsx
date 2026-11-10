@@ -1,5 +1,9 @@
 import { useAuth } from "@clerk/clerk-expo";
-import { IconInbox, IconSettings } from "@tabler/icons-react-native";
+import {
+  IconInbox,
+  IconPencilPlus,
+  IconSettings,
+} from "@tabler/icons-react-native";
 import { GlassBlurProvider } from "@vvedantb/native-ui/floating";
 import {
   FloatingTabBar,
@@ -21,6 +25,9 @@ const renderTabBar = (props: FloatingTabBarProps) => (
 const reviewIcon = ({ color, size }: TabIconProps) => (
   <IconInbox color={iconColor(color)} size={size} />
 );
+const captureIcon = ({ color, size }: TabIconProps) => (
+  <IconPencilPlus color={iconColor(color)} size={size} />
+);
 const settingsIcon = ({ color, size }: TabIconProps) => (
   <IconSettings color={iconColor(color)} size={size} />
 );
@@ -35,6 +42,10 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="index"
           options={{ title: "Review", tabBarIcon: reviewIcon }}
+        />
+        <Tabs.Screen
+          name="capture"
+          options={{ title: "Capture", tabBarIcon: captureIcon }}
         />
         <Tabs.Screen
           name="settings"
