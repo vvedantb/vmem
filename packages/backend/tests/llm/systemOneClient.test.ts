@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   GatewayAuthenticationError,
   GatewayForbiddenError,
@@ -17,14 +14,6 @@ import {
   type GatewayEvaluateCall,
   type SystemOneQuestion,
 } from "../../engine/llm/systemOneClient";
-
-const clientSource = readFileSync(
-  join(
-    dirname(fileURLToPath(import.meta.url)),
-    "../../engine/llm/systemOneClient.ts",
-  ),
-  "utf8",
-);
 
 const sampleQuestions: Record<string, SystemOneQuestion> = {
   is_urgent: {
@@ -79,21 +68,6 @@ describe("readSystemOneApiKey", () => {
 describe("evaluateSystemOne", () => {
   it("calls experimental_evaluate on typesafe-ai/jev and maps boolean probability to noul", async () => {
     expect(SYSTEMONE_QUESTION_TYPES).toEqual(["noul", "choice", "score"]);
-    expect(clientSource).toContain("experimental_evaluate");
-    expect(clientSource).toContain('from "ai"');
-    expect(clientSource).toContain('from "@ai-sdk/gateway"');
-    expect(clientSource).toContain("zeroDataRetention");
-    expect(clientSource).not.toContain("api.typesafe.ai");
-    expect(clientSource).not.toContain("Authorization");
-    for (const knob of [
-      "temperature",
-      "topP",
-      "presencePenalty",
-      "frequencyPenalty",
-    ]) {
-      expect(clientSource).not.toContain(knob);
-    }
-
     const calls: GatewayEvaluateCall[] = [];
     const result = await evaluateSystemOne(
       {

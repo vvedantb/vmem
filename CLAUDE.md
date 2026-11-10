@@ -21,6 +21,7 @@ FOLLOW ALL OF THESE RULES
 - Avoid useEffect; use it only when absolutely necessary (it invites performance regressions), preferring derived state, event handlers or `useSyncExternalStore`.
 - Never call a component as a function in render; name hook-calling helpers `use*` (the compiler memoises capitalised calls and skips them).
 - Compiler bailouts: check `scripts/compiler-check.mjs` against its baseline. oxlint rule `no-value-block-in-try` applies.
+- Tests: default is no new test; a test must call real code; never read or regex source files; a regression test must fail on old code and run in CI.
 - Do not run dev / lint / build unless the user asks.
 - After medium+ changes: no banned types; `tsc` where relevant.
 - Never run `npx convex dev` or `npx convex deploy` in agent sessions. Use codegen for typechecking (see `packages/backend/convex/README.md`).

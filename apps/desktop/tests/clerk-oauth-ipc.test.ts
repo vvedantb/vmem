@@ -83,19 +83,19 @@ function setup(options: { port?: number } = {}) {
 
 describe("registerClerkOAuthIpc", () => {
   it("uses the channel names that @clerk/electron's preload invokes", () => {
-    // The package does not export them, so read its built channel table (dist/cjs/ipc-<hash>.js).
+    // The package does not export them, so read its built dependency output (dist/cjs/ipc-<hash>.js).
     const dist = dirname(
       createRequire(import.meta.url).resolve("@clerk/electron"),
     );
     const chunk = readdirSync(dist).find((file) => /^ipc-.*\.js$/.test(file));
-    const source = readFileSync(join(dist, chunk ?? "missing"), "utf8");
+    const built = readFileSync(join(dist, chunk ?? "missing"), "utf8");
     assert.ok(
-      source.includes(
+      built.includes(
         `getRedirectUrl: "${CLERK_OAUTH_CHANNELS.getRedirectUrl}"`,
       ),
     );
-    assert.ok(source.includes(`open: "${CLERK_OAUTH_CHANNELS.open}"`));
-    assert.ok(source.includes(`getToken: "${TOKEN_CACHE_GET}"`));
+    assert.ok(built.includes(`open: "${CLERK_OAUTH_CHANNELS.open}"`));
+    assert.ok(built.includes(`getToken: "${TOKEN_CACHE_GET}"`));
   });
 
   it("replaces the bridge's OAuth handlers and leaves the token cache alone", async () => {

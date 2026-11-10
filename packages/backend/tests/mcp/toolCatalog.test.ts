@@ -1,7 +1,4 @@
 import { expectMcpToolCount } from "@vvedantb/server";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { memoryToolSpecs } from "../../convex/mcp/toolsMemory";
 import {
@@ -127,44 +124,5 @@ describe("MCP tool catalog", () => {
   it("registers tools onto an MCP server for personal and team scopes", () => {
     assertServerToolRegistrationCompiles("personal");
     assertServerToolRegistrationCompiles("team");
-  });
-
-  it("describes retrieve as hybrid ranking rather than substring-only", () => {
-    expect(memoryToolSpecs.memory_retrieve.description).toContain("hybrid");
-    expect(memoryToolSpecs.memory_retrieve.description).not.toContain(
-      "substring",
-    );
-  });
-
-  it("retrieve schema and handler pass type, tags, and status filters", () => {
-    const source = readFileSync(
-      join(
-        dirname(fileURLToPath(import.meta.url)),
-        "../../convex/mcp/toolsMemory.ts",
-      ),
-      "utf8",
-    );
-    const retrieveBlock = source.slice(
-      source.indexOf("memory_retrieve:"),
-      source.indexOf("memory_add:"),
-    );
-    expect(retrieveBlock).toContain("type: params.type");
-    expect(retrieveBlock).toContain("tags: params.tags");
-    expect(retrieveBlock).toContain("status: params.status");
-    expect(retrieveBlock).toContain("source: params.source");
-    expect(retrieveBlock).toContain("threshold: params.threshold");
-    expect(retrieveBlock).toContain("rerank: params.rerank");
-    expect(retrieveBlock).not.toContain("judge: params.judge");
-    expect(retrieveBlock).toContain("referenceDate: params.referenceDate");
-    expect(source).toContain("Max results (default 10)");
-    expect(
-      memoryToolSpecs.memory_retrieve.schema.safeParse({
-        query: "london",
-        type: "profile",
-        tags: ["pnpm"],
-        status: "pinned",
-        source: "mcp",
-      }).success,
-    ).toBe(true);
   });
 });

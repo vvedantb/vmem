@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { Id, TableNames } from "@vmem/backend";
@@ -52,14 +49,5 @@ describe("useTeamWorkspace", () => {
     expect(() => renderToStaticMarkup(<TeamName />)).toThrow(
       /must be used within TeamDetailProvider/,
     );
-  });
-
-  it("does not throw while a Convex teams.get subscription is still loading", () => {
-    const source = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "team-context.tsx"),
-      "utf8",
-    );
-    expect(source).not.toContain("Team detail is loading");
-    expect(source).not.toContain("Team not found");
   });
 });

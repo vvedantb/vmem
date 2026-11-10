@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: "0"
+      # Each step runs even if an earlier one failed, so one run shows every failure.
+      - name: Typecheck
+        if: ${{ !cancelled() }}
+        run: pnpm typecheck:all
+      - name: Lint
+        if: ${{ !cancelled() }}
+        run: pnpm lint
+      - name: React Compiler bailouts
+        if: ${{ !cancelled() }}
+        run: node scripts/compiler-check.mjs
+      # Tests run in CI now that source-text tests are gone (lint rule
+      # vmem/no-source-text-in-tests keeps them out). Every test calls real code.
+      - name: Tests
+        if: ${{ !cancelled() }}
+        run: pnpm test
+      - name: Oxlint plugin tests
+        if: ${{ !cancelled() }}
+        run: pnpm test:oxlint-plugin
