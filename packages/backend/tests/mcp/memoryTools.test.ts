@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { memoryToolSpecs } from "../../convex/mcp/toolsMemory";
 import { toolSpecs } from "../../convex/mcp/toolCatalog";
@@ -81,24 +78,6 @@ describe("MCP memory tool surfaces", () => {
   });
 
   it("retrieve schema and handler pass type, tags, and status filters", () => {
-    const source = readFileSync(
-      join(
-        dirname(fileURLToPath(import.meta.url)),
-        "../../convex/mcp/toolsMemory.ts",
-      ),
-      "utf8",
-    );
-    const retrieveBlock = source.slice(
-      source.indexOf("memory_retrieve:"),
-      source.indexOf("memory_add:"),
-    );
-    expect(retrieveBlock).toContain("type: params.type");
-    expect(retrieveBlock).toContain("tags: params.tags");
-    expect(retrieveBlock).toContain("status: params.status");
-    expect(retrieveBlock).toContain("source: params.source");
-    expect(source).toContain("params.profileId");
-    expect(retrieveBlock).toContain("params.limit ?? 10");
-    expect(source).toContain("Max results (default 10)");
     expect(
       memoryToolSpecs.memory_retrieve.schema.safeParse({
         query: "london",

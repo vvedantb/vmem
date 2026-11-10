@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { Doc, Id, TableNames } from "@vmem/backend";
@@ -46,14 +43,5 @@ describe("useActiveProfile", () => {
     expect(() => renderToStaticMarkup(<ProfileName />)).toThrow(
       /must be used inside the \$profileId workspace route/,
     );
-  });
-
-  it("does not throw while a Convex profiles.list subscription is still loading", () => {
-    const source = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), "active-profile.tsx"),
-      "utf8",
-    );
-    expect(source).not.toContain("Active profile is loading");
-    expect(source).not.toContain("Active profile not found");
   });
 });

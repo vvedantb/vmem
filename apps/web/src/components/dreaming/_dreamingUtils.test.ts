@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   canUndoDreamAction,
@@ -14,12 +11,6 @@ import {
   type DreamAction,
   type DreamRun,
 } from "./_dreamingUtils";
-
-const here = path.dirname(fileURLToPath(import.meta.url));
-
-function read(rel: string): string {
-  return readFileSync(path.join(here, rel), "utf8");
-}
 
 const NOW = Date.parse("2026-10-20T03:00:00Z");
 
@@ -248,83 +239,6 @@ describe("dream run rows", () => {
     expect(canUndoDreamAction(open, NOW)).toBe(true);
     expect(canUndoDreamAction(open, NOW + 2000)).toBe(false);
     expect(canUndoDreamAction({ ...open, undoneAt: NOW }, NOW)).toBe(false);
-  });
-});
-
-describe("dreaming surfaces", () => {
-  it("serves /dreaming with Proposals (default) and History tabs", () => {
-    const route = read("../../routes/_main/$profileId/dreaming.tsx");
-    expect(route).toContain('createFileRoute("/_main/$profileId/dreaming")');
-    expect(route).toContain("PageContainer");
-    expect(route).toContain("useQueryStates(dreamingSearchParams)");
-    expect(route).toContain("<ProposalsPanel />");
-    expect(route).toContain("<DreamingPanel />");
-    expect(route).toContain("<DreamCleanupCard />");
-    expect(route).toContain("pendingCount");
-    expect(route).toContain("rightSection={<DreamingActions />}");
-    expect(read("../../lib/url-state/dreaming.ts")).toContain(
-      '.withDefault("proposals")',
-    );
-    expect(() =>
-      read("../../routes/_main/$profileId/inbox/dreaming.tsx"),
-    ).toThrow();
-  });
-
-  it("puts scan and run in one header group, only on the Dreaming page", () => {
-    const panel = read("DreamingPanel.tsx");
-    const header = panel.slice(
-      panel.indexOf("function DreamingActions"),
-      panel.indexOf("function ScanForDuplicatesButton"),
-    );
-    expect(header).toContain("<ButtonGroup>");
-    expect(header).toContain("<ScanForDuplicatesButton />");
-    expect(header).toContain("<RunDreamModeButton />");
-    expect(panel.match(/<ScanForDuplicatesButton \/>/g)).toHaveLength(1);
-    expect(panel.match(/<RunDreamModeButton \/>/g)).toHaveLength(1);
-    expect(panel).not.toContain("<DreamCleanupCard />");
-    for (const file of [
-      "../proposals/ProposalsPanel.tsx",
-      "DreamCleanupCard.tsx",
-      "../../routes/_main/$profileId/inbox/route.tsx",
-    ]) {
-      expect(read(file)).not.toContain("RunDreamModeButton");
-      expect(read(file)).not.toContain("ScanForDuplicatesButton");
-    }
-  });
-
-  it("confirms before it starts a full scan", () => {
-    const panel = read("DreamingPanel.tsx");
-    const button = panel.slice(
-      panel.indexOf("function ScanForDuplicatesButton"),
-      panel.indexOf("function RunRow"),
-    );
-    expect(button).toContain("ConfirmDialog.Root");
-    expect(button).toContain("Scan all memories?");
-    expect(button).toContain("Start scan");
-    expect(button).toContain("onClick={() => setConfirmOpen(true)}");
-    // the scan starts from the dialog's action, not from the header button
-    expect(button.indexOf("startDryRun({")).toBeGreaterThan(
-      button.indexOf("<ConfirmDialog.Action"),
-    );
-  });
-
-  it("confirms before applying the cleanup and uses the auth-checked wrapper", () => {
-    const card = read("DreamCleanupCard.tsx");
-    expect(card).toContain("api.dreamCleanup.applyCleanup");
-    expect(card).toContain("ConfirmDialog.Root");
-    expect(card).toContain("AI suggests — needs your approval");
-    expect(read("../dashboard/Dashboard.tsx")).not.toContain(
-      "DreamCleanupCard",
-    );
-  });
-
-  it("reads the last dream run once per list, not per row", () => {
-    const row = read("../_components/ListItemRow.tsx");
-    expect(row).not.toContain("useQuery");
-    expect(row).not.toContain("lastDreamRunAt");
-    expect(read("../_components/MemoryVirtuosoList.tsx")).toContain(
-      "api.dream.lastSuccessfulRunAt",
-    );
   });
 });
 

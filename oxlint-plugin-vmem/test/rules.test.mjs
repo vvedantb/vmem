@@ -339,3 +339,59 @@ assertValid(
   "no-value-block-in-try",
   inHook(`try { fn(() => { throw new Error("x"); }); } catch {}`),
 );
+
+// Tests must not read repo source files as text.
+assertInvalid(
+  "no-source-text-in-tests",
+  `
+import { readFileSync } from "node:fs";
+const src = readFileSync(join(dir, "Foo.tsx"), "utf8");
+`,
+  "example.test.ts",
+);
+
+assertInvalid(
+  "no-source-text-in-tests",
+  `const css = read("globals.css");\n`,
+  "example.test.ts",
+);
+
+assertInvalid(
+  "no-source-text-in-tests",
+  'const src = readFileSync(`${dir}/page.html`, "utf8");\n',
+  "example.test.ts",
+);
+
+// `.mts` tests and files under /tests/ are covered too.
+assertInvalid(
+  "no-source-text-in-tests",
+  `const src = readFileSync(join(dir, "App.tsx"), "utf8");\n`,
+  "tests/popup.test.mts",
+);
+
+assertInvalid(
+  "no-source-text-in-tests",
+  `const src = readFileSync(join(dir, "App.tsx"), "utf8");\n`,
+  "packages/backend/tests/helper.ts",
+);
+
+// Fixture and data reads stay allowed.
+assertValid(
+  "no-source-text-in-tests",
+  `const data = readFileSync(join(dir, "fixture.json"), "utf8");\n`,
+  "example.test.ts",
+);
+
+// Plain path strings used as test data stay allowed.
+assertValid(
+  "no-source-text-in-tests",
+  `const input = { path: "src/app.ts" };\n`,
+  "example.test.ts",
+);
+
+// Non-test files are out of scope.
+assertValid(
+  "no-source-text-in-tests",
+  `const src = readFileSync(join(dir, "App.tsx"), "utf8");\n`,
+  "example.ts",
+);

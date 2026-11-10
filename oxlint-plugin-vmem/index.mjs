@@ -16,6 +16,7 @@ import noDeepPackageImports from "./rules/no-deep-package-imports.mjs";
 import noConditionalTests from "./rules/no-conditional-tests.mjs";
 import noInlineZodSchema from "./rules/no-inline-zod-schema.mjs";
 import noValueBlockInTry from "./rules/no-value-block-in-try.mjs";
+import noSourceTextInTests from "./rules/no-source-text-in-tests.mjs";
 
 export default {
   meta: { name: "vmem" },
@@ -32,5 +33,6 @@ export default {
     "no-conditional-tests": noConditionalTests,
     "no-inline-zod-schema": noInlineZodSchema,
     "no-value-block-in-try": noValueBlockInTry,
+    "no-source-text-in-tests": noSourceTextInTests,
   },
 };
