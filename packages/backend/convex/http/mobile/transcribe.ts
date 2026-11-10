@@ -2,29 +2,49 @@ import { z } from "zod";
 import { withBearerAuth } from "../v1Memories/apiKeyAuth";
 
 // POST /api/v1/mobile/transcribe: voice notes from the Android app.
-// Model: openai/gpt-4o-mini-transcribe through the AI Gateway (OpenAI-compatible
-// audio API, AI_GATEWAY_API_KEY). Audio is sent on, never stored.
+// Model: openai/gpt-4o-mini-transcribe through the AI Gateway transcription
+// REST API (AI_GATEWAY_API_KEY). Audio is sent on, never stored.
 export const TRANSCRIBE_MODEL = "openai/gpt-4o-mini-transcribe";
-const GATEWAY_TRANSCRIBE_URL =
-  "https://ai-gateway.vercel.sh/v1/audio/transcriptions";
+export const GATEWAY_TRANSCRIBE_URL =
+  "https://ai-gateway.vercel.sh/v4/ai/transcription-model";
 export const MAX_AUDIO_BYTES = 6 * 1024 * 1024;
 
 const transcriptionResponseSchema = z.object({ text: z.string() });
 
 export type Transcribe = (audio: File) => Promise<string>;
 
+/** Base64 without Node Buffer (Convex default runtime has no Buffer). */
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+function mediaTypeFor(audio: File): string {
+  return audio.type.trim().length > 0 ? audio.type : "audio/mp4";
+}
+
 export function gatewayTranscribe(
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
 ): Transcribe {
   return async (audio) => {
-    const form = new FormData();
-    form.append("file", audio, audio.name || "note.m4a");
-    form.append("model", TRANSCRIBE_MODEL);
+    const bytes = new Uint8Array(await audio.arrayBuffer());
     const response = await fetchImpl(GATEWAY_TRANSCRIBE_URL, {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}` },
-      body: form,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "ai-gateway-protocol-version": "0.0.1",
+        "ai-transcription-model-specification-version": "4",
+        "ai-model-id": TRANSCRIBE_MODEL,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        audio: bytesToBase64(bytes),
+        mediaType: mediaTypeFor(audio),
+      }),
     });
     if (!response.ok) {
       throw new Error(
