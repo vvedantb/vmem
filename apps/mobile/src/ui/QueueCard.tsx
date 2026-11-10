@@ -1,5 +1,5 @@
 import { Button } from "@vvedantb/native-ui/button";
-import { Badge, Card, Text } from "@vvedantb/native-ui/primitives";
+import { Badge, Card, Text, Textarea } from "@vvedantb/native-ui/primitives";
 import { useState } from "react";
 import { View } from "react-native";
 import type { CaptureKind, QueueRow } from "../../modules/vmem-tracker";
@@ -11,6 +11,8 @@ import { textColor, useScheme } from "./theme";
 const KIND_LABEL: Record<CaptureKind, string> = {
   app_usage: "App use",
   share: "Shared",
+  note: "Note",
+  clipboard: "Clipboard",
   screen_text: "Screen text",
   notification: "Notification",
 };
@@ -31,6 +33,7 @@ function StatusBadge({ row }: { row: QueueRow }) {
 export function QueueCard({ row }: { row: QueueRow }) {
   const scheme = useScheme();
   const [expanded, setExpanded] = useState(false);
+  const [note, setNote] = useState("");
   const body = parseBody(row);
   const stuck = row.status === "approved" && row.attempts >= MAX_ATTEMPTS;
 
@@ -48,6 +51,29 @@ export function QueueCard({ row }: { row: QueueRow }) {
         >
           {body?.content ?? ""}
         </Text>
+        {row.status === "pending_review" && row.kind === "share" ? (
+          <View className="gap-2">
+            <Textarea
+              value={note}
+              onChangeText={setNote}
+              placeholder="Add a note to this share"
+              numberOfLines={2}
+              accessibilityLabel="Note for this share"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              fullWidth={false}
+              disabled={note.trim().length === 0}
+              onPress={() => {
+                void trackerActions.addShareNote(row, note);
+                setNote("");
+              }}
+            >
+              Add note
+            </Button>
+          </View>
+        ) : null}
         {row.lastError && row.status === "approved" ? (
           <Text variant="small" className="text-destructive">
             {row.lastError}

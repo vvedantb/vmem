@@ -101,6 +101,33 @@ class TrackerDatabase private constructor(context: Context) :
     )
   }
 
+  /** A note or clipboard capture the user started in the app. `kind` is `NOTE` or `CLIPBOARD`. */
+  fun insertText(kind: String, text: String, at: Long) {
+    writableDatabase.insertOrThrow(
+      "events",
+      null,
+      ContentValues().apply {
+        put("kind", kind)
+        put("start_ms", at)
+        put("end_ms", at)
+        put("text", text)
+      },
+    )
+  }
+
+  /** Replaces the body of an item that is still waiting for review. */
+  fun updateQueueBody(id: Long, body: String, now: Long) {
+    writableDatabase.update(
+      "queue",
+      ContentValues().apply {
+        put("body", body)
+        put("updated_at", now)
+      },
+      "id = ? AND status = ?",
+      arrayOf(id.toString(), QueueStatus.PENDING_REVIEW),
+    )
+  }
+
   fun eventsJson(): String {
     val out = JSONArray()
     readableDatabase.rawQuery(

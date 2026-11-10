@@ -12,6 +12,12 @@ object CaptureKind {
   /** Text or a link shared to vmem (phase 1). */
   const val SHARE = "share"
 
+  /** A quick note typed or dictated in the app (text only). */
+  const val NOTE = "note"
+
+  /** Clipboard text saved by a tap on Save clipboard. Never read in the background. */
+  const val CLIPBOARD = "clipboard"
+
   /** Phase 2: on-screen text from an AccessibilityService. Not collected yet. */
   const val SCREEN_TEXT = "screen_text"
 

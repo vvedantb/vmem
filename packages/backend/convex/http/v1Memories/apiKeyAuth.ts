@@ -90,11 +90,15 @@ export async function guardProfileAccess(
   }
 }
 
-export function withApiKeyAuth<T>(
+/**
+ * Resolves the Bearer token (API key or Clerk token), records API key usage,
+ * and hands the raw request to `run`. `withApiKeyAuth` builds on it for JSON
+ * bodies. Multipart routes use it directly.
+ */
+export function withBearerAuth(
   endpoint: string,
   method: string,
-  schema: z.ZodType<T>,
-  run: (ctx: ActionCtx, auth: ApiKeyAuth, body: T) => Promise<unknown>,
+  run: (ctx: ActionCtx, auth: ApiKeyAuth, req: Request) => Promise<Response>,
 ) {
   return httpAction(async (ctx, req) => {
     const startedAt = Date.now();
@@ -131,36 +135,42 @@ export function withApiKeyAuth<T>(
       return response;
     };
 
-    let json: unknown;
     try {
-      json = await req.json();
-    } catch {
-      return respond(Response.json({ error: "invalid_json" }, { status: 400 }));
-    }
-
-    const parsed = schema.safeParse(json);
-    if (!parsed.success) {
-      return respond(
-        Response.json(
-          { error: "invalid_request", issues: parsed.error.issues },
-          { status: 400 },
-        ),
-      );
-    }
-
-    try {
-      const result = await run(ctx, auth, parsed.data);
-
-      if (result instanceof Response) {
-        return respond(result);
-      }
-
-      return respond(Response.json({ data: result }, { status: 200 }));
+      return await respond(await run(ctx, auth, req));
     } catch (err) {
       console.error(`[HTTP][${endpoint}]`, err);
       return respond(
         Response.json({ error: "internal_error" }, { status: 500 }),
       );
     }
+  });
+}
+
+export function withApiKeyAuth<T>(
+  endpoint: string,
+  method: string,
+  schema: z.ZodType<T>,
+  run: (ctx: ActionCtx, auth: ApiKeyAuth, body: T) => Promise<unknown>,
+) {
+  return withBearerAuth(endpoint, method, async (ctx, auth, req) => {
+    let json: unknown;
+    try {
+      json = await req.json();
+    } catch {
+      return Response.json({ error: "invalid_json" }, { status: 400 });
+    }
+
+    const parsed = schema.safeParse(json);
+    if (!parsed.success) {
+      return Response.json(
+        { error: "invalid_request", issues: parsed.error.issues },
+        { status: 400 },
+      );
+    }
+
+    const result = await run(ctx, auth, parsed.data);
+    return result instanceof Response
+      ? result
+      : Response.json({ data: result }, { status: 200 });
   });
 }

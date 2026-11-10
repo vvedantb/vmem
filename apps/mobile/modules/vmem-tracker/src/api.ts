@@ -8,6 +8,8 @@ import { z } from "zod";
 export const captureKindSchema = z.enum([
   "app_usage",
   "share",
+  "note",
+  "clipboard",
   "screen_text",
   "notification",
 ]);
@@ -110,6 +112,9 @@ export interface VmemTrackerNative {
   getStatus(): Promise<string>;
   collectNow(): Promise<string>;
   readEvents(): Promise<string>;
+  insertNote(text: string): Promise<void>;
+  insertClipboard(text: string): Promise<void>;
+  updateQueueBody(id: number, bodyJson: string): Promise<void>;
   promote(batchJson: string): Promise<number>;
   listQueue(): Promise<string>;
   approve(idsJson: string): Promise<number>;
@@ -142,6 +147,10 @@ export function createTrackerApi(native: VmemTrackerNative) {
     collectNow: async () =>
       parse(trackerStatusSchema, await native.collectNow()),
     readEvents: async () => parse(rawEventsSchema, await native.readEvents()),
+    insertNote: (text: string) => native.insertNote(text),
+    insertClipboard: (text: string) => native.insertClipboard(text),
+    updateQueueBody: (id: number, bodyJson: string) =>
+      native.updateQueueBody(id, bodyJson),
     promote: (promotion: Promotion) =>
       native.promote(JSON.stringify(promotion)),
     listQueue: async () => parse(queueRowsSchema, await native.listQueue()),

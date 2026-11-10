@@ -1,6 +1,6 @@
 # @vmem/mobile
 
-Android activity tracker for vmem. It records which apps you use and for how long, and it takes text and links that you share to it. Every capture waits in a review queue on the phone. Nothing goes to vmem until you approve it. Approved items are saved as episodic memories through the same HTTP API that the desktop recorder uses.
+Android activity tracker for vmem. It records which apps you use and for how long. That usage stays on the phone and is never uploaded. It also takes text and links that you share to it, quick notes (typed or spoken) and clipboard text. Every uploadable capture waits in a review queue on the phone. Nothing goes to vmem until you approve it. Approved items are saved as episodic memories through the same HTTP API that the desktop recorder uses.
 
 This app is a tracker, like `apps/desktop`. It is not a copy of the web dashboard.
 
@@ -39,6 +39,7 @@ The app does not use the desktop MCP OAuth flow, and it needs no `CLERK_SECRET_K
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Usage Access (`PACKAGE_USAGE_STATS`)      | Reads which app is in the foreground and when. You grant it in Settings, Apps, Special app access, Usage access. The app links there. |
 | `RECEIVE_BOOT_COMPLETED`                  | Schedules collection again after a reboot.                                                                                            |
+| `RECORD_AUDIO`                            | Voice notes only, while you record. Added by the `expo-audio` config plugin, with background recording and playback off.              |
 | `INTERNET`                                | Uploads approved items.                                                                                                               |
 | `<queries>` for launcher and home intents | Shows app names instead of package names on Android 11 and later. The app does not ask for `QUERY_ALL_PACKAGES`.                      |
 
@@ -48,6 +49,11 @@ The app does not read screen content, notifications, messages or keystrokes in p
 
 - **App use.** The collector turns UsageStatsManager foreground events into sessions (app, start, end). The screen turning off or locking ends a session. The app makes one review item per app per UTC hour, for example `Used Chrome for 25 min`, with the sessions listed in the content. An hour becomes an item only after it is over, so an item never changes after you see it. An app used for less than one minute in an hour makes no item.
 - **Shares.** Share text or a link from any app to "Save to vmem". It becomes one review item. Sharing works while recording is paused, because you start it yourself.
+- **Share notes.** A share in Review has a note box. **Add note** appends `Your note: …` to the item content before you approve it. The title and the `android-share` source do not change.
+- **Quick note.** The Capture tab saves typed text as a review item (source `android-note`, `externalId` `android:note:<hash>`).
+- **Voice note.** Record on the Capture tab. The app records only while you record, then posts the audio to `POST /api/v1/mobile/transcribe` with the Clerk session token. The server transcribes it with `openai/gpt-4o-mini-transcribe` through the AI Gateway and does not store the audio. The text goes into the note box for you to edit, then Save note. It needs `AI_GATEWAY_API_KEY` on the Convex deployment, else the server answers 422.
+- **Clipboard.** **Save clipboard** reads the clipboard only when you tap it, never in the background. It removes obvious secrets first (`vmem_sk_…` and `sk-…` keys, GitHub tokens, JWTs, Bearer tokens, one-time codes in `src/capture/redact.ts`). Source `android-clipboard`, `externalId` `android:clipboard:<hash>`.
+- **Usage is local-only.** App-use sessions are never uploaded. They stay on the phone.
 - **Never recorded:** vmem itself, the home screen, the system UI and every app on the blocked list.
 
 Recording starts when the app first runs with Usage Access. It does not import usage from before that time. Time while paused, while Usage Access is off, or while the phone is off is not recorded later.
@@ -60,7 +66,7 @@ Recording starts when the app first runs with Usage Access. It does not import u
 4. **Discard** deletes the row. Nothing is sent.
 5. While paused, collectors record nothing. You can still review and send items.
 
-Each item has a stable `externalId` (`android:usage:<install id>:<package>:<UTC hour>`, or `android:share:<hash of the text>`). The backend upserts on it, so a retry or a double post updates one memory and does not add a second one.
+Each item has a stable `externalId` (`android:share:<hash of the text>`, `android:note:<hash>` or `android:clipboard:<hash>`). The backend upserts on it, so a retry or a double post updates one memory and does not add a second one.
 
 Retention on the phone: sent items stay for 7 days, so the Review tab can show them. Raw events that never became an item are deleted after 30 days. **Settings, Delete all local data** removes the queue, raw events and the stored token. Settings (pause and blocked apps) stay. **Sign out** also deletes items that are not sent yet, so another account cannot send them.
 

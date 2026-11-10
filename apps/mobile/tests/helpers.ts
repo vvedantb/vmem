@@ -49,3 +49,21 @@ export function share(
 export function bodyOf(item: { body: string }): StructuredStoreBody {
   return structuredStoreBodySchema.parse(JSON.parse(item.body));
 }
+
+export function textEvent(
+  kind: "note" | "clipboard",
+  text: string,
+  atMin = 0,
+): RawEvent {
+  const at = T0 + atMin * MIN;
+  return {
+    id: nextId++,
+    kind,
+    package: null,
+    label: null,
+    startMs: at,
+    endMs: at,
+    text,
+    subject: null,
+  };
+}

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import http from "./http";
 import { connectorCallback } from "./http/auth/connectorCallback";
 import { clerkWebhook } from "./http/clerk/webhook";
+import { transcribeHttp } from "./http/mobile/transcribe";
 import { deleteMemory } from "./http/v1Memories/delete";
 import { retrieveMemories } from "./http/v1Memories/retrieve";
 import { storeMemory } from "./http/v1Memories/store";
@@ -32,6 +33,7 @@ const EXPECTED: Array<[string, RoutableMethod, PublicHttpAction]> = [
   ["/api/v1/memories", "PATCH", updateMemory],
   ["/api/v1/memories", "POST", storeMemory],
   ["/api/v1/memories/retrieve", "POST", retrieveMemories],
+  ["/api/v1/mobile/transcribe", "POST", transcribeHttp],
   ["/api/v1/transcripts", "POST", submitTranscriptHttp],
   ["/clerk/webhooks", "POST", clerkWebhook],
   ["/health", "GET", health],

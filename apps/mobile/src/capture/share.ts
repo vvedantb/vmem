@@ -1,3 +1,4 @@
+import type { StructuredStoreBody } from "@vmem/sdk";
 import type {
   QueueItemInput,
   RawEvent,
@@ -63,4 +64,16 @@ export function shareItem(event: RawEvent): QueueItemInput | null {
     startMs: event.startMs,
     endMs: event.endMs,
   };
+}
+
+const NOTE_MARKER = "\n\nYour note: ";
+
+/** The stored share body with the user's note added to `content`. Same `externalId`. */
+export function withShareNote(body: StructuredStoreBody, note: string): string {
+  const trimmed = note.trim();
+  return JSON.stringify(
+    trimmed.length === 0
+      ? body
+      : { ...body, content: `${body.content}${NOTE_MARKER}${trimmed}` },
+  );
 }

@@ -1,5 +1,6 @@
 import { getClerkInstance } from "@clerk/clerk-expo";
 import { toast } from "@vvedantb/native-ui/toast";
+import * as Clipboard from "expo-clipboard";
 import { useSyncExternalStore } from "react";
 import { AppState, type AppStateStatus } from "react-native";
 import {
@@ -9,10 +10,13 @@ import {
   type RecentApp,
   type TrackerStatus,
 } from "../../modules/vmem-tracker";
+import { z } from "zod";
+import { redactSecrets } from "../capture/redact";
+import { withShareNote } from "../capture/share";
 import { buildPromotion, isEmptyPromotion } from "../capture/promote";
 import { VMEM_BASE_URL } from "../config";
 import { toError } from "../errors";
-import { createPoster, uploadApproved } from "./upload";
+import { createPoster, parseBody, uploadApproved } from "./upload";
 
 /**
  * App state that lives in the native module (status, queue, blocked apps).
@@ -153,6 +157,33 @@ export function useTracker(): TrackerSnapshot {
   return useSyncExternalStore(subscribe, getSnapshot);
 }
 
+/** Builds review items from a capture that was just inserted. */
+async function syncAfterCapture(): Promise<void> {
+  // A run that started before the insert may not see it; wait, then run again.
+  if (inFlight) await inFlight;
+  await sync();
+}
+
+const transcriptSchema = z.object({ text: z.string() });
+
+async function transcribe(audioUri: string): Promise<string> {
+  const token = await freshToken();
+  if (!token) throw new Error("Sign in again to use voice notes.");
+  const form = new FormData();
+  // React Native reads a local file URI through fetch.
+  const audio = await (await fetch(audioUri)).blob();
+  form.append("file", audio, "note.m4a");
+  const response = await fetch(`${VMEM_BASE_URL}/api/v1/mobile/transcribe`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!response.ok) {
+    throw new Error(`Voice note failed (HTTP ${String(response.status)})`);
+  }
+  return transcriptSchema.parse(await response.json()).text;
+}
+
 async function afterApprove(): Promise<void> {
   await reload();
   await upload();
@@ -180,6 +211,41 @@ export const trackerActions = {
       await tracker.retry(ids);
       await afterApprove();
     }),
+  /** Saves a note the user wrote or dictated. It lands in Review. */
+  saveNote: (text: string) =>
+    guarded(async () => {
+      if (text.trim().length === 0) return;
+      await tracker.insertNote(text);
+      await syncAfterCapture();
+    }),
+  /** Reads the clipboard now, because the user tapped. Never in the background. */
+  saveClipboard: () =>
+    guarded(async () => {
+      const text = redactSecrets(await Clipboard.getStringAsync()).trim();
+      if (text.length === 0) {
+        toast.info("The clipboard is empty");
+        return;
+      }
+      await tracker.insertClipboard(text);
+      await syncAfterCapture();
+    }),
+  /** Adds the user's note to a share that waits in Review. */
+  addShareNote: (row: QueueRow, note: string) =>
+    guarded(async () => {
+      const body = parseBody(row);
+      if (body === null || note.trim().length === 0) return;
+      await tracker.updateQueueBody(row.id, withShareNote(body, note));
+      await reload();
+    }),
+  /** Sends a voice recording to the server and returns the text, or null on failure. */
+  transcribeVoice: async (audioUri: string): Promise<string | null> => {
+    try {
+      return await transcribe(audioUri);
+    } catch (caught) {
+      report(toError(caught));
+      return null;
+    }
+  },
   setPaused: (paused: boolean) =>
     guarded(async () => {
       update({ status: await tracker.setPaused(paused) });

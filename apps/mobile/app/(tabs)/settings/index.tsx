@@ -38,7 +38,7 @@ export default function SettingsScreen() {
       <ScreenContainer reserveTabBar>
         <SettingsSection
           title="Recording"
-          description="vmem records which apps you use and for how long. Every item waits for your review."
+          description="vmem records which apps you use and for how long. That usage stays on this phone. It is never uploaded."
         >
           <SettingsToggleRow
             title="Record app use"
@@ -89,8 +89,8 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         <SettingsSection
-          title="Sharing"
-          description="Share text or a link to vmem from any app. It waits in Review until you approve it. Sharing works while recording is paused."
+          title="Sharing and Capture"
+          description="Share text or a link to vmem from any app, or use the Capture tab for a quick note, a voice note or the clipboard. The clipboard is read only when you tap Save clipboard. Each item waits in Review until you approve it. This works while recording is paused."
         />
 
         <SettingsSection

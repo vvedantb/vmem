@@ -52,7 +52,7 @@ export default function ReviewScreen() {
           <EmptyState
             icon={IconInbox}
             title="Nothing to review"
-            description="App use and things you share to vmem wait here until you approve them."
+            description="Shares, notes and clipboard text that you save wait here until you approve them. App use stays on this phone."
           />
         ) : (
           <View className="gap-3">
