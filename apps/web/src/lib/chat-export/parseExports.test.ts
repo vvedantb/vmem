@@ -3,6 +3,8 @@
 import { describe, expect, it } from "vitest";
 import { parseChatGptExportJsonText } from "./parseChatGptExport";
 import { parseClaudeExportJsonText } from "./parseClaudeExport";
+import { parseGrokExportJsonText } from "./parseGrokExport";
+import { parseDeepSeekExportJsonText } from "./parseDeepSeekExport";
 
 describe("parseChatGptExportJsonText", () => {
   it("walks the active branch from current_node and skips the empty root node", () => {
@@ -202,6 +204,139 @@ describe("parseClaudeExportJsonText", () => {
       ok: false,
       error:
         "No readable messages found. Export chat_messages/messages if your file uses a different shape.",
+    });
+  });
+});
+
+describe("parseGrokExportJsonText", () => {
+  it("reads conversations with parts content and author roles", () => {
+    const json = JSON.stringify({
+      conversations: [
+        {
+          id: "grok-1",
+          title: "Grok chat",
+          messages: [
+            { author: { role: "user" }, content: { parts: ["Hi there"] } },
+            { author: "grok", content: { parts: ["Hello", { text: "!" }] } },
+            "malformed entry",
+            { author: "user", text: "   " },
+          ],
+        },
+      ],
+    });
+
+    expect(parseGrokExportJsonText(json)).toEqual({
+      ok: true,
+      rows: [
+        {
+          stableId: "grok-1",
+          title: "Grok chat",
+          content: "User:\nHi there\n\nAssistant:\nHello\n!",
+        },
+      ],
+    });
+  });
+
+  it("uses a grok- prefix for timestamp and index fallback ids", () => {
+    const json = JSON.stringify([
+      {
+        created_at: "2026-02-01",
+        updated_at: "2026-02-02",
+        messages: [{ role: "user", text: "One" }],
+      },
+      { messages: [{ role: "user", text: "Two" }] },
+    ]);
+
+    expect(parseGrokExportJsonText(json)).toEqual({
+      ok: true,
+      rows: [
+        {
+          stableId: "grok-2026-02-02-0",
+          title: "Untitled conversation",
+          content: "User:\nOne",
+        },
+        {
+          stableId: "grok-row-1",
+          title: "Untitled conversation",
+          content: "User:\nTwo",
+        },
+      ],
+    });
+  });
+
+  it("rejects empty messages with the Grok error", () => {
+    const json = JSON.stringify([
+      { id: "x", messages: [{ role: "user", text: "  " }] },
+    ]);
+
+    expect(parseGrokExportJsonText(json)).toEqual({
+      ok: false,
+      error: "No readable messages found in the Grok export.",
+    });
+  });
+
+  it("rejects an empty conversations array and invalid JSON", () => {
+    expect(parseGrokExportJsonText("[]")).toEqual({
+      ok: false,
+      error:
+        "No conversations found. Expected a JSON array or an object with a conversations array.",
+    });
+    expect(parseGrokExportJsonText("not json")).toEqual({
+      ok: false,
+      error: "Invalid JSON.",
+    });
+  });
+});
+
+describe("parseDeepSeekExportJsonText", () => {
+  it("uses an index-based stable id for turns", () => {
+    const json = JSON.stringify([
+      {
+        title: "DeepSeek chat",
+        turns: [
+          { role: "user", content: "Question" },
+          { role: "deepseek", content: "Answer" },
+        ],
+      },
+    ]);
+
+    expect(parseDeepSeekExportJsonText(json)).toEqual({
+      ok: true,
+      rows: [
+        {
+          stableId: "deepseek-row-0",
+          title: "DeepSeek chat",
+          content: "User:\nQuestion\n\nAssistant:\nAnswer",
+        },
+      ],
+    });
+  });
+
+  it("uses a deepseek- prefix for timestamp ids", () => {
+    const json = JSON.stringify([
+      { created_at: 1700000000, turns: [{ role: "user", text: "Hi" }] },
+    ]);
+
+    expect(parseDeepSeekExportJsonText(json)).toEqual({
+      ok: true,
+      rows: [
+        {
+          stableId: "deepseek-1700000000-0",
+          title: "Untitled conversation",
+          content: "User:\nHi",
+        },
+      ],
+    });
+  });
+
+  it("rejects conversations with no readable messages", () => {
+    const json = JSON.stringify([
+      { id: "x", turns: [{ role: "user", content: "  " }] },
+    ]);
+
+    expect(parseDeepSeekExportJsonText(json)).toEqual({
+      ok: false,
+      error: "No readable messages found in the DeepSeek export.",
     });
   });
 });

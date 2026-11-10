@@ -7,11 +7,11 @@ import {
   DialogTitle,
   Input,
 } from "@vvedantb/ui";
-import type { ImportProvider } from "./importProviders";
+import type { AvailableProvider } from "./importProviders";
 
 type UploadImportModalProps = {
   open: boolean;
-  provider: ImportProvider;
+  provider: AvailableProvider;
   onClose: () => void;
   onFile: (file: File) => void;
   isParsing: boolean;
