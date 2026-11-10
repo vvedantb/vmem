@@ -53,6 +53,7 @@ export function shareItem(event: RawEvent): QueueItemInput | null {
     content: `${text}\n\nShared to vmem${from} on Android at ${utcStamp(event.startMs)} UTC.`,
     tags: url ? ["share", "link"] : ["share"],
     externalId,
+    source: "android-share",
     ...(url ? { url } : {}),
   });
   return {

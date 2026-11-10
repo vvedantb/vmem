@@ -54,6 +54,11 @@ const MEDIUM_SOURCES = new Set([
   "import",
   "screenshot",
   "connector",
+  // Intentional Android captures. Plain "android" stays low-prior.
+  "android-share",
+  "android-note",
+  "android-clipboard",
+  "android-calendar",
 ]);
 
 export interface UsefulnessInput {

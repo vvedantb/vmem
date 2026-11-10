@@ -28,6 +28,21 @@ describe("isDecayCandidate", () => {
     expect(isDecayCandidate(stale({ visitCount: 2 }), 0, NOW)).toBe(true);
   });
 
+  it("never decays intentional Android captures; plain android still decays", () => {
+    for (const source of [
+      "android-share",
+      "android-note",
+      "android-clipboard",
+      "android-calendar",
+    ]) {
+      expect(
+        isDecayCandidate(stale({ source }), 0, NOW),
+        source,
+      ).toBe(false);
+    }
+    expect(isDecayCandidate(stale({ source: "android" }), 0, NOW)).toBe(true);
+  });
+
   it("never decays agent, manual or claude facts", () => {
     for (const source of ["mcp", "manual", "claude", "api"]) {
       expect(isDecayCandidate(stale({ source }), 0, NOW)).toBe(false);
