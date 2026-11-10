@@ -75,7 +75,10 @@ describe("withShareNote", () => {
     assert.equal(after.title, before.title);
     assert.equal(after.source, "android-share");
     assert.equal(after.externalId, before.externalId);
-    assert.deepEqual(JSON.parse(withShareNote(before, " ")), before);
+    assert.deepEqual(
+      structuredStoreBodySchema.parse(JSON.parse(withShareNote(before, " "))),
+      before,
+    );
   });
 });
 

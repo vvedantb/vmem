@@ -75,7 +75,10 @@ describe("planCalendar", () => {
         ["2026-01-06", 1, 1],
       ],
     );
-    assert.deepEqual(plan.drainIds.sort(), [holiday.id, broken.id].sort());
+    assert.deepEqual(
+      plan.drainIds.sort((a, b) => a - b),
+      [holiday.id, broken.id].sort((a, b) => a - b),
+    );
   });
 
   it("keeps an all-day event that has guests", () => {
@@ -153,6 +156,12 @@ describe("buildCalendarPromotion", () => {
   });
 });
 
+function requestUrl(input: string | URL | Request): string {
+  if (typeof input === "string") return input;
+  if (input instanceof URL) return input.href;
+  return input.url;
+}
+
 describe("httpSummarizer", () => {
   const event = planCalendar([calendarEvent()]).days[0]?.events ?? [];
 
@@ -160,9 +169,9 @@ describe("httpSummarizer", () => {
     const seen: { url: string; auth: string | null; body: string }[] = [];
     const fakeFetch: typeof fetch = async (input, init) => {
       seen.push({
-        url: String(input),
+        url: requestUrl(input),
         auth: new Headers(init?.headers).get("Authorization"),
-        body: String(init?.body),
+        body: typeof init?.body === "string" ? init.body : "",
       });
       return Response.json(summary);
     };

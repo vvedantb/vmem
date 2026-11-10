@@ -21,7 +21,12 @@ describe("transcribeRequest", () => {
     const fakeFetch: typeof fetch = async (input, init) => {
       const body = init?.body;
       seen.push({
-        url: String(input),
+        url:
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.href
+              : input.url,
         auth: new Headers(init?.headers).get("Authorization"),
         model: body instanceof FormData ? body.get("model") : null,
       });

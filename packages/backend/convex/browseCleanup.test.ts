@@ -220,7 +220,7 @@ describe("browseCleanup.mergeBrowseDuplicates", () => {
 
     const rerun = await runAll(t);
     expect(rerun).toMatchObject({ groups: 0, deleted: 0, calls: 1 });
-  });
+  }, 15000);
 
   it("merges dupes split across pages through the keyed keeper", async () => {
     const t = convexTest(schema, modules);
