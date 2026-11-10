@@ -10,6 +10,7 @@ export const captureKindSchema = z.enum([
   "share",
   "note",
   "clipboard",
+  "calendar",
   "screen_text",
   "notification",
 ]);
@@ -53,6 +54,10 @@ export type QueueRow = z.infer<typeof queueRowSchema>;
 export const trackerStatusSchema = z.object({
   paused: z.boolean(),
   usageAccess: z.boolean(),
+  /** Calendar is off by default. On means the user chose it in Settings. */
+  calendarEnabled: z.boolean(),
+  /** READ_CALENDAR is granted. */
+  calendarAccess: z.boolean(),
   /** Usage before this time is collected. 0 until the first run. */
   collectedThroughMs: z.number(),
   lastCollectAtMs: z.number(),
@@ -129,6 +134,7 @@ export interface VmemTrackerNative {
   resetDenyList(): Promise<void>;
   listRecentApps(): Promise<string>;
   setAuthToken(token: string | null): Promise<void>;
+  setCalendarEnabled(enabled: boolean): Promise<string>;
   setBaseUrl(url: string): Promise<void>;
   deleteAllData(): Promise<void>;
   openUsageAccessSettings(): void;
@@ -171,6 +177,8 @@ export function createTrackerApi(native: VmemTrackerNative) {
     listRecentApps: async () =>
       parse(recentAppsSchema, await native.listRecentApps()),
     setAuthToken: (token: string | null) => native.setAuthToken(token),
+    setCalendarEnabled: async (enabled: boolean) =>
+      parse(trackerStatusSchema, await native.setCalendarEnabled(enabled)),
     setBaseUrl: (url: string) => native.setBaseUrl(url),
     deleteAllData: () => native.deleteAllData(),
     openUsageAccessSettings: () => native.openUsageAccessSettings(),

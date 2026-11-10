@@ -115,6 +115,35 @@ class TrackerDatabase private constructor(context: Context) :
     )
   }
 
+  /** True when a raw `calendar` event with this instance id is stored. */
+  fun hasCalendarEvent(id: String): Boolean =
+    readableDatabase.rawQuery(
+      "SELECT 1 FROM events WHERE kind = ? AND instr(text, ?) > 0 LIMIT 1",
+      arrayOf(CaptureKind.CALENDAR, JSONObject().put("id", id).toString().removeSurrounding("{", "}")),
+    ).use { it.moveToFirst() }
+
+  /** Raw calendar events that are not stored yet. `text` is the JSON from CalendarCollector. Returns how many were added. */
+  fun insertCalendar(events: List<CalendarEvent>): Int {
+    var inserted = 0
+    transaction { db ->
+      for (event in events) {
+        if (hasCalendarEvent(event.id)) continue
+        db.insertOrThrow(
+          "events",
+          null,
+          ContentValues().apply {
+            put("kind", CaptureKind.CALENDAR)
+            put("start_ms", event.startMs)
+            put("end_ms", event.endMs)
+            put("text", event.toJson().toString())
+          },
+        )
+        inserted += 1
+      }
+    }
+    return inserted
+  }
+
   /** Replaces the body of an item that is still waiting for review. */
   fun updateQueueBody(id: Long, body: String, now: Long) {
     writableDatabase.update(

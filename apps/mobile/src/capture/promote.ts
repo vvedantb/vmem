@@ -8,6 +8,7 @@ import { planUsage } from "./usage";
  *
  * - `app_usage`: no items. Closed-hour events are drained (`planUsage`).
  * - `share`, `note`, `clipboard`: one item per event, right away.
+ * - `calendar`: handled in `calendar.ts`, because it needs the server.
  * - `screen_text` (phase 2) and `notification` (phase 3): no batcher yet, so
  *   their events stay in the buffer untouched.
  */

@@ -29,6 +29,16 @@ class TrackerPrefs(context: Context) {
   val openPackage: String? get() = prefs.getString(OPEN_PACKAGE, null)
   val openStartMs: Long get() = prefs.getLong(OPEN_START, 0L)
 
+  /** Off by default. The user turns it on in Settings. */
+  var calendarEnabled: Boolean
+    get() = prefs.getBoolean(CALENDAR_ENABLED, false)
+    set(value) = prefs.edit().putBoolean(CALENDAR_ENABLED, value).apply()
+
+  /** Calendar days before this time are collected. 0 means never collected. */
+  var calendarCursorMs: Long
+    get() = prefs.getLong(CALENDAR_CURSOR, 0L)
+    set(value) = prefs.edit().putLong(CALENDAR_CURSOR, value).apply()
+
   var lastCollectAtMs: Long
     get() = prefs.getLong(LAST_COLLECT_AT, 0L)
     set(value) = prefs.edit().putLong(LAST_COLLECT_AT, value).apply()
@@ -103,6 +113,8 @@ class TrackerPrefs(context: Context) {
     private const val OPEN_START = "open_start_ms"
     private const val LAST_COLLECT_AT = "last_collect_at_ms"
     private const val LAST_COLLECT_ERROR = "last_collect_error"
+    private const val CALENDAR_ENABLED = "calendar_enabled"
+    private const val CALENDAR_CURSOR = "calendar_cursor_ms"
     private const val DENY_LIST = "deny_list"
     private const val BASE_URL = "base_url"
     private const val INSTALL_ID = "install_id"

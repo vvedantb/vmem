@@ -2,7 +2,11 @@ import { getClerkInstance } from "@clerk/clerk-expo";
 import { toast } from "@vvedantb/native-ui/toast";
 import * as Clipboard from "expo-clipboard";
 import { useSyncExternalStore } from "react";
-import { AppState, type AppStateStatus } from "react-native";
+import {
+  AppState,
+  PermissionsAndroid,
+  type AppStateStatus,
+} from "react-native";
 import {
   tracker,
   type AppEntry,
@@ -13,6 +17,11 @@ import {
 import { z } from "zod";
 import { redactSecrets } from "../capture/redact";
 import { withShareNote } from "../capture/share";
+import {
+  buildCalendarPromotion,
+  httpSummarizer,
+  type SummarizeDay,
+} from "../capture/calendar";
 import { buildPromotion, isEmptyPromotion } from "../capture/promote";
 import { VMEM_BASE_URL } from "../config";
 import { toError } from "../errors";
@@ -97,15 +106,37 @@ async function upload(): Promise<void> {
   if (result.uploaded > 0 || result.outcome !== "done") await reload();
 }
 
+/** Summarises on the server with a fresh token. Fails when signed out. */
+const summarizeDay: SummarizeDay = async (day, events) => {
+  const token = await freshToken();
+  if (!token) throw new Error("Sign in again to summarise your calendar.");
+  return httpSummarizer({ baseUrl: VMEM_BASE_URL, token })(day, events);
+};
+
 async function runSync(): Promise<void> {
   update({ syncing: true });
   try {
     await tracker.setBaseUrl(VMEM_BASE_URL);
     const status = await tracker.collectNow();
-    const promotion = buildPromotion(await tracker.readEvents(), {
+    const events = await tracker.readEvents();
+    const usage = buildPromotion(events, {
       collectedThroughMs: status.collectedThroughMs,
       installId: status.installId,
     });
+    const calendar = await buildCalendarPromotion(events, {
+      enabled: status.calendarEnabled && status.calendarAccess,
+      installId: status.installId,
+      summarize: summarizeDay,
+    });
+    const promotion = {
+      items: [...usage.items, ...calendar.items],
+      deleteEventIds: [...usage.deleteEventIds, ...calendar.deleteEventIds],
+      trimEvents: usage.trimEvents,
+    };
+    const [firstError] = calendar.errors;
+    if (firstError !== undefined) {
+      toast.error("Calendar summary failed", { description: firstError });
+    }
     if (!isEmptyPromotion(promotion)) await tracker.promote(promotion);
     await reload();
     await upload();
@@ -246,6 +277,24 @@ export const trackerActions = {
       return null;
     }
   },
+  /** Turns Calendar on only when the user allows READ_CALENDAR. Off by default. */
+  setCalendar: (on: boolean) =>
+    guarded(async () => {
+      if (on) {
+        const result = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.READ_CALENDAR,
+        );
+        if (result !== PermissionsAndroid.RESULTS.GRANTED) {
+          toast.info("Calendar stays off", {
+            description:
+              "vmem needs the Calendar permission. You can allow it in Android Settings, under Apps, vmem, Permissions.",
+          });
+          return;
+        }
+      }
+      update({ status: await tracker.setCalendarEnabled(on) });
+      await sync();
+    }),
   setPaused: (paused: boolean) =>
     guarded(async () => {
       update({ status: await tracker.setPaused(paused) });

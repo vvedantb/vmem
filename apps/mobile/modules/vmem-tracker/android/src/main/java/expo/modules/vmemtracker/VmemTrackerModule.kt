@@ -32,6 +32,7 @@ class VmemTrackerModule : Module() {
 
     AsyncFunction("collectNow") {
       UsageCollector.collect(context)
+      CalendarCollector.collect(context)
       Tracker.statusJson(context)
     }
 
@@ -102,6 +103,11 @@ class VmemTrackerModule : Module() {
     AsyncFunction("setAuthToken") { token: String? ->
       TrackerPrefs(context).setToken(token)
       if (token != null && db.approvedCount() > 0) TrackerScheduler.enqueueUpload(context)
+    }
+
+    AsyncFunction("setCalendarEnabled") { enabled: Boolean ->
+      Tracker.setCalendarEnabled(context, enabled)
+      Tracker.statusJson(context)
     }
 
     AsyncFunction("setBaseUrl") { url: String -> TrackerPrefs(context).baseUrl = url }

@@ -13,6 +13,7 @@ const KIND_LABEL: Record<CaptureKind, string> = {
   share: "Shared",
   note: "Note",
   clipboard: "Clipboard",
+  calendar: "Calendar",
   screen_text: "Screen text",
   notification: "Notification",
 };

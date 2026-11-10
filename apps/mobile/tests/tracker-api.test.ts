@@ -8,6 +8,8 @@ import {
 const status = {
   paused: false,
   usageAccess: true,
+  calendarEnabled: false,
+  calendarAccess: false,
   collectedThroughMs: 10,
   lastCollectAtMs: 10,
   lastCollectError: null,
@@ -56,6 +58,11 @@ function fakeNative(overrides: Partial<VmemTrackerNative> = {}) {
     resetDenyList: () => record("resetDenyList", undefined),
     listRecentApps: () => record("listRecentApps", "[]"),
     setAuthToken: (token) => record(`setAuthToken:${String(token)}`, undefined),
+    setCalendarEnabled: (enabled) =>
+      record(
+        `setCalendarEnabled:${String(enabled)}`,
+        JSON.stringify({ ...status, calendarEnabled: enabled }),
+      ),
     setBaseUrl: (url) => record(`setBaseUrl:${url}`, undefined),
     deleteAllData: () => record("deleteAllData", undefined),
     openUsageAccessSettings: () => {
@@ -72,6 +79,7 @@ describe("createTrackerApi", () => {
     const api = createTrackerApi(native);
     assert.deepEqual(await api.getStatus(), status);
     assert.equal((await api.setPaused(true)).paused, true);
+    assert.equal((await api.setCalendarEnabled(true)).calendarEnabled, true);
     assert.deepEqual(await api.getDenyList(), [
       { package: "com.whatsapp", label: "WhatsApp", installed: true },
     ]);
