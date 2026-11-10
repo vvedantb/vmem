@@ -29,7 +29,7 @@ export default defineConfig({
     ],
     manifest: {
       description: "Memory layer for your browser",
-      version: "0.2.0",
+      version: "0.2.1",
       content_security_policy: {
         extension_pages: "script-src 'self'; object-src 'self'",
       },
