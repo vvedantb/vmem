@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@vmem/backend";
-import { Button, SettingsSection } from "@vvedantb/ui";
+import { Button, SettingsSection, cn } from "@vvedantb/ui";
 import { ConvexError } from "convex/values";
 import { toast } from "sonner";
 import { isMemoryLimitMessage, MEMORY_LIMIT_MESSAGE } from "@vmem/shared";
 import UploadImportModal from "./UploadImportModal";
 import SelectImportRowsModal from "./SelectImportRowsModal";
-import { importProviders, type ImportProvider } from "./importProviders";
+import {
+  importProviders,
+  type AvailableProvider,
+  type ImportProvider,
+} from "./importProviders";
 import { convexErrorMessage } from "@/lib/convex-error";
 import { toastMemoryError } from "@/lib/pricing-modal";
 import type { ExportImportRow } from "@/lib/chat-export/importRows";
@@ -17,9 +21,12 @@ type ImportStep =
   | { phase: "upload"; providerId: string }
   | { phase: "select"; providerId: string; rows: ExportImportRow[] };
 
-function findProvider(id: string | null): ImportProvider | null {
+function findAvailable(id: string | null): AvailableProvider | null {
   if (id === null) return null;
-  return importProviders.find((p) => p.id === id) ?? null;
+  for (const p of importProviders) {
+    if (p.id === id && p.kind === "available") return p;
+  }
+  return null;
 }
 
 function ImportProviderCard({
@@ -32,9 +39,10 @@ function ImportProviderCard({
   const Logo = provider.Logo;
   return (
     <SettingsSection
+      className={cn(provider.kind === "coming-soon" && "opacity-60")}
       title={
         <span className="inline-flex items-center gap-3">
-          <Logo className={`h-5 w-5 shrink-0 ${provider.logoClassName}`} />
+          <Logo className={cn("h-5 w-5 shrink-0", provider.logoClassName)} />
           {provider.label}
         </span>
       }
@@ -42,9 +50,15 @@ function ImportProviderCard({
       <p className="mb-5 text-sm leading-relaxed text-muted">
         {provider.description}
       </p>
-      <Button type="button" onClick={() => onImport(provider.id)}>
-        Import
-      </Button>
+      {provider.kind === "available" ? (
+        <Button type="button" onClick={() => onImport(provider.id)}>
+          Import
+        </Button>
+      ) : (
+        <Button type="button" disabled>
+          Coming soon
+        </Button>
+      )}
     </SettingsSection>
   );
 }
@@ -66,7 +80,7 @@ export default function ImportPageClient() {
 
   const handleFile = async (file: File) => {
     if (step.phase !== "upload") return;
-    const p = findProvider(step.providerId);
+    const p = findAvailable(step.providerId);
     if (!p) return;
     setParsing(true);
     // the reset is duplicated into a rethrowing catch rather than a `finally`
@@ -97,7 +111,7 @@ export default function ImportPageClient() {
 
   const handleImport = async (selected: ExportImportRow[]) => {
     if (step.phase !== "select") return;
-    const p = findProvider(step.providerId);
+    const p = findAvailable(step.providerId);
     if (!p) return;
     setImporting(true);
     const results = await Promise.allSettled(
@@ -141,7 +155,7 @@ export default function ImportPageClient() {
   };
 
   const uploadProvider =
-    step.phase === "upload" ? findProvider(step.providerId) : null;
+    step.phase === "upload" ? findAvailable(step.providerId) : null;
   const selectRows = step.phase === "select" ? step.rows : [];
 
   return (
