@@ -5,6 +5,7 @@ import type {
 } from "../../modules/vmem-tracker/src/api";
 import { hash53 } from "./format";
 import { memoryBody } from "./memory";
+import { postForModel, utcOffsetMinutes } from "./server";
 
 /**
  * Calendar events become review items in two steps:
@@ -199,54 +200,32 @@ export async function buildCalendarPromotion(
   return result;
 }
 
-export class CalendarSummaryError extends Error {}
-
-/** Posts one day to the server. Throws a `CalendarSummaryError` with a message for the user. */
+/** Posts one day to the server. Throws an `Error` with a message for the user. */
 export function httpSummarizer(options: {
   baseUrl: string;
   token: string;
   fetchImpl?: typeof fetch;
 }): SummarizeDay {
-  const fetchImpl = options.fetchImpl ?? fetch;
-  return async (day, events) => {
-    const first = events[0];
-    // Minutes the phone is ahead of UTC on that day.
-    const utcOffsetMinutes =
-      first === undefined ? 0 : -new Date(first.startMs).getTimezoneOffset();
-    const response = await fetchImpl(
-      `${options.baseUrl}/api/v1/mobile/calendar/summarize`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${options.token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          date: day,
-          utcOffsetMinutes,
-          events: events.map((event) => ({
-            id: event.id,
-            title: event.title,
-            startMs: event.startMs,
-            endMs: event.endMs,
-            allDay: event.allDay,
-            attendees: event.attendees,
-            ...(event.calendarName ? { calendarName: event.calendarName } : {}),
-            ...(event.location ? { location: event.location } : {}),
-          })),
-        }),
+  return (day, events) =>
+    postForModel({
+      ...options,
+      path: "/api/v1/mobile/calendar/summarize",
+      body: {
+        date: day,
+        utcOffsetMinutes: utcOffsetMinutes(events[0]?.startMs ?? Date.now()),
+        events: events.map((event) => ({
+          id: event.id,
+          title: event.title,
+          startMs: event.startMs,
+          endMs: event.endMs,
+          allDay: event.allDay,
+          attendees: event.attendees,
+          ...(event.calendarName ? { calendarName: event.calendarName } : {}),
+          ...(event.location ? { location: event.location } : {}),
+        })),
       },
-    );
-    if (response.status === 422) {
-      throw new CalendarSummaryError(
-        "Calendar summaries are not available on the server yet.",
-      );
-    }
-    if (!response.ok) {
-      throw new CalendarSummaryError(
-        `Calendar summary failed (HTTP ${String(response.status)})`,
-      );
-    }
-    return calendarSummarySchema.parse(await response.json());
-  };
+      schema: calendarSummarySchema,
+      label: "Calendar summary",
+      unavailable: "Calendar summaries are not available on the server yet.",
+    });
 }

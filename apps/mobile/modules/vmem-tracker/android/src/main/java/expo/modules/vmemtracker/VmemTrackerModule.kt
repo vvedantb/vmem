@@ -110,12 +110,22 @@ class VmemTrackerModule : Module() {
       Tracker.statusJson(context)
     }
 
+    AsyncFunction("setNotificationsEnabled") { enabled: Boolean ->
+      Tracker.setNotificationsEnabled(context, enabled)
+      Tracker.statusJson(context)
+    }
+
     AsyncFunction("setBaseUrl") { url: String -> TrackerPrefs(context).baseUrl = url }
 
     AsyncFunction("deleteAllData") { Tracker.deleteAllData(context) }
 
     Function("openUsageAccessSettings") {
       val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      context.startActivity(intent)
+    }
+
+    Function("openNotificationAccessSettings") {
+      val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       context.startActivity(intent)
     }
   }

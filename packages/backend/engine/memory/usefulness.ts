@@ -59,6 +59,7 @@ const MEDIUM_SOURCES = new Set([
   "android-note",
   "android-clipboard",
   "android-calendar",
+  "android-notification",
 ]);
 
 export interface UsefulnessInput {

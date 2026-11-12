@@ -78,7 +78,7 @@ export default function SettingsScreen() {
 
         <SettingsSection
           title="Blocked apps"
-          description="Never recorded. Messaging apps are blocked by default."
+          description="Never recorded, and their notifications are never kept. Messaging apps are blocked by default."
           bodyVariant="list"
         >
           <ListRow
@@ -108,6 +108,50 @@ export default function SettingsScreen() {
                 onCheckedChange={(on) => void trackerActions.setCalendar(on)}
                 accessibilityLabel="Summarise my calendar"
               />
+            }
+          />
+        </SettingsSection>
+
+        <SettingsSection
+          title="Notifications"
+          description="Off by default. When on, vmem keeps the notifications of apps that are not blocked on this phone. When you open the app, the server reads them and keeps only the facts worth a memory, such as a delivery, a booking or a payment. Each fact waits in Review until you approve it. The rest is deleted. Messaging apps are blocked unless you unblock them."
+        >
+          <SettingsToggleRow
+            title="Digest my notifications"
+            description={
+              status?.notificationsEnabled && !status.notificationAccess
+                ? "Notification access is off. Nothing is kept."
+                : status?.notificationsEnabled
+                  ? "On"
+                  : "Off"
+            }
+            action={
+              <Switch
+                checked={status?.notificationsEnabled ?? false}
+                disabled={status === null}
+                onCheckedChange={(on) =>
+                  void trackerActions.setNotifications(on)
+                }
+                accessibilityLabel="Digest my notifications"
+              />
+            }
+          />
+          <SettingsToggleRow
+            title="Notification access"
+            description={
+              status?.notificationAccess
+                ? "Allowed"
+                : "Needed to read notifications. Android can ask you to allow restricted settings for vmem first."
+            }
+            action={
+              <Button
+                size="sm"
+                variant="outline"
+                fullWidth={false}
+                onPress={trackerActions.openNotificationAccessSettings}
+              >
+                Open
+              </Button>
             }
           />
         </SettingsSection>

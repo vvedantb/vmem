@@ -39,6 +39,11 @@ class TrackerPrefs(context: Context) {
     get() = prefs.getLong(CALENDAR_CURSOR, 0L)
     set(value) = prefs.edit().putLong(CALENDAR_CURSOR, value).apply()
 
+  /** Off by default. The user turns it on in Settings. */
+  var notificationsEnabled: Boolean
+    get() = prefs.getBoolean(NOTIFICATIONS_ENABLED, false)
+    set(value) = prefs.edit().putBoolean(NOTIFICATIONS_ENABLED, value).apply()
+
   var lastCollectAtMs: Long
     get() = prefs.getLong(LAST_COLLECT_AT, 0L)
     set(value) = prefs.edit().putLong(LAST_COLLECT_AT, value).apply()
@@ -115,6 +120,7 @@ class TrackerPrefs(context: Context) {
     private const val LAST_COLLECT_ERROR = "last_collect_error"
     private const val CALENDAR_ENABLED = "calendar_enabled"
     private const val CALENDAR_CURSOR = "calendar_cursor_ms"
+    private const val NOTIFICATIONS_ENABLED = "notifications_enabled"
     private const val DENY_LIST = "deny_list"
     private const val BASE_URL = "base_url"
     private const val INSTALL_ID = "install_id"

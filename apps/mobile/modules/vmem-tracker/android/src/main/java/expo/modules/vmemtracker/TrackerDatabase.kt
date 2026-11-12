@@ -144,6 +144,42 @@ class TrackerDatabase private constructor(context: Context) :
     return inserted
   }
 
+  /**
+   * One posted notification. An app posts the same notification again when it
+   * updates it, so a row with the same app, title and text is not added twice.
+   * Nothing is added past `MAX_NOTIFICATIONS`, so a noisy app cannot fill the buffer.
+   */
+  fun insertNotification(packageName: String, label: String, title: String, text: String, at: Long) {
+    transaction { db ->
+      val kind = arrayOf(CaptureKind.NOTIFICATION)
+      if (count(db, "SELECT COUNT(*) FROM events WHERE kind = ?", kind) >= MAX_NOTIFICATIONS) return@transaction
+      val same = count(
+        db,
+        "SELECT COUNT(*) FROM events WHERE kind = ? AND package = ? AND subject = ? AND text = ?",
+        arrayOf(CaptureKind.NOTIFICATION, packageName, title, text),
+      )
+      if (same > 0) return@transaction
+      db.insertOrThrow(
+        "events",
+        null,
+        ContentValues().apply {
+          put("kind", CaptureKind.NOTIFICATION)
+          put("package", packageName)
+          put("label", label)
+          put("start_ms", at)
+          put("end_ms", at)
+          put("text", text)
+          put("subject", title)
+        },
+      )
+    }
+  }
+
+  /** Deletes every raw event of one kind. */
+  fun deleteEvents(kind: String) {
+    writableDatabase.delete("events", "kind = ?", arrayOf(kind))
+  }
+
   /** Replaces the body of an item that is still waiting for review. */
   fun updateQueueBody(id: Long, body: String, now: Long) {
     writableDatabase.update(
@@ -387,6 +423,7 @@ class TrackerDatabase private constructor(context: Context) :
   companion object {
     private const val NAME = "vmem_tracker.db"
     private const val VERSION = 1
+    private const val MAX_NOTIFICATIONS = 1000L
     private const val UPLOADED_KEEP_MS = 7L * 24 * 60 * 60 * 1000
     private const val EVENTS_KEEP_MS = 30L * 24 * 60 * 60 * 1000
 

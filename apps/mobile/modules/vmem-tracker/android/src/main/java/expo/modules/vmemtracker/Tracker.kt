@@ -34,6 +34,12 @@ object Tracker {
     }
   }
 
+  /** Turning off deletes the raw notifications that are not in a digest yet. */
+  fun setNotificationsEnabled(context: Context, enabled: Boolean) {
+    TrackerPrefs(context).notificationsEnabled = enabled
+    if (!enabled) TrackerDatabase.get(context).deleteEvents(CaptureKind.NOTIFICATION)
+  }
+
   fun statusJson(context: Context): String {
     val prefs = TrackerPrefs(context)
     return JSONObject()
@@ -41,6 +47,8 @@ object Tracker {
       .put("usageAccess", UsageCollector.hasUsageAccess(context))
       .put("calendarEnabled", prefs.calendarEnabled)
       .put("calendarAccess", CalendarCollector.hasAccess(context))
+      .put("notificationsEnabled", prefs.notificationsEnabled)
+      .put("notificationAccess", NotificationCollector.hasAccess(context))
       .put("collectedThroughMs", prefs.cursorMs)
       .put("lastCollectAtMs", prefs.lastCollectAtMs)
       .put("lastCollectError", prefs.lastCollectError ?: JSONObject.NULL)

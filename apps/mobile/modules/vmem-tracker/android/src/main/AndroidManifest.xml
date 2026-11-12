@@ -51,6 +51,17 @@
       </intent-filter>
     </service>
 
+    <!-- Notifications, only after the user turns them on in Settings and allows Notification access. -->
+    <service
+      android:name="expo.modules.vmemtracker.VmemNotificationListener"
+      android:exported="true"
+      android:label="@string/vmem_tracker_notifications_label"
+      android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+      <intent-filter>
+        <action android:name="android.service.notification.NotificationListenerService" />
+      </intent-filter>
+    </service>
+
     <!-- Re-schedules collection after a reboot or an app update. -->
     <receiver
       android:name="expo.modules.vmemtracker.BootReceiver"

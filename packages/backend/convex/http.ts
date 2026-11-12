@@ -3,6 +3,7 @@ import { registerMcpRoutes } from "@vvedantb/server";
 import { connectorCallback } from "./http/auth/connectorCallback";
 import { clerkWebhook } from "./http/clerk/webhook";
 import { calendarSummarizeHttp } from "./http/mobile/calendarSummarize";
+import { notificationsDigestHttp } from "./http/mobile/notificationsDigest";
 import { transcribeHttp } from "./http/mobile/transcribe";
 import { deleteMemory } from "./http/v1Memories/delete";
 import { retrieveMemories } from "./http/v1Memories/retrieve";
@@ -72,6 +73,12 @@ http.route({
   path: "/api/v1/mobile/calendar/summarize",
   method: "POST",
   handler: calendarSummarizeHttp,
+});
+
+http.route({
+  path: "/api/v1/mobile/notifications/digest",
+  method: "POST",
+  handler: notificationsDigestHttp,
 });
 
 registerMcpRoutes(http, {

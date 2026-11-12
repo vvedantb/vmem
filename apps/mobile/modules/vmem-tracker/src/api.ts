@@ -2,8 +2,8 @@ import { z } from "zod";
 
 /**
  * Capture kinds written by the native collectors. `screen_text` (phase 2,
- * Accessibility) and `notification` (phase 3) are reserved: no collector
- * writes them yet, and the app leaves their events untouched.
+ * Accessibility) is reserved: no collector writes it yet, and the app leaves
+ * its events untouched.
  */
 export const captureKindSchema = z.enum([
   "app_usage",
@@ -58,6 +58,10 @@ export const trackerStatusSchema = z.object({
   calendarEnabled: z.boolean(),
   /** READ_CALENDAR is granted. */
   calendarAccess: z.boolean(),
+  /** Notifications are off by default. On means the user chose it in Settings. */
+  notificationsEnabled: z.boolean(),
+  /** The user allowed Notification access in system settings. */
+  notificationAccess: z.boolean(),
   /** Usage before this time is collected. 0 until the first run. */
   collectedThroughMs: z.number(),
   lastCollectAtMs: z.number(),
@@ -135,9 +139,11 @@ export interface VmemTrackerNative {
   listRecentApps(): Promise<string>;
   setAuthToken(token: string | null): Promise<void>;
   setCalendarEnabled(enabled: boolean): Promise<string>;
+  setNotificationsEnabled(enabled: boolean): Promise<string>;
   setBaseUrl(url: string): Promise<void>;
   deleteAllData(): Promise<void>;
   openUsageAccessSettings(): void;
+  openNotificationAccessSettings(): void;
 }
 
 function parse<T>(schema: z.ZodType<T>, json: string): T {
@@ -179,9 +185,13 @@ export function createTrackerApi(native: VmemTrackerNative) {
     setAuthToken: (token: string | null) => native.setAuthToken(token),
     setCalendarEnabled: async (enabled: boolean) =>
       parse(trackerStatusSchema, await native.setCalendarEnabled(enabled)),
+    setNotificationsEnabled: async (enabled: boolean) =>
+      parse(trackerStatusSchema, await native.setNotificationsEnabled(enabled)),
     setBaseUrl: (url: string) => native.setBaseUrl(url),
     deleteAllData: () => native.deleteAllData(),
     openUsageAccessSettings: () => native.openUsageAccessSettings(),
+    openNotificationAccessSettings: () =>
+      native.openNotificationAccessSettings(),
   };
 }
 

@@ -22,6 +22,11 @@ import {
   httpSummarizer,
   type SummarizeDay,
 } from "../capture/calendar";
+import {
+  buildNotificationPromotion,
+  httpDigester,
+  type DigestNotifications,
+} from "../capture/notifications";
 import { buildPromotion, isEmptyPromotion } from "../capture/promote";
 import { VMEM_BASE_URL } from "../config";
 import { toError } from "../errors";
@@ -113,6 +118,13 @@ const summarizeDay: SummarizeDay = async (day, events) => {
   return httpSummarizer({ baseUrl: VMEM_BASE_URL, token })(day, events);
 };
 
+/** Makes the digest on the server with a fresh token. Fails when signed out. */
+const digestNotifications: DigestNotifications = async (notifications) => {
+  const token = await freshToken();
+  if (!token) throw new Error("Sign in again to digest your notifications.");
+  return httpDigester({ baseUrl: VMEM_BASE_URL, token })(notifications);
+};
+
 async function runSync(): Promise<void> {
   update({ syncing: true });
   try {
@@ -128,14 +140,29 @@ async function runSync(): Promise<void> {
       installId: status.installId,
       summarize: summarizeDay,
     });
+    const notifications = await buildNotificationPromotion(events, {
+      enabled: status.notificationsEnabled,
+      installId: status.installId,
+      digest: digestNotifications,
+    });
     const promotion = {
-      items: [...usage.items, ...calendar.items],
-      deleteEventIds: [...usage.deleteEventIds, ...calendar.deleteEventIds],
+      items: [...usage.items, ...calendar.items, ...notifications.items],
+      deleteEventIds: [
+        ...usage.deleteEventIds,
+        ...calendar.deleteEventIds,
+        ...notifications.deleteEventIds,
+      ],
       trimEvents: usage.trimEvents,
     };
-    const [firstError] = calendar.errors;
-    if (firstError !== undefined) {
-      toast.error("Calendar summary failed", { description: firstError });
+    const [calendarError] = calendar.errors;
+    if (calendarError !== undefined) {
+      toast.error("Calendar summary failed", { description: calendarError });
+    }
+    const [notificationError] = notifications.errors;
+    if (notificationError !== undefined) {
+      toast.error("Notification digest failed", {
+        description: notificationError,
+      });
     }
     if (!isEmptyPromotion(promotion)) await tracker.promote(promotion);
     await reload();
@@ -295,6 +322,23 @@ export const trackerActions = {
       update({ status: await tracker.setCalendarEnabled(on) });
       await sync();
     }),
+  /**
+   * Off by default. Android gives Notification access only on its own
+   * settings screen, so turning on opens that screen when access is missing.
+   */
+  setNotifications: (on: boolean) =>
+    guarded(async () => {
+      const status = await tracker.setNotificationsEnabled(on);
+      update({ status });
+      if (on && !status.notificationAccess) {
+        tracker.openNotificationAccessSettings();
+        return;
+      }
+      await sync();
+    }),
+  openNotificationAccessSettings: () => {
+    tracker.openNotificationAccessSettings();
+  },
   setPaused: (paused: boolean) =>
     guarded(async () => {
       update({ status: await tracker.setPaused(paused) });

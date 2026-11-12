@@ -10,6 +10,8 @@ const status = {
   usageAccess: true,
   calendarEnabled: false,
   calendarAccess: false,
+  notificationsEnabled: false,
+  notificationAccess: false,
   collectedThroughMs: 10,
   lastCollectAtMs: 10,
   lastCollectError: null,
@@ -63,10 +65,18 @@ function fakeNative(overrides: Partial<VmemTrackerNative> = {}) {
         `setCalendarEnabled:${String(enabled)}`,
         JSON.stringify({ ...status, calendarEnabled: enabled }),
       ),
+    setNotificationsEnabled: (enabled) =>
+      record(
+        `setNotificationsEnabled:${String(enabled)}`,
+        JSON.stringify({ ...status, notificationsEnabled: enabled }),
+      ),
     setBaseUrl: (url) => record(`setBaseUrl:${url}`, undefined),
     deleteAllData: () => record("deleteAllData", undefined),
     openUsageAccessSettings: () => {
       calls.push("openUsageAccessSettings");
+    },
+    openNotificationAccessSettings: () => {
+      calls.push("openNotificationAccessSettings");
     },
     ...overrides,
   };
