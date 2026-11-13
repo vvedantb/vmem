@@ -28,7 +28,7 @@ jobs:
   # PR check: unit tests, Linux package and a packaged-app smoke run.
   linux:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: boat
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
@@ -162,7 +162,7 @@ jobs:
 
   publish:
     needs: [windows, macos]
-    runs-on: ubuntu-latest
+    runs-on: boat
     permissions:
       contents: write
     env:
