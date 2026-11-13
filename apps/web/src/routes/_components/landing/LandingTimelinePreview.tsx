@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, cn } from "@vvedantb/ui";
-import { formatCompactRelativeTime } from "@vmem/shared";
+import { Button, cn, formatCompactRelativeTime } from "@vvedantb/ui";
 import { MemorySourceIcon } from "@/components/_components/MemorySourceIcon";
 import ShapeIndicator from "@/components/_components/ShapeIndicator";
 import { formatMemorySourceLabel } from "@/lib/memories";
@@ -117,7 +116,7 @@ function TimelineRow({
       </span>
       <ShapeIndicator kind="memory" color={color} className="h-2.5 w-2.5" />
       <span className="shrink-0 text-xs tabular-nums text-muted">
-        {formatCompactRelativeTime(memory.createdAt)}
+        {formatCompactRelativeTime(memory.createdAt, { justNow: "now" })}
       </span>
     </Button>
   );

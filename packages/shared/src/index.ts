@@ -1,7 +1,6 @@
 export { STALE_SYNCING_MS } from "./sync";
 export {
   formatCompactNumber,
-  formatCompactRelativeTime,
   formatDate,
   formatDateTime,
   formatDurationMs,

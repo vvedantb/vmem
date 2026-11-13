@@ -1,7 +1,13 @@
-export { default as ChromeIcon } from "./ChromeIcon";
-export { default as CursorIcon } from "./CursorIcon";
-export { default as FigmaIcon } from "./FigmaIcon";
-export { default as GitHubIcon } from "./GitHubIcon";
-export { default as GmailIcon } from "./GmailIcon";
-export { default as GoogleDriveIcon } from "./GoogleDriveIcon";
-export { default as NotionIcon } from "./NotionIcon";
+// Third-party brand logos re-exported from @vvedantb/ui/logos.
+// Each takes LogoProps: `size` (default 24), `className`/other SVG props, and
+// optional `title` (labelled role="img"; otherwise aria-hidden). Same marks as
+// the former local copies.
+export {
+  ChromeIcon,
+  CursorIcon,
+  FigmaIcon,
+  GitHubIcon,
+  GmailIcon,
+  GoogleDriveIcon,
+  NotionIcon,
+} from "@vvedantb/ui/logos";

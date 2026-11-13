@@ -1,19 +1,15 @@
+import { embedMany, generateText, type JSONValue } from "ai";
 import {
-  embedMany,
-  generateText,
-  type JSONValue,
-  type ProviderMetadata,
-} from "ai";
+  FLEX_GATEWAY_PROVIDER_OPTIONS,
+  readGatewayCost,
+} from "@vvedantb/server/ai";
+
+// Flex tier options and the gateway cost reader now ship from @vvedantb/server/ai.
+// Re-exported so existing callers (e.g. systemOneClient) keep importing them here.
+export { FLEX_GATEWAY_PROVIDER_OPTIONS, readGatewayCost };
 
 export const AI_GATEWAY_CHAT_MODEL = "alibaba/qwen3.7-flash";
 export const AI_GATEWAY_EMBEDDING_MODEL = "openai/text-embedding-3-small";
-
-/** Cheapest AI Gateway service tier. No-op when the provider/model does not support tiers. */
-export const FLEX_GATEWAY_PROVIDER_OPTIONS = {
-  gateway: {
-    serviceTier: "flex" as const,
-  },
-};
 
 /** Per-provider options passed through to the AI SDK call. */
 export type GatewayProviderOptions = Record<string, Record<string, JSONValue>>;
@@ -125,24 +121,4 @@ export async function embedGatewayTexts(args: {
     tokens: result.usage.tokens,
     costUsd: readGatewayCost(result.providerMetadata),
   };
-}
-
-/**
- * Gateway cost in USD: `gateway.cost` (what was billed), else
- * `gateway.marketCost` (list price), so budget guards still see a value.
- */
-export function readGatewayCost(
-  metadata: ProviderMetadata | undefined,
-): number | undefined {
-  return (
-    parseCost(metadata?.gateway?.cost) ??
-    parseCost(metadata?.gateway?.marketCost)
-  );
-}
-
-function parseCost(cost: JSONValue | undefined): number | undefined {
-  if (typeof cost === "number" && Number.isFinite(cost)) return cost;
-  if (typeof cost !== "string" || cost.trim().length === 0) return undefined;
-  const parsed = Number(cost);
-  return Number.isFinite(parsed) ? parsed : undefined;
 }

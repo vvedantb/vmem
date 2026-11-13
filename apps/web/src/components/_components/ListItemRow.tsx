@@ -11,9 +11,9 @@ import {
   TooltipTrigger,
   ConfirmSkipHint,
   skipConfirmTitle,
+  formatCompactRelativeTime,
 } from "@vvedantb/ui";
 import { IconEdit, IconMoon, IconTrash } from "@tabler/icons-react";
-import { formatCompactRelativeTime } from "@vmem/shared";
 import { formatMemorySourceLabel, type Memory } from "@/lib/memories";
 import {
   awaitsNextDream,
@@ -153,7 +153,7 @@ export default function ListItemRow({
                 isSelected ? "text-foreground" : "text-muted",
               )}
             >
-              {formatCompactRelativeTime(item.createdAt)}
+              {formatCompactRelativeTime(item.createdAt, { justNow: "now" })}
             </span>
           </div>
         </div>
