@@ -16,6 +16,11 @@ export const VMEM_BASE_URL = (
   "https://clear-bear-690.eu-west-1.convex.site"
 ).replace(/\/$/, "");
 
+/** Convex deployment URL (`*.convex.cloud`) for live queries: `clear-bear-690`. */
+export const CONVEX_URL =
+  process.env.EXPO_PUBLIC_CONVEX_URL ||
+  "https://clear-bear-690.eu-west-1.convex.cloud";
+
 /** Redirect for Google sign-in: the `vmem://sso-callback` link the archived app used. */
 export const SSO_SCHEME = "vmem";
 export const SSO_PATH = "sso-callback";

@@ -59,13 +59,29 @@ export function gatewayTranscribe(
   };
 }
 
-/** The form's audio file, from the `file` or `audio` field. */
-function audioField(form: FormData): File | null {
+/**
+ * The form's audio file, from the `file` or `audio` field. The parameter is
+ * structural: React Native apps that import `api` type `FormData` differently
+ * from the DOM lib, but both have `getAll`.
+ */
+function audioField(form: {
+  getAll(name: string): ReadonlyArray<string | object>;
+}): File | null {
   for (const name of ["file", "audio"]) {
-    const value = form.get(name);
-    if (typeof value !== "string" && value !== null) return value;
+    for (const value of form.getAll(name)) {
+      if (value instanceof File) return value;
+    }
   }
   return null;
+}
+
+// no `FormData` annotation: see `audioField`
+async function readForm(req: Request) {
+  try {
+    return await req.formData();
+  } catch {
+    return null;
+  }
 }
 
 /** Handler body, with the transcriber injected so tests need no network. */
@@ -79,10 +95,8 @@ export async function transcribeRequest(
       { status: 422 },
     );
   }
-  let form: FormData;
-  try {
-    form = await req.formData();
-  } catch {
+  const form = await readForm(req);
+  if (form === null) {
     return Response.json({ error: "invalid_form" }, { status: 400 });
   }
   const audio = audioField(form);
