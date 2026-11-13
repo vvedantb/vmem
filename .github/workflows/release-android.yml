@@ -62,4 +62,7 @@ jobs:
       version: ${{ inputs.version }}
       # On push, inputs.dry_run is empty, so compare to true for a boolean.
       dry_run: ${{ inputs.dry_run == true }}
+      # A boat.dev runner. It has no Android SDK: the shared workflow installs
+      # the command line tools and sdk_packages when it finds none.
+      runs_on: boat-large
     secrets: inherit
