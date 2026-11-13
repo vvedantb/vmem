@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   check:
-    runs-on: boat
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
