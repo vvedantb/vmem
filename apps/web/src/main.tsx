@@ -6,35 +6,12 @@ import { routeTree } from "./routeTree.gen";
 import { env } from "./env";
 import { convex } from "./lib/convex-client";
 import { AppSkeleton } from "./components/shell/AppSkeleton";
-import { isChunkLoadError } from "./lib/utils/isChunkLoadError";
+import { installStaleDeployReload } from "@vvedantb/ui/client";
 import { defaultRouterViewTransition } from "./lib/view-transitions";
 import "./globals.css";
 
-// reload when deploy serves stale chunk hashes
-function handleStaleDeployment(event: Event) {
-  event.preventDefault();
-  try {
-    void convex.close();
-  } catch {
-    // socket may already be closed during teardown
-  }
-  window.location.reload();
-}
-
-// vite preload errors mean cached html points at removed chunks
-window.addEventListener("vite:preloadError", handleStaleDeployment);
-
-// route lazy imports can fail the same way outside preload
-window.addEventListener("error", (event) => {
-  if (isChunkLoadError(event.error)) {
-    handleStaleDeployment(event);
-  }
-});
-window.addEventListener("unhandledrejection", (event) => {
-  if (isChunkLoadError(event.reason)) {
-    handleStaleDeployment(event);
-  }
-});
+// reload once when a deploy serves stale chunk hashes
+installStaleDeployReload({ onBeforeReload: () => void convex.close() });
 
 const router = createRouter({
   routeTree,

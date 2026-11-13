@@ -90,9 +90,15 @@ assertValid(
 
 assertValid("no-json-parse", `const data = schema.parse(JSON.parse(raw));\n`);
 
-assertValid("no-json-parse", `const data: unknown = JSON.parse(raw);\n`);
+// The repo configures `allowUnknownEscapeHatch: true`; an `: unknown`
+// annotation or `as unknown` cast is then the sanctioned escape.
+assertValid("no-json-parse", `const data: unknown = JSON.parse(raw);\n`, {
+  ruleOptions: { allowUnknownEscapeHatch: true },
+});
 
-assertValid("no-json-parse", `const data = JSON.parse(raw) as unknown;\n`);
+assertValid("no-json-parse", `const data = JSON.parse(raw) as unknown;\n`, {
+  ruleOptions: { allowUnknownEscapeHatch: true },
+});
 
 assertInvalid(
   "no-unknown-shape-probing",

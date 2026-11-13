@@ -73,7 +73,7 @@
     "import/no-empty-named-blocks": "error",
     "unicorn/no-abusive-eslint-disable": "error",
     "vmem/no-unknown-shape-probing": "error",
-    "vmem/no-json-parse": "error",
+    "vmem/no-json-parse": ["error", { "allowUnknownEscapeHatch": true }],
     "vmem/no-double-cast": "warn",
     "vmem/no-engine-imports-convex": "error",
     "vmem/no-ts-nocheck": "error",

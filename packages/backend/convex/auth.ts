@@ -8,12 +8,13 @@ import {
 } from "./_generated/server";
 import {
   customAction,
+  customCtx,
   customMutation,
   customQuery,
 } from "convex-helpers/server/customFunctions";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
-import { createClerkUserAuth } from "@vvedantb/server";
+import { createAuthFunctions, createClerkUserAuth } from "@vvedantb/server";
 import type { DataModel, Doc, Id } from "./_generated/dataModel";
 import { DEFAULT_PROFILE_COLOR } from "./profiles/helpers";
 import { normalizeAccountEmail } from "./lib/accountEmail";
@@ -48,42 +49,14 @@ async function requireCurrentUserIdFromAction(
   return userId;
 }
 
-const authQueryBuilder = customQuery(query, {
-  args: {},
-  input: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    return {
-      ctx: { ...ctx, userId },
-      args,
-    };
-  },
+export const { authQuery, authMutation, authAction } = createAuthFunctions({
+  customFunctions: { customQuery, customMutation, customAction, customCtx },
+  query,
+  mutation,
+  action,
+  resolveUserId: (ctx) => getCurrentUserId(ctx),
+  resolveActionUserId: (ctx) => requireCurrentUserIdFromAction(ctx),
 });
-
-const authMutationBuilder = customMutation(mutation, {
-  args: {},
-  input: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    return {
-      ctx: { ...ctx, userId },
-      args,
-    };
-  },
-});
-
-const authActionBuilder = customAction(action, {
-  args: {},
-  input: async (ctx, args) => {
-    const userId = await requireCurrentUserIdFromAction(ctx);
-    return {
-      ctx: { ...ctx, userId },
-      args,
-    };
-  },
-});
-
-export const authQuery = authQueryBuilder;
-export const authMutation = authMutationBuilder;
-export const authAction = authActionBuilder;
 
 export type AuthActionCtx = ActionCtx & { userId: Id<"users"> };
 
