@@ -47,8 +47,8 @@
   --vmem-toast-offset-right: max(1rem, env(safe-area-inset-right, 0px));
 
   /* Eva/vibot shell: always-on icon rail + expandable panel. */
-  --vmem-sidebar-rail-width: 4rem;
-  --vmem-sidebar-width: 20rem;
+  --vmem-sidebar-rail-width: 3.5rem;
+  --vmem-sidebar-width: 19.5rem;
 }
 
 @media (width < 48rem) {
