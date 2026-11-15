@@ -33,6 +33,13 @@ import {
 } from "../engine/memory/dream/nightly";
 import { memoryOutcome } from "../engine/memory/dream/outcome";
 import {
+  buildDreamPortraitPrompt,
+  DREAM_PORTRAIT_ROLE,
+  isPortraitDue,
+  parseDreamPortraitReply,
+  pickPortraitEvidence,
+} from "../engine/memory/dream/portrait";
+import {
   buildDreamSkillPrompt,
   DREAM_SKILL_ROLE,
   existingSkillForDedupe,
@@ -71,6 +78,7 @@ import {
   runScope,
   supersedeRow,
 } from "./dream";
+import { scheduleContextPromptInvalidationByClerkId } from "./lib/contextPromptInvalidate";
 import { readOpenRouterApiKey } from "./lib/openRouterKey";
 import { callJsonChatWithUsage } from "./lib/openRouter/jsonChat";
 import { LLM_MODEL, scheduleLog } from "./lib/openRouter/shared";
@@ -90,7 +98,7 @@ import {
 // judge over the open write-time candidates (near-dup: Jev; maybe-conflict:
 // Qwen, thinking off), skill drafts, session transcript distill
 // (transcripts.ts), expire, decay (personal profiles only), tag
-// consolidation, log. Every
+// consolidation, portrait (personal profiles only), log. Every
 // change is a dreamActions row with undo. Manual "Run now" runs the same pass.
 
 const MANUAL_RATE_LIMIT_MS = 60 * 60 * 1000;
@@ -1058,6 +1066,176 @@ async function runSkillDraftStep(
   });
 }
 
+// ------------------------------------------------- step 6c (AI portrait)
+
+// newest rows and pinned rows read for the portrait evidence
+const PORTRAIT_SCAN_ROWS = 200;
+const PORTRAIT_PINNED_ROWS = 30;
+// the prompt cuts each memory at a word inside this
+const PORTRAIT_CONTENT_CHARS = 500;
+
+/**
+ * Inputs of the portrait step for a personal profile: the stored portrait,
+ * the evidence (pickPortraitEvidence over the pinned rows and the newest
+ * rows of the run's scope) and today's dream spend. Null for a team profile
+ * and when the portrait is not due (isPortraitDue).
+ */
+export const portraitInputInternal = internalQuery({
+  args: { runId: v.id("dreamRuns"), now: v.number() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      spentTodayUsd: v.number(),
+      clerkId: v.string(),
+      current: v.union(v.string(), v.null()),
+      evidence: v.array(
+        v.object({
+          id: v.string(),
+          title: v.string(),
+          content: v.string(),
+          type: v.string(),
+          pinned: v.boolean(),
+          confidence: v.number(),
+          createdAt: v.number(),
+          updatedAt: v.number(),
+        }),
+      ),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const run = await requireRun(ctx, args.runId);
+    const scope = await runScope(ctx, run);
+    if (scope.kind !== "personal") return null;
+    const profile = await ctx.db.get(run.profileId);
+    if (!profile) return null;
+    const pinned = await ctx.db
+      .query("memories")
+      .withIndex("by_profile_status_expires", (q) =>
+        q.eq("profileId", run.profileId).eq("status", "pinned"),
+      )
+      .take(PORTRAIT_PINNED_ROWS);
+    const newest = await windowQuery(ctx, scope, { from: 0, until: args.now })
+      .order("desc")
+      .take(PORTRAIT_SCAN_ROWS);
+    const pinnedIds = new Set(pinned.map((doc) => doc._id));
+    const rows = [...pinned, ...newest.filter((doc) => !pinnedIds.has(doc._id))]
+      .filter(
+        (doc) => isVisibleStatus(doc.status) && memoryMatchesScope(doc, scope),
+      )
+      .map((doc) => ({
+        id: doc.memoryId,
+        title: doc.title,
+        content: doc.content.slice(0, PORTRAIT_CONTENT_CHARS),
+        type: doc.type,
+        pinned: doc.status === "pinned",
+        confidence: doc.confidence,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+      }));
+    const evidence = pickPortraitEvidence(rows, args.now);
+    const writtenAt =
+      profile.dreamPortrait === undefined
+        ? null
+        : (profile.dreamPortraitUpdatedAt ?? null);
+    if (!isPortraitDue(writtenAt, evidence, args.now)) return null;
+    return {
+      spentTodayUsd: await dreamSpentTodayUsd(ctx),
+      clerkId: scope.userId,
+      current: profile.dreamPortrait ?? null,
+      evidence,
+    };
+  },
+});
+
+/**
+ * Stores the portrait on the run's profile (none for a reply that did not
+ * parse: the old portrait stays) and adds the call and its cost to the run.
+ */
+export const recordPortraitInternal = internalMutation({
+  args: {
+    runId: v.id("dreamRuns"),
+    portrait: v.optional(
+      v.object({ text: v.string(), sourceIds: v.array(v.string()) }),
+    ),
+    costUsd: v.optional(v.number()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const run = await requireRun(ctx, args.runId);
+    if (args.portrait !== undefined) {
+      const now = Date.now();
+      await ctx.db.patch(run.profileId, {
+        dreamPortrait: args.portrait.text,
+        dreamPortraitUpdatedAt: now,
+        dreamPortraitSources: args.portrait.sourceIds,
+        updatedAt: now,
+      });
+    }
+    await ctx.db.patch(run._id, {
+      aiCalls: run.aiCalls + 1,
+      costUsd: run.costUsd + (args.costUsd ?? 0),
+    });
+    return null;
+  },
+});
+
+/**
+ * Step 6c: at most one call for a personal profile, only when its portrait
+ * is due, and only within the portrait cap, the user's nightly total and the
+ * daily budget. A new portrait also refreshes the MCP context prompt. The
+ * portrait is an extra: an error here is logged and the run goes on.
+ */
+async function runPortraitStep(
+  ctx: ActionCtx,
+  args: {
+    runId: RunId;
+    userId: Id<"users">;
+    profileId: Id<"profiles">;
+    ai: DreamAi;
+  },
+): Promise<void> {
+  const { ai } = args;
+  if (aiCallStop(ai.allowance, "portrait", 0) !== null) return;
+  try {
+    const input = await ctx.runQuery(internal.dreaming.portraitInputInternal, {
+      runId: args.runId,
+      now: Date.now(),
+    });
+    if (input === null) return;
+    if (aiCallStop(ai.allowance, "portrait", input.spentTodayUsd) !== null) {
+      return;
+    }
+    ai.allowance = spendAiCall(ai.allowance, "portrait");
+    const reply = await callJsonChatWithUsage(ctx, {
+      apiKey: ai.apiKey,
+      userId: args.userId,
+      profileId: args.profileId,
+      feature: "dream",
+      role: DREAM_PORTRAIT_ROLE,
+      prompt: buildDreamPortraitPrompt(input.current, input.evidence),
+      thinking: "off",
+    });
+    const parsed = parseDreamPortraitReply(input.evidence, reply.content);
+    await ctx.runMutation(internal.dreaming.recordPortraitInternal, {
+      runId: args.runId,
+      ...(parsed === null
+        ? {}
+        : {
+            portrait: {
+              text: parsed.portrait,
+              sourceIds: parsed.sources.map((memory) => memory.id),
+            },
+          }),
+      ...(reply.costUsd === undefined ? {} : { costUsd: reply.costUsd }),
+    });
+    if (parsed !== null) {
+      await scheduleContextPromptInvalidationByClerkId(ctx, input.clerkId);
+    }
+  } catch (error) {
+    console.error("[dreaming] portrait", args.profileId, error);
+  }
+}
+
 // ------------------------------------------------------- steps 5 and 6
 
 // one undoable action for a batch of status changes
@@ -1368,6 +1546,16 @@ async function dreamProfile(
       runId,
       userId: args.userId,
     });
+
+    // step 6c: the portrait, last, so it reads the rows as the run left them
+    if (args.ai !== null && args.kind === "personal") {
+      await runPortraitStep(ctx, {
+        runId,
+        userId: args.userId,
+        profileId: args.profileId,
+        ai: args.ai,
+      });
+    }
 
     const counts = await ctx.runMutation(
       internal.dreaming.finishProfileRunInternal,
