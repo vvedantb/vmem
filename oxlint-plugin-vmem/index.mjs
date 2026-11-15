@@ -5,10 +5,10 @@
 // visitors (oxlint JS plugins are alpha and not subject to semver).
 //
 // no-double-cast, no-json-parse, no-source-text-in-tests and
-// no-value-block-in-try come from the shared @vvedantb/config plugin; the rest
-// are vmem-only rules.
+// no-value-block-in-try come from the shared vvedantb plugin. The six rules
+// below are in the shared repo but @vvedantb/config 0.7.0 does not register
+// them in its plugin, so they stay local until it does.
 
-import vvedantbPlugin from "@vvedantb/config/oxlint/plugin.mjs";
 import noUnknownShapeProbing from "./rules/no-unknown-shape-probing.mjs";
 import noEngineImportsConvex from "./rules/no-engine-imports-convex.mjs";
 import noTsNocheck from "./rules/no-ts-nocheck.mjs";
@@ -23,8 +23,6 @@ export default {
   meta: { name: "vmem" },
   rules: {
     "no-unknown-shape-probing": noUnknownShapeProbing,
-    "no-json-parse": vvedantbPlugin.rules["no-json-parse"],
-    "no-double-cast": vvedantbPlugin.rules["no-double-cast"],
     "no-engine-imports-convex": noEngineImportsConvex,
     "no-ts-nocheck": noTsNocheck,
     "no-cross-package-relative-imports": noCrossPackageRelativeImports,
@@ -33,7 +31,5 @@ export default {
     "no-deep-package-imports": noDeepPackageImports,
     "no-conditional-tests": noConditionalTests,
     "no-inline-zod-schema": noInlineZodSchema,
-    "no-value-block-in-try": vvedantbPlugin.rules["no-value-block-in-try"],
-    "no-source-text-in-tests": vvedantbPlugin.rules["no-source-text-in-tests"],
   },
 };
