@@ -28,6 +28,7 @@ on:
       - "pnpm-workspace.yaml"
       - ".npmrc"
       - "scripts/build-android-release.sh"
+      - "scripts/android-release.config.json"
   # On push, inputs.* are empty: automatic version, not a dry run, publish.
   workflow_dispatch:
     inputs:
@@ -65,4 +66,8 @@ jobs:
       # A boat.dev runner. It has no Android SDK: the shared workflow installs
       # the command line tools and sdk_packages when it finds none.
       runs_on: boat-large
+      # The shared workflow does not install dependencies before the build
+      # script, and the build script runs a bin from @vvedantb/config.
+      pre_build_command: |
+        pnpm install --frozen-lockfile --filter '@vmem/mobile...' --filter '{.}'
     secrets: inherit

@@ -1,5 +1,8 @@
 name: CI
 
+# Thin caller of the shared vvedantb/packages ci-app workflow. The shared
+# workflow owns checkout, Node, pnpm, the store cache and install, and runs
+# every command even after an earlier one fails, so one run shows every failure.
 on:
   pull_request:
   push:
@@ -14,51 +17,13 @@ concurrency:
 
 jobs:
   check:
-    runs-on: boat
-    steps:
-      - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-      # The pnpm store, with a fallback key: after a lockfile change the last
-      # store is restored and only the changed packages are downloaded.
-      - name: Find the pnpm store
-        id: pnpm-store
-        shell: bash
-        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
-      - name: Restore the pnpm store
-        id: pnpm-cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: pnpm-store-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            pnpm-store-${{ runner.os }}-${{ runner.arch }}-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-        env:
-          HUSKY: "0"
-      # A store restored from the fallback key still holds packages the new
-      # lockfile dropped: remove them before the store is saved.
-      - name: Prune the pnpm store
-        if: steps.pnpm-cache.outputs.cache-hit != 'true'
-        run: pnpm store prune
-      # Each step runs even if an earlier one failed, so one run shows every failure.
-      - name: Typecheck
-        if: ${{ !cancelled() }}
-        run: pnpm typecheck:all
-      - name: Lint
-        if: ${{ !cancelled() }}
-        run: pnpm lint
-      - name: React Compiler bailouts
-        if: ${{ !cancelled() }}
-        run: node scripts/compiler-check.mjs
-      # Tests run in CI now that source-text tests are gone (lint rule
-      # vmem/no-source-text-in-tests keeps them out). Every test calls real code.
-      - name: Tests
-        if: ${{ !cancelled() }}
-        run: pnpm test
-      - name: Oxlint plugin tests
-        if: ${{ !cancelled() }}
-        run: pnpm test:oxlint-plugin
+    uses: vvedantb/packages/.github/workflows/ci-app.yml@main
+    with:
+      runs_on: boat
+      node_version: "22"
+      commands: |
+        pnpm typecheck:all
+        pnpm lint
+        node scripts/compiler-check.mjs
+        pnpm test
+        pnpm test:oxlint-plugin

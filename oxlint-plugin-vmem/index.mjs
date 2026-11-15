@@ -4,36 +4,18 @@
 // Wired via `jsPlugins` in ../.oxlintrc.json. Rules are ESLint-compatible AST
 // visitors (oxlint JS plugins are alpha and not subject to semver).
 //
-// no-double-cast, no-json-parse, no-source-text-in-tests and
-// no-value-block-in-try come from the shared @vvedantb/config plugin; the rest
-// are vmem-only rules.
+// Rules that are not specific to this repo come from the shared vvedantb
+// plugin (@vvedantb/config). The three below encode this repo's package layout.
 
-import vvedantbPlugin from "@vvedantb/config/oxlint/plugin.mjs";
-import noUnknownShapeProbing from "./rules/no-unknown-shape-probing.mjs";
 import noEngineImportsConvex from "./rules/no-engine-imports-convex.mjs";
-import noTsNocheck from "./rules/no-ts-nocheck.mjs";
 import noCrossPackageRelativeImports from "./rules/no-cross-package-relative-imports.mjs";
-import noInlineObjectTypeAssertion from "./rules/no-inline-object-type-assertion.mjs";
-import preferSchemaInferredTypes from "./rules/prefer-schema-inferred-types.mjs";
 import noDeepPackageImports from "./rules/no-deep-package-imports.mjs";
-import noConditionalTests from "./rules/no-conditional-tests.mjs";
-import noInlineZodSchema from "./rules/no-inline-zod-schema.mjs";
 
 export default {
   meta: { name: "vmem" },
   rules: {
-    "no-unknown-shape-probing": noUnknownShapeProbing,
-    "no-json-parse": vvedantbPlugin.rules["no-json-parse"],
-    "no-double-cast": vvedantbPlugin.rules["no-double-cast"],
     "no-engine-imports-convex": noEngineImportsConvex,
-    "no-ts-nocheck": noTsNocheck,
     "no-cross-package-relative-imports": noCrossPackageRelativeImports,
-    "no-inline-object-type-assertion": noInlineObjectTypeAssertion,
-    "prefer-schema-inferred-types": preferSchemaInferredTypes,
     "no-deep-package-imports": noDeepPackageImports,
-    "no-conditional-tests": noConditionalTests,
-    "no-inline-zod-schema": noInlineZodSchema,
-    "no-value-block-in-try": vvedantbPlugin.rules["no-value-block-in-try"],
-    "no-source-text-in-tests": vvedantbPlugin.rules["no-source-text-in-tests"],
   },
 };
