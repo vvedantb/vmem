@@ -7,6 +7,7 @@ import { browseKey } from "@vmem/shared";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type * as RollupActions from "./rollupActions";
+import { CURRENT_PORTRAIT } from "../tests/currentPortrait";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
@@ -65,6 +66,9 @@ async function addUser(t: T, clerkId: string) {
   const { userId } = await user.mutation(api.auth.ensureUserExists, {});
   const profile = await user.mutation(api.profiles.getOrCreateDefault, {});
   if (!profile) throw new Error("profile missing");
+  await t.run(async (ctx) => {
+    await ctx.db.patch(profile._id, CURRENT_PORTRAIT);
+  });
   return { user, userId, profileId: profile._id, clerkId };
 }
 

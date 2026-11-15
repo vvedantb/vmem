@@ -5,6 +5,7 @@ import { register as registerAuditLog } from "convex-audit-log/test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
+import { CURRENT_PORTRAIT } from "../tests/currentPortrait";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
@@ -81,6 +82,9 @@ async function addUser(t: T, clerkId: string) {
   const { userId } = await user.mutation(api.auth.ensureUserExists, {});
   const profile = await user.mutation(api.profiles.getOrCreateDefault, {});
   if (!profile) throw new Error("profile missing");
+  await t.run(async (ctx) => {
+    await ctx.db.patch(profile._id, CURRENT_PORTRAIT);
+  });
   return { user, userId, profileId: profile._id, clerkId };
 }
 
@@ -548,6 +552,9 @@ describe("nightly AI judge: switches, caps and budget", () => {
       icon: "briefcase",
     });
     if (!second) throw new Error("profile missing");
+    await t.run(async (ctx) => {
+      await ctx.db.patch(second._id, CURRENT_PORTRAIT);
+    });
     const secondOwner = { ...owner, profileId: second._id };
     for (let i = 0; i < 15; i += 1) {
       await addPair(t, owner, "near_dup");
@@ -909,11 +916,44 @@ describe("nightly skill drafts", () => {
         icon: "briefcase",
       });
       if (!profile) throw new Error("profile missing");
+      await t.run(async (ctx) => {
+        await ctx.db.patch(profile._id, CURRENT_PORTRAIT);
+      });
       await addOutcomeRows(t, { ...owner, profileId: profile._id });
     }
     await runNightly(t, owner);
     // personal profiles share the user's rows: each run sees a row that
     // worked, but only two may call
     expect(generateText).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("nightly portrait", () => {
+  it("writes a due portrait from stored memories and counts the call", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_portrait");
+    await t.run(async (ctx) => {
+      await ctx.db.patch(owner.profileId, {
+        dreamPortrait: undefined,
+        dreamPortraitUpdatedAt: undefined,
+      });
+    });
+    await addMemory(t, owner, { title: "Role", content: "Builds vmem." });
+    generateText.mockResolvedValue({
+      ...qwenReply({}),
+      text: JSON.stringify({
+        portrait: "The user builds vmem.",
+        sourceIds: ["m0"],
+      }),
+    });
+    await runNightly(t, owner);
+    expect(generateText).toHaveBeenCalledTimes(1);
+    const profile = await t.run(async (ctx) => ctx.db.get(owner.profileId));
+    expect(profile).toMatchObject({
+      dreamPortrait: "The user builds vmem.",
+      dreamPortraitUpdatedAt: NOW,
+      dreamPortraitSources: ["mem_1"],
+    });
+    expect((await lastRun(t, owner)).aiCalls).toBe(1);
   });
 });

@@ -11,6 +11,7 @@ import {
 import { computeContentHash } from "../engine/memory/hash";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
+import { CURRENT_PORTRAIT } from "../tests/currentPortrait";
 import schema from "./schema";
 import {
   TRANSCRIPT_MAX_ATTEMPTS,
@@ -123,6 +124,9 @@ async function addUser(t: T, clerkId: string) {
   const { userId } = await user.mutation(api.auth.ensureUserExists, {});
   const profile = await user.mutation(api.profiles.getOrCreateDefault, {});
   if (!profile) throw new Error("profile missing");
+  await t.run(async (ctx) => {
+    await ctx.db.patch(profile._id, CURRENT_PORTRAIT);
+  });
   return { user, userId, profileId: profile._id, clerkId };
 }
 
