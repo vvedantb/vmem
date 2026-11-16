@@ -11,8 +11,12 @@ on:
 permissions:
   contents: read
 
+# Pull requests share a group per ref and cancel older runs. Each main run
+# gets its own group (github.run_id), so a newer pending main run never
+# replaces an older pending one: that would drop a release the older run
+# carries.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -27,3 +31,111 @@ jobs:
         node scripts/compiler-check.mjs
         pnpm test
         pnpm test:oxlint-plugin
+
+  # Push releases on main used to run as a separate "Release Android APK" run.
+  # They run here instead, so no empty run starts on a non-release merge.
+  # This job is a cheap gate: on a push whose commit message could be a release
+  # (feat, or [release]), it checks whether any file that goes into the APK
+  # changed. Only then does the release job below start a build runner. The
+  # shared workflow still makes the exact feat / [release] decision, so this
+  # gate is a deliberate superset: GitHub `contains` is case-insensitive and
+  # matches 'feat' anywhere, which can let through more than the shared
+  # workflow releases, never less.
+  release-paths:
+    name: release paths
+    needs: check
+    if: >-
+      github.event_name == 'push' &&
+      (contains(github.event.head_commit.message, 'feat') ||
+       contains(github.event.head_commit.message, '[release]'))
+    runs-on: boat
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - id: diff
+        shell: bash
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          # The push `paths` filter that used to live in release-android.yml,
+          # translated one for one into git pathspecs. This is the one place
+          # the list lives, so the tested list is the committed list. A
+          # positive `x/**` becomes ':(glob)x/**', a plain file a root-anchored
+          # ':(glob)file', and a negative `!y` an ':(exclude,glob)y'. GitHub
+          # evaluates the paths list in order, but no positive pattern here
+          # re-includes a file an earlier negative excluded, so git's
+          # set-based excludes match the old filter exactly.
+          #
+          # Only what goes into the APK: the mobile app, the workspace code
+          # that Metro bundles into it, and the install and build inputs.
+          # Excluded: web, chrome-extension, desktop, docs, .github/** (so a
+          # CI-only merge never releases) and the Convex backend. The app
+          # reaches vmem over HTTP with @vmem/sdk only; @vmem/sdk has no
+          # workspace dependencies. pnpm-lock.yaml has no per-app part, so any
+          # dependency change releases.
+          pathspecs=(
+            ':(glob)apps/mobile/**'
+            ':(exclude,glob)apps/mobile/tests/**'
+            ':(exclude,glob)apps/mobile/**/*.md'
+            ':(exclude,glob)apps/mobile/.env.example'
+            ':(glob)packages/sdk/package.json'
+            ':(glob)packages/sdk/src/**'
+            ':(exclude,glob)packages/sdk/**/*.test.ts'
+            # Root package.json holds the packageManager pin and pnpm settings.
+            ':(glob)package.json'
+            ':(glob)pnpm-lock.yaml'
+            ':(glob)pnpm-workspace.yaml'
+            ':(glob).npmrc'
+            ':(glob)scripts/build-android-release.sh'
+            ':(glob)scripts/android-release.config.json'
+          )
+
+          # A forced push or a new branch gives a BEFORE we do not have (or all
+          # zeros). Release to be safe; the shared workflow still gates on the
+          # commit message.
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "BEFORE '$BEFORE' is not a commit we have; treating release paths as changed."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          matched="$(git diff --name-only "$BEFORE" "$AFTER" -- "${pathspecs[@]}")"
+          if [ -n "$matched" ]; then
+            echo "Release paths changed between $BEFORE and $AFTER:"
+            echo "$matched"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No release paths changed between $BEFORE and $AFTER."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Builds and publishes the signed Android APK, the same shared workflow
+  # release-android.yml calls on dispatch. The job-level concurrency group is
+  # shared with that caller, so push and dispatch releases serialise. version
+  # and dry_run are dropped: on push they are empty and false.
+  release:
+    needs: release-paths
+    if: needs.release-paths.outputs.changed == 'true'
+    permissions:
+      contents: write
+    concurrency:
+      group: release-android
+      cancel-in-progress: false
+    uses: vvedantb/packages/.github/workflows/release-android-apk.yml@main
+    with:
+      app_name: vmem
+      package_id: com.projectvdotuk.vmem
+      # A boat.dev runner. It has no Android SDK: the shared workflow installs
+      # the command line tools and sdk_packages when it finds none.
+      runs_on: boat-large
+      # The shared workflow does not install dependencies before the build
+      # script, and the build script runs a bin from @vvedantb/config.
+      pre_build_command: |
+        pnpm install --frozen-lockfile --filter '@vmem/mobile...' --filter '{.}'
+    secrets: inherit

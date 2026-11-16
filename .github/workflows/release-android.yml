@@ -4,32 +4,13 @@ name: Release Android APK
 # It builds the signed vmem Android sideload APK and publishes it as a GitHub
 # Release. dry_run builds and signs the APK but publishes nothing. Secrets and
 # versions: apps/mobile/RELEASE.md.
+#
+# Manual dispatch only. Push releases on main now run as extra jobs inside the
+# CI run (.github/workflows/ci.yml): the release-paths job there carries the
+# push path filter that used to live below, and the release job there calls the
+# same shared workflow with the same `with:` block. This file stays as the
+# workflow_dispatch entry point for an on-demand or dry-run build.
 on:
-  push:
-    branches: [main]
-    # Only what goes into the APK: the mobile app, the workspace code that
-    # Metro bundles into it, and the install and build inputs. Excluded:
-    # web, chrome-extension, desktop, docs, .github/** (this workflow and the
-    # notes template, so a CI-only merge never releases) and the Convex
-    # backend. The app reaches vmem over HTTP with @vmem/sdk only; @vmem/sdk
-    # has no workspace dependencies. pnpm-lock.yaml has no per-app part, so
-    # any dependency change releases.
-    paths:
-      - "apps/mobile/**"
-      - "!apps/mobile/tests/**"
-      - "!apps/mobile/**/*.md"
-      - "!apps/mobile/.env.example"
-      - "packages/sdk/package.json"
-      - "packages/sdk/src/**"
-      - "!packages/sdk/**/*.test.ts"
-      # Root package.json holds the packageManager pin and pnpm settings.
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - ".npmrc"
-      - "scripts/build-android-release.sh"
-      - "scripts/android-release.config.json"
-  # On push, inputs.* are empty: automatic version, not a dry run, publish.
   workflow_dispatch:
     inputs:
       version:
