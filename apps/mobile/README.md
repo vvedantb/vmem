@@ -43,7 +43,7 @@ The app does not use the desktop MCP OAuth flow, and it needs no `CLERK_SECRET_K
 | `INTERNET`                                | Uploads approved items.                                                                                                               |
 | `<queries>` for launcher and home intents | Shows app names instead of package names on Android 11 and later. The app does not ask for `QUERY_ALL_PACKAGES`.                      |
 
-The app does not read screen content, notifications, messages or keystrokes in phase 1.
+Notification access is a special access, not a manifest permission. The app reads notifications only after you turn on Settings > Notifications and allow Notification access in Android settings. On Android 13 and later, a sideloaded app must first get **Allow restricted settings** (App info, the three-dot menu). The app does not read screen content or keystrokes.
 
 ## What is recorded
 
@@ -54,6 +54,7 @@ The app does not read screen content, notifications, messages or keystrokes in p
 - **Voice note.** Record on the Capture tab. The app records only while you record, then posts the audio to `POST /api/v1/mobile/transcribe` with the Clerk session token. The server transcribes it with `openai/gpt-4o-mini-transcribe` through the AI Gateway and does not store the audio. The text goes into the note box for you to edit, then Save note. It needs `AI_GATEWAY_API_KEY` on the Convex deployment, else the server answers 422.
 - **Clipboard.** **Save clipboard** reads the clipboard only when you tap it, never in the background. It removes obvious secrets first (`vmem_sk_…` and `sk-…` keys, GitHub tokens, JWTs, Bearer tokens, one-time codes in `src/capture/redact.ts`). Source `android-clipboard`, `externalId` `android:clipboard:<hash>`.
 - **Calendar (opt-in).** Off by default. Settings > Calendar turns it on and asks for the read-only `READ_CALENDAR` permission. If you refuse, it stays off. When on, each app open reads events of past local days and of today, including meetings later today (yesterday on the first run, at most three days back; past days are read once, and today is read again on every app open, so an event added later today is seen; an event that is already stored is not added twice) into raw `calendar` events (`CalendarCollector.kt`, `text` is a JSON object, no listener, no background work). Declined and cancelled events are skipped, and so are all-day events without guests. The app then posts each day to `POST /api/v1/mobile/calendar/summarize`. The server summarises it with the AI Gateway chat model (`alibaba/qwen3.7-flash`, thinking off) and stores nothing. The app makes one day item (`Calendar: Tuesday 10 Nov`, `externalId` `android:calendar:day:<installId>:<YYYY-MM-DD>`) and one item per meeting (`android:calendar:event:<hash>`). Both wait in Review. Source and sourceType are `android-calendar`, an intentional medium-prior source. If the server cannot summarise (no `AI_GATEWAY_API_KEY` gives 422, a bad model reply gives 502), the app shows an error, makes no item and keeps the raw events for the next sync. Turning Calendar off deletes unsent raw calendar events.
+- **Notifications (opt-in).** Off by default. Settings > Notifications turns it on and opens the Android Notification access screen. While on and not paused, `VmemNotificationListener` (`NotificationCollector.kt`) writes one raw `notification` event per posted notification (`label` is the app name, `subject` the title, `text` the body, at most 1000 characters). Skipped: apps on the blocked list (messaging apps by default), vmem itself, ongoing notifications, group summaries, notifications that an app marks secret, notifications without body text, and the categories media, progress, call, alarm, service, system, status and navigation. A notification with the same app, title and text is stored once. The buffer holds at most 1000 notifications. On each sync the app masks secrets (`src/capture/redact.ts`) and posts the oldest 300 to `POST /api/v1/mobile/notifications/digest`. The server asks the AI Gateway chat model for the facts worth a memory (a delivery, a booking, a payment, a deadline) and stores nothing. An empty answer is normal. Each fact is one review item (`externalId` `android:notification:<hash>`, source and sourceType `android-notification`, an intentional medium-prior source). The digested raw notifications are then deleted, noise included. If the server cannot make the digest (no `AI_GATEWAY_API_KEY` gives 422, a bad model reply gives 502), the app shows an error, makes no item and keeps the raw notifications for the next sync. Turning Notifications off deletes the raw notifications. Note: the text of notifications from apps that are not blocked goes to the server and the model before you review anything.
 - **Usage is local-only.** App-use sessions are never uploaded. They stay on the phone.
 - **Never recorded:** vmem itself, the home screen, the system UI and every app on the blocked list.
 
@@ -67,7 +68,7 @@ Recording starts when the app first runs with Usage Access. It does not import u
 4. **Discard** deletes the row. Nothing is sent.
 5. While paused, collectors record nothing. You can still review and send items.
 
-Each item has a stable `externalId` (`android:share:<hash of the text>`, `android:note:<hash>`, `android:clipboard:<hash>` or `android:calendar:…`). The backend upserts on it, so a retry or a double post updates one memory and does not add a second one.
+Each item has a stable `externalId` (`android:share:<hash of the text>`, `android:note:<hash>`, `android:clipboard:<hash>`, `android:calendar:…` or `android:notification:<hash>`). The backend upserts on it, so a retry or a double post updates one memory and does not add a second one.
 
 Retention on the phone: sent items stay for 7 days, so the Review tab can show them. Raw events that never became an item are deleted after 30 days. **Settings, Delete all local data** removes the queue, raw events and the stored token. Settings (pause and blocked apps) stay. **Sign out** also deletes items that are not sent yet, so another account cannot send them.
 
@@ -110,21 +111,21 @@ Offline, 408, 429 and 5xx errors do not count against an item. Other errors coun
 
 ## Code map
 
-| Path                                          | Role                                                                                                                                                                                             |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `app/`                                        | Expo Router screens: sign-in, sign-up, `sso-callback`, Review and Settings tabs, blocked apps.                                                                                                   |
-| `src/capture/`                                | Raw events to review items: hourly usage batches, shares, the upload body, `externalId`s.                                                                                                        |
-| `src/sync/`                                   | Upload with `@vmem/sdk`, and the store that syncs on open and on foreground (`useSyncExternalStore`).                                                                                            |
-| `modules/vmem-tracker/src/api.ts`             | Typed JS API of the native module. Every native JSON value is parsed with zod.                                                                                                                   |
-| `modules/vmem-tracker/android/…/vmemtracker/` | Kotlin: `UsageCollector`, `TrackerDatabase` (SQLite), `TrackerPrefs`, `TrackerWork` (WorkManager), `Uploader`, `ShareReceiverActivity`, `PauseTileService`, `BootReceiver`, `VmemTrackerModule`. |
+| Path                                          | Role                                                                                                                                                                                                                                           |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/`                                        | Expo Router screens: sign-in, sign-up, `sso-callback`, Review and Settings tabs, blocked apps.                                                                                                                                                 |
+| `src/capture/`                                | Raw events to review items: hourly usage batches, shares, the upload body, `externalId`s.                                                                                                                                                      |
+| `src/sync/`                                   | Upload with `@vmem/sdk`, and the store that syncs on open and on foreground (`useSyncExternalStore`).                                                                                                                                          |
+| `modules/vmem-tracker/src/api.ts`             | Typed JS API of the native module. Every native JSON value is parsed with zod.                                                                                                                                                                 |
+| `modules/vmem-tracker/android/…/vmemtracker/` | Kotlin: `UsageCollector`, `CalendarCollector`, `NotificationCollector`, `TrackerDatabase` (SQLite), `TrackerPrefs`, `TrackerWork` (WorkManager), `Uploader`, `ShareReceiverActivity`, `PauseTileService`, `BootReceiver`, `VmemTrackerModule`. |
 
-## Phases 2 and 3
+## Phase 2
 
-Phase 1 leaves these out. The module is ready for them:
+Screen text is not built. The module is ready for it:
 
-- `CaptureKind` (Kotlin) and `captureKindSchema` (TS) already reserve `screen_text` (phase 2, an AccessibilityService) and `notification` (phase 3, a NotificationListenerService).
+- `CaptureKind` (Kotlin) and `captureKindSchema` (TS) already reserve `screen_text` (an AccessibilityService).
 - A new collector writes raw `events` rows with its kind, applies `TrackerPrefs.denyList` and `paused`, and declares its service in the module manifest.
-- `buildPromotion` in `src/capture/promote.ts` gets a batcher for the kind. Until then, events of those kinds stay in the buffer untouched.
+- `buildPromotion` in `src/capture/promote.ts` gets a batcher for the kind. Until then, events of that kind stay in the buffer untouched. `NotificationCollector.kt` and `src/capture/notifications.ts` are the example to follow.
 - The review queue, upload, retention and the deny list need no change.
 
 ## Tests

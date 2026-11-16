@@ -12,12 +12,12 @@ import {
   Button,
   cn,
   Spinner,
+  formatCompactRelativeTime,
 } from "@vvedantb/ui";
 import { IconLink, IconSearch } from "@tabler/icons-react";
 import { Virtuoso } from "react-virtuoso";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
-import { formatCompactRelativeTime } from "@vmem/shared";
 import {
   formatMemorySourceLabel,
   formatMemoryTypeLabel,
@@ -121,7 +121,7 @@ function LinkMemoryRow({
             {formatMemorySourceLabel(memory.source)}
           </Badge>
           <span className="text-[11px] text-muted tabular-nums">
-            {formatCompactRelativeTime(memory.createdAt)}
+            {formatCompactRelativeTime(memory.createdAt, { justNow: "now" })}
           </span>
           {memory.tags.slice(0, TAGS_PREVIEW).map((tag) => (
             <Badge key={tag} variant="secondary" className="h-5 text-[10px]">

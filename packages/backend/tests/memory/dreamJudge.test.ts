@@ -295,7 +295,7 @@ describe("AI call caps and budget", () => {
     return next;
   }
 
-  it("allows 25 near-dup, 15 conflict, 2 skill-draft and 8 transcript calls, 50 in total", () => {
+  it("allows 25 near-dup, 15 conflict, 2 skill-draft, 8 transcript and 2 portrait calls, 52 in total", () => {
     const full = fullAiAllowance();
     expect(full).toEqual({
       byKind: {
@@ -303,25 +303,34 @@ describe("AI call caps and budget", () => {
         maybe_conflict: 15,
         skill_draft: 2,
         transcript: 8,
+        portrait: 2,
       },
-      total: 50,
+      total: 52,
     });
     const afterNearDup = spend(full, "near_dup", 25);
     expect(aiCallStop(afterNearDup, "near_dup", 0)).toBe("cap");
     expect(aiCallStop(afterNearDup, "maybe_conflict", 0)).toBeNull();
     const afterAll = spend(afterNearDup, "maybe_conflict", 15);
-    expect(afterAll.total).toBe(10);
+    expect(afterAll.total).toBe(12);
     expect(aiCallStop(afterAll, "maybe_conflict", 0)).toBe("cap");
     const afterSkills = spend(afterAll, "skill_draft", 2);
     expect(aiCallStop(afterSkills, "skill_draft", 0)).toBe("cap");
     const afterTranscripts = spend(afterSkills, "transcript", 8);
-    expect(afterTranscripts.total).toBe(0);
     expect(aiCallStop(afterTranscripts, "transcript", 0)).toBe("cap");
+    const afterPortraits = spend(afterTranscripts, "portrait", 2);
+    expect(afterPortraits.total).toBe(0);
+    expect(aiCallStop(afterPortraits, "portrait", 0)).toBe("cap");
   });
 
   it("stops at the per-user total even with kind calls left", () => {
     const allowance: DreamAiAllowance = {
-      byKind: { near_dup: 5, maybe_conflict: 5, skill_draft: 1, transcript: 1 },
+      byKind: {
+        near_dup: 5,
+        maybe_conflict: 5,
+        skill_draft: 1,
+        transcript: 1,
+        portrait: 1,
+      },
       total: 0,
     };
     expect(aiCallStop(allowance, "near_dup", 0)).toBe("cap");

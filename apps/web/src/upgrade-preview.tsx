@@ -64,7 +64,7 @@ function Preview() {
           {collapsed ? (
             <div
               className="flex flex-col items-center gap-2 border border-separator py-3"
-              style={{ width: "var(--vmem-sidebar-rail-width)" }}
+              style={{ width: "3.5rem" }}
               data-testid="collapsed-rail"
             >
               <RailTile label="Home" active>
@@ -81,12 +81,12 @@ function Preview() {
           ) : (
             <div
               className="flex border border-separator"
-              style={{ width: "var(--vmem-sidebar-width)" }}
+              style={{ width: "19.5rem" }}
               data-testid="expanded-sidebar"
             >
               <div
                 className="flex shrink-0 flex-col items-center border-r border-separator py-3"
-                style={{ width: "var(--vmem-sidebar-rail-width)" }}
+                style={{ width: "3.5rem" }}
               >
                 <RailTile label="Home" active>
                   <IconVmem size={26} className="text-current" />

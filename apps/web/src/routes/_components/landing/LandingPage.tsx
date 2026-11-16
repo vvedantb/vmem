@@ -1,6 +1,5 @@
 import { SignInButton } from "@clerk/clerk-react";
 import { Button, LandingPageLayout, SiteHeader } from "@vvedantb/ui";
-import { LandingAmbientGraph } from "./LandingAmbientGraph";
 import { LandingAppStage } from "./LandingAppStage";
 import { LandingCta } from "./LandingCta";
 import { LandingFooter } from "./LandingFooter";
@@ -30,7 +29,6 @@ export function LandingPage() {
           }
         />
       }
-      heroBackdrop={<LandingAmbientGraph />}
       hero={<LandingHero />}
       footer={<LandingFooter />}
     >

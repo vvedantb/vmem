@@ -33,8 +33,6 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
         onToggleSidebar={toggleSidebar}
       />
       <AppShell
-        railWidth="var(--vmem-sidebar-rail-width)"
-        sidebarWidth="var(--vmem-sidebar-width)"
         mobileHeaderHeight="var(--vmem-mobile-header-height)"
         panelHidden={isPanelHidden}
         sidebar={

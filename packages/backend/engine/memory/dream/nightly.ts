@@ -24,11 +24,22 @@ const DECAY_MAX_USEFULNESS = 0.2;
 // distill): calls per user per night, all profiles together. A profile run
 // makes at most one skill_draft call, and only when its window holds a
 // memory that worked. A transcript takes one transcript call per prompt
-// part; transcripts left over wait for the next night.
-export type DreamAiStep = DreamCandidateKind | "skill_draft" | "transcript";
+// part; transcripts left over wait for the next night. A personal profile
+// run makes at most one portrait call, and only when its portrait is due.
+export type DreamAiStep =
+  | DreamCandidateKind
+  | "skill_draft"
+  | "transcript"
+  | "portrait";
 export const DREAM_MAX_AI_CALLS_BY_KIND: Readonly<Record<DreamAiStep, number>> =
-  { near_dup: 25, maybe_conflict: 15, skill_draft: 2, transcript: 8 };
-export const DREAM_MAX_AI_CALLS = 50;
+  {
+    near_dup: 25,
+    maybe_conflict: 15,
+    skill_draft: 2,
+    transcript: 8,
+    portrait: 2,
+  };
+export const DREAM_MAX_AI_CALLS = 52;
 // all users together, per UTC day, summed from openRouterLogs feature "dream";
 // shared with the one-off cleanup
 export const DREAM_DAILY_BUDGET_USD = 0.5;

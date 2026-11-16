@@ -9,6 +9,7 @@ vi.mock("@clerk/clerk-react", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   SignInButton: ({ children }: { children: ReactNode }) => children,
   SignUpButton: ({ children }: { children: ReactNode }) => children,
+  useClerk: () => ({ openSignUp: () => undefined }),
 }));
 
 const { LandingPage } = await import("./LandingPage");

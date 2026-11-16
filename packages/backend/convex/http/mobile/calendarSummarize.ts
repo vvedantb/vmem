@@ -82,7 +82,7 @@ function dayTitle(date: string): string {
 }
 
 /** "2026-11-10 09:30" in the phone's local time. */
-function localStamp(ms: number, utcOffsetMinutes: number): string {
+export function localStamp(ms: number, utcOffsetMinutes: number): string {
   return new Date(ms + utcOffsetMinutes * 60_000)
     .toISOString()
     .slice(0, 16)
@@ -104,12 +104,13 @@ function promptEvents(body: CalendarSummarizeBody) {
   }));
 }
 
-function parseModelOutput(text: string): z.infer<typeof modelOutputSchema> {
+/** Parses a JSON reply of the model. Throws when it does not match `schema`. */
+export function parseModelJson<T>(schema: z.ZodType<T>, text: string): T {
   const stripped = text
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/, "");
-  return modelOutputSchema.parse(JSON.parse(stripped));
+  return schema.parse(JSON.parse(stripped));
 }
 
 export type SummarizeResult =
@@ -147,7 +148,7 @@ export async function summarizeCalendarDay(
 
   let parsed: z.infer<typeof modelOutputSchema>;
   try {
-    parsed = parseModelOutput(text);
+    parsed = parseModelJson(modelOutputSchema, text);
   } catch {
     return { ok: false, error: "invalid_model_output" };
   }

@@ -77,6 +77,7 @@ describe("source prior", () => {
       "android-note",
       "android-clipboard",
       "android-calendar",
+      "android-notification",
     ]) {
       expect(classifySource(source, source)).toBe("medium");
       expect(sourcePrior(source)).toBe(0.62);

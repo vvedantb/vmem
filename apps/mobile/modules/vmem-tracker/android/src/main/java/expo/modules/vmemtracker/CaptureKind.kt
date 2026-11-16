@@ -28,7 +28,12 @@ object CaptureKind {
   /** Phase 2: on-screen text from an AccessibilityService. Not collected yet. */
   const val SCREEN_TEXT = "screen_text"
 
-  /** Phase 3: posted notifications from a NotificationListenerService. Not collected yet. */
+  /**
+   * One posted notification (`subject` is the title, `text` is the body),
+   * collected only when the user turns on Notifications in Settings and allows
+   * Notification access (NotificationCollector). The server writes a digest
+   * of them before Review.
+   */
   const val NOTIFICATION = "notification"
 }
 

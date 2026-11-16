@@ -94,17 +94,15 @@ describe("entity extraction for low-prior sources", () => {
     "android-note",
     "android-clipboard",
     "android-calendar",
-  ])(
-    "createMemory action embeds and extracts for %s",
-    async (source) => {
-      const { t, user, profileId } = await setup();
-      await user.action(api.memoryApi.createMemory, {
-        ...memoryArgs(source, source),
-        profileId,
-      });
-      expect((await jobNames(t)).sort()).toEqual([EMBED, EXTRACT]);
-    },
-  );
+    "android-notification",
+  ])("createMemory action embeds and extracts for %s", async (source) => {
+    const { t, user, profileId } = await setup();
+    await user.action(api.memoryApi.createMemory, {
+      ...memoryArgs(source, source),
+      profileId,
+    });
+    expect((await jobNames(t)).sort()).toEqual([EMBED, EXTRACT]);
+  });
 
   it("createMemory action still extracts for deliberate sources", async () => {
     const { t, user, profileId } = await setup();

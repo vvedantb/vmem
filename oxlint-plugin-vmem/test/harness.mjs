@@ -43,6 +43,7 @@ export function runOxlintRule(ruleName, source, options = {}) {
     filename = "fixture.ts",
     extraFiles = {},
     baseDir = os.tmpdir(),
+    ruleOptions,
   } = typeof options === "string" ? { filename: options } : options;
 
   fs.mkdirSync(baseDir, { recursive: true });
@@ -69,7 +70,8 @@ export function runOxlintRule(ruleName, source, options = {}) {
         plugins: [],
         jsPlugins: [{ name: "vmem", specifier: pluginPath }],
         rules: {
-          [`vmem/${ruleName}`]: "error",
+          [`vmem/${ruleName}`]:
+            ruleOptions === undefined ? "error" : ["error", ruleOptions],
           // Fixture snippets often declare unused locals; don't fail valid cases.
           "no-unused-vars": "off",
           "eslint/no-unused-vars": "off",

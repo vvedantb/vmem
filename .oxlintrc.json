@@ -6,7 +6,11 @@
   },
   "plugins": ["typescript", "import", "unicorn", "react"],
   "jsPlugins": [
-    { "name": "vmem", "specifier": "./oxlint-plugin-vmem/index.mjs" }
+    { "name": "vmem", "specifier": "./oxlint-plugin-vmem/index.mjs" },
+    {
+      "name": "vvedantb",
+      "specifier": "./node_modules/@vvedantb/config/oxlint/plugin.mjs"
+    }
   ],
   "categories": {
     "suspicious": "error"
@@ -72,19 +76,19 @@
     "import/no-duplicates": "error",
     "import/no-empty-named-blocks": "error",
     "unicorn/no-abusive-eslint-disable": "error",
-    "vmem/no-unknown-shape-probing": "error",
-    "vmem/no-json-parse": "error",
-    "vmem/no-double-cast": "warn",
+    "vvedantb/no-unknown-shape-probing": "error",
+    "vvedantb/no-json-parse": ["error", { "allowUnknownEscapeHatch": true }],
+    "vvedantb/no-double-cast": "warn",
     "vmem/no-engine-imports-convex": "error",
-    "vmem/no-ts-nocheck": "error",
+    "vvedantb/no-ts-nocheck": "error",
     "vmem/no-cross-package-relative-imports": "error",
     "vmem/no-deep-package-imports": "error",
-    "vmem/no-inline-object-type-assertion": "error",
-    "vmem/prefer-schema-inferred-types": "error",
-    "vmem/no-conditional-tests": "error",
-    "vmem/no-source-text-in-tests": "error",
-    "vmem/no-inline-zod-schema": "error",
-    "vmem/no-value-block-in-try": "off",
+    "vvedantb/no-inline-object-type-assertion": "error",
+    "vvedantb/prefer-schema-inferred-types": "error",
+    "vvedantb/no-conditional-tests": "error",
+    "vvedantb/no-source-text-in-tests": "error",
+    "vvedantb/no-inline-zod-schema": "error",
+    "vvedantb/no-value-block-in-try": "off",
     "no-unneeded-ternary": "error",
     "no-useless-concat": "error",
     "no-var": "error",
@@ -126,13 +130,13 @@
     {
       "files": ["**/engine/llm/extractJsonString.ts"],
       "rules": {
-        "vmem/no-json-parse": "off"
+        "vvedantb/no-json-parse": "off"
       }
     },
     {
       "files": ["oxlint-plugin-vmem/rules/**/*.mjs"],
       "rules": {
-        "vmem/no-json-parse": "off"
+        "vvedantb/no-json-parse": "off"
       }
     },
     {
@@ -153,7 +157,7 @@
     },
     {
       "files": ["apps/web/src/**"],
-      "rules": { "vmem/no-value-block-in-try": "error" }
+      "rules": { "vvedantb/no-value-block-in-try": "error" }
     },
     {
       "files": ["apps/web/**"],

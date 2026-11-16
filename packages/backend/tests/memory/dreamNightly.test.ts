@@ -34,11 +34,9 @@ describe("isDecayCandidate", () => {
       "android-note",
       "android-clipboard",
       "android-calendar",
+      "android-notification",
     ]) {
-      expect(
-        isDecayCandidate(stale({ source }), 0, NOW),
-        source,
-      ).toBe(false);
+      expect(isDecayCandidate(stale({ source }), 0, NOW), source).toBe(false);
     }
     expect(isDecayCandidate(stale({ source: "android" }), 0, NOW)).toBe(true);
   });
