@@ -77,6 +77,33 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         <SettingsSection
+          title="Memory"
+          description="Your vmem profiles, what vmem knows about you and how it cleans up memories. These settings are the same as on the web app."
+          bodyVariant="list"
+        >
+          <ListRow
+            title="Profiles"
+            meta="Workspaces and the browser extension default"
+            onPress={() => router.push("/settings/profiles")}
+          />
+          <ListRow
+            title="About me"
+            meta="Who you are and how you like AI to talk to you"
+            onPress={() => router.push("/settings/about-me")}
+          />
+          <ListRow
+            title="Dream Mode"
+            meta="Nightly merging and clean-up"
+            onPress={() => router.push("/settings/dream-mode")}
+          />
+          <ListRow
+            title="Memory behaviour"
+            meta="Auto-extract and confidence threshold"
+            onPress={() => router.push("/settings/memory-behaviour")}
+          />
+        </SettingsSection>
+
+        <SettingsSection
           title="Blocked apps"
           description="Never recorded, and their notifications are never kept. Messaging apps are blocked by default."
           bodyVariant="list"

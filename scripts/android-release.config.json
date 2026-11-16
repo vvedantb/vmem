@@ -1,9 +1,16 @@
 {
   "packageId": "com.projectvdotuk.vmem",
   "apkPrefix": "vmem",
-  "publicEnv": ["EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY", "EXPO_PUBLIC_VMEM_BASE_URL"],
+  "publicEnv": [
+    "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY",
+    "EXPO_PUBLIC_VMEM_BASE_URL"
+  ],
   "publicEnvSources": [
-    { "kind": "config-literal", "file": "src/config.ts", "operators": ["||", "??"] }
+    {
+      "kind": "config-literal",
+      "file": "src/config.ts",
+      "operators": ["||", "??"]
+    }
   ],
   "pnpmFilters": ["@vmem/mobile...", "{.}"],
   "summary": { "label": "API", "envVar": "EXPO_PUBLIC_VMEM_BASE_URL" }

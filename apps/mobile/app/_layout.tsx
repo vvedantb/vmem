@@ -14,6 +14,8 @@ import { Toaster } from "@vvedantb/native-ui/toast";
 import { Slot, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { PUBLISHABLE_KEY } from "@/config";
+import { convex } from "@/convex/client";
+import { EnsureUser } from "@/providers/EnsureUser";
 import { navigationTheme, useScheme } from "@/ui/theme";
 
 export default function RootLayout() {
@@ -27,9 +29,14 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <AuthProviders publishableKey={PUBLISHABLE_KEY} tokenCache={tokenCache}>
+    <AuthProviders
+      publishableKey={PUBLISHABLE_KEY}
+      tokenCache={tokenCache}
+      convex={convex}
+    >
       <ThemeProvider value={navigationTheme(scheme)}>
         <NativeUiProvider>
+          <EnsureUser />
           <Slot />
           <Toaster />
           <StatusBar style={scheme === "dark" ? "light" : "dark"} />
