@@ -54,3 +54,8 @@ FOLLOW ALL OF THESE RULES
 - Connectors: Google Drive/Gmail, Notion, Figma, GitHub. Callback `https://<CONVEX_SITE_URL>/api/auth/connector/callback`.
 
 Fight entropy. Leave the codebase better than you found it.
+
+## UI copy
+- Subtext is the exception, not the default. Most sections, cards and rows show a title only.
+- Add a description only when the user needs it to act and the title, value or badge does not already say it (a price, a limit, a warning).
+- Never repeat the title, the value, a badge or a nearby row. Say each thing once, in plain words.
