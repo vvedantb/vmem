@@ -6,6 +6,7 @@ import { errorMessage } from "@/lib/error";
 import { createMemory } from "./api-client";
 import { htmlToMarkdownSafe } from "@/lib/page-extraction";
 import { extractPageFromTab } from "@/lib/extract-page";
+import { memoryWebUrl } from "@/lib/memory-url";
 
 // idempotent menu registration across install and startup
 export function registerContextMenu(): void {
@@ -90,6 +91,7 @@ export async function savePageFromTab(
     return {
       success: true,
       memoryId: memory.id,
+      memoryUrl: memoryWebUrl(memory),
       alreadySaved: memory.deduped === true,
     };
   } catch (err) {

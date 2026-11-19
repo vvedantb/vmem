@@ -56,7 +56,12 @@ export async function handleCommand(command: string): Promise<void> {
     try {
       const result = await savePageFromTab(tab);
       const toast = toastForSaveResult(result);
-      await injectPageToast(tabId, toast.message, toast.color);
+      await injectPageToast(
+        tabId,
+        toast.message,
+        toast.color,
+        result.memoryUrl,
+      );
     } catch (err) {
       console.error("[vmem] Keyboard shortcut save failed:", err);
       try {

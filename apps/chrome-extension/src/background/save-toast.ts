@@ -1,6 +1,7 @@
 export type SavePageResult = {
   success: boolean;
   memoryId?: string;
+  memoryUrl?: string;
   alreadySaved?: boolean;
   error?: string;
 };

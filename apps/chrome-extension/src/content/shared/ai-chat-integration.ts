@@ -129,8 +129,12 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
       platform: config.platform,
       profileId: settings.defaultProfileId || undefined,
     })
-      .then(() => {
-        showToast({ type: "success", message: "Prompt saved to vmem" });
+      .then(({ memoryUrl }) => {
+        showToast({
+          type: "success",
+          message: "Prompt saved to vmem",
+          openUrl: memoryUrl,
+        });
       })
       .catch(() => {
         // auto-capture must never disrupt the chat flow

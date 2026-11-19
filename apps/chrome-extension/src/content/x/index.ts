@@ -178,13 +178,14 @@ async function save(
   try {
     const post = read();
     if (!post) throw new Error("Post not found");
-    const { alreadySaved } = await sendMessage("saveXPost", {
+    const { alreadySaved, memoryUrl } = await sendMessage("saveXPost", {
       ...post,
       text: post.text.slice(0, MAX_TEXT_LENGTH),
     });
     showToast({
       type: "success",
       message: alreadySaved ? "Already saved" : "Saved to vmem",
+      openUrl: memoryUrl,
     });
     render(button, "success");
   } catch (err) {

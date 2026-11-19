@@ -115,6 +115,17 @@ const STYLES = `
 
   .toast-message { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 
+  .toast-action {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: var(--foreground);
+    color: var(--overlay);
+    font-size: 12px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
   .spinner {
     box-sizing: border-box;
     width: 16px;
@@ -149,8 +160,10 @@ function ensureContainer(): void {
 export interface ShowToastOptions {
   type: ToastType;
   message: string;
-  // duration: pass 0 to keep open, default 3000ms
+  // duration: pass 0 to keep open, default 3000ms (5000ms with openUrl)
   duration?: number;
+  // adds an "Open" link that opens this url in a new tab
+  openUrl?: string;
 }
 
 export function showToast(options: ShowToastOptions): string {
@@ -160,12 +173,21 @@ export function showToast(options: ShowToastOptions): string {
   const el = document.createElement("div");
   el.className = `toast toast-${options.type}`;
   el.innerHTML = `<div class="toast-icon">${ICON_MAP[options.type]}</div><span class="toast-message">${escape(options.message)}</span>`;
+  if (options.openUrl) {
+    const link = document.createElement("a");
+    link.className = "toast-action";
+    link.href = options.openUrl;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = "Open";
+    el.append(link);
+  }
 
   if (listEl) listEl.appendChild(el);
   void el.offsetWidth;
   el.classList.add("show");
 
-  const duration = options.duration ?? 3000;
+  const duration = options.duration ?? (options.openUrl ? 5000 : 3000);
   let timer: ReturnType<typeof setTimeout> | null = null;
   if (duration > 0) {
     timer = setTimeout(() => hideToast(id), duration);

@@ -3,11 +3,16 @@ export async function injectPageToast(
   tabId: number,
   message: string,
   color: string,
+  openUrl?: string,
 ): Promise<void> {
   await chrome.scripting.executeScript({
     target: { tabId },
     // injected function only receives explicit args
-    func: (toastMessage: string, toastColor: string) => {
+    func: (
+      toastMessage: string,
+      toastColor: string,
+      toastOpenUrl: string | null,
+    ) => {
       const el = document.createElement("div");
       Object.assign(el.style, {
         position: "fixed",
@@ -30,17 +35,34 @@ export async function injectPageToast(
         transition: "opacity 200ms ease, transform 200ms ease",
       });
       el.textContent = toastMessage;
+      if (toastOpenUrl) {
+        const link = document.createElement("a");
+        link.href = toastOpenUrl;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = "Open";
+        Object.assign(link.style, {
+          marginLeft: "12px",
+          color: "#fff",
+          textDecoration: "underline",
+          cursor: "pointer",
+        });
+        el.append(link);
+      }
       document.documentElement.appendChild(el);
       requestAnimationFrame(() => {
         el.style.opacity = "1";
         el.style.transform = "translateY(0)";
       });
-      setTimeout(() => {
-        el.style.opacity = "0";
-        el.style.transform = "translateY(-8px)";
-        setTimeout(() => el.remove(), 200);
-      }, 2500);
+      setTimeout(
+        () => {
+          el.style.opacity = "0";
+          el.style.transform = "translateY(-8px)";
+          setTimeout(() => el.remove(), 200);
+        },
+        toastOpenUrl ? 5000 : 2500,
+      );
     },
-    args: [message, color],
+    args: [message, color, openUrl ?? null],
   });
 }

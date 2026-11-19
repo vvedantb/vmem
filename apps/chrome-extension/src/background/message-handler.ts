@@ -9,12 +9,17 @@ import { runAutoSyncNow } from "./sync-scheduler";
 import { lastBookmarkSyncItem, lastHistorySyncItem } from "@/lib/storage";
 import { onMessage, type SaveOutcome } from "@/lib/messaging";
 import { htmlToMarkdownSafe } from "@/lib/page-extraction";
+import { memoryWebUrl } from "@/lib/memory-url";
 
 async function createMemoryOrThrow(
   params: CreateMemoryParams,
 ): Promise<SaveOutcome> {
   const memory = await createMemory(params);
-  return { memoryId: memory.id, alreadySaved: memory.deduped === true };
+  return {
+    memoryId: memory.id,
+    memoryUrl: memoryWebUrl(memory),
+    alreadySaved: memory.deduped === true,
+  };
 }
 
 function errorMessage(err: unknown): string {

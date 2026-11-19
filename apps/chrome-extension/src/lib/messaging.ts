@@ -3,6 +3,8 @@ import type { MemoryCandidate } from "@/types/api";
 
 export type SaveOutcome = {
   memoryId?: string;
+  // web page of the memory
+  memoryUrl?: string;
   // backend found an exact repeat and stored nothing new
   alreadySaved?: boolean;
 };
