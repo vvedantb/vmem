@@ -1,5 +1,16 @@
 name: Desktop
 
+# Pull request on the paths below: Linux check build (job `linux`), no release.
+# Push to main on the push paths below: release. The `version` job picks the
+# version, the installers carry it, and `publish` creates the tag
+# `desktop-vX.Y.Z` at the merge commit and the GitHub Release.
+# Tag push `desktop-v*`: release for that tag. The installers carry the
+# version in apps/desktop/package.json, as before.
+# Manual dispatch with a tag: release for that tag, as before. With dry_run:
+# build as a release from main does, and publish nothing.
+# The tag that a main release creates is made with GITHUB_TOKEN, so it starts
+# no second run.
+
 on:
   pull_request:
     paths:
@@ -9,19 +20,50 @@ on:
       - "pnpm-workspace.yaml"
       - ".github/workflows/desktop-release.yml"
   push:
+    branches: [main]
     tags:
       - "desktop-v*"
+    # GitHub checks these paths for branch pushes only; a tag push always runs.
+    # Only what goes into the installers: the desktop app, the @vmem/sdk
+    # source that esbuild bundles into it (@vmem/sdk has no workspace
+    # dependencies), and the install and build inputs. Excluded: tests, docs,
+    # the PR-only packaged test script and .github/** (so a CI-only merge never
+    # releases). pnpm-lock.yaml and the root package.json are not listed: they
+    # have no per-app part, so every dependency change anywhere in the repo
+    # would release. A desktop dependency change edits
+    # apps/desktop/package.json, which apps/desktop/** matches.
+    paths:
+      - "apps/desktop/**"
+      - "!apps/desktop/tests/**"
+      - "!apps/desktop/**/*.md"
+      - "!apps/desktop/scripts/packaged-test.mjs"
+      - "packages/sdk/package.json"
+      - "packages/sdk/src/**"
+      - "!packages/sdk/**/*.test.ts"
+      - "pnpm-workspace.yaml"
+      - ".npmrc"
+      - "tsconfig.base.json"
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to create or update (for example desktop-v0.1.0)
+        description: Release tag to create or update (for example desktop-v0.1.0). Not used with dry_run.
         required: true
+      dry_run:
+        description: "Pick the version and build both installers as a release from main does, but skip the publish job (no tag, no release)."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+# Pull requests share a group per ref and cancel older runs. Every release run
+# (main, tag, dispatch) shares one group and is never cancelled while it runs.
+# The version is picked inside the run, so a queued run sees the tag that the
+# run before it created. GitHub keeps only the newest pending run; that run
+# builds the newest main, so it includes the skipped merges.
 concurrency:
-  group: desktop-${{ github.ref }}
+  group: ${{ github.event_name == 'pull_request' && format('desktop-{0}', github.ref) || 'desktop-release' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -58,7 +100,38 @@ jobs:
         run: xvfb-run -a node scripts/packaged-test.mjs
         working-directory: apps/desktop
 
+  # Picks what a release run publishes. A main push (or a dry run) gets the
+  # next version: see .github/scripts/pick-release-version.sh. A tag push or a
+  # dispatch with a tag keeps that tag and leaves `version` empty, so the
+  # installers carry the version in apps/desktop/package.json, as before.
+  version:
+    if: github.event_name != 'pull_request'
+    runs-on: boat-large
+    outputs:
+      tag: ${{ steps.pick.outputs.tag }}
+      version: ${{ steps.pick.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: pick
+        env:
+          PICK: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || inputs.dry_run == true }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "$PICK" != "true" ]; then
+            tag="${INPUT_TAG:-$GITHUB_REF_NAME}"
+            echo "Release for the given tag $tag."
+            echo "tag=$tag" >> "$GITHUB_OUTPUT"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          source_version="$(jq -r .version apps/desktop/package.json)"
+          version="$(bash .github/scripts/pick-release-version.sh desktop-v "$source_version")"
+          echo "tag=desktop-v$version" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
   windows:
+    needs: version
     if: github.event_name != 'pull_request'
     runs-on: windows-latest
     steps:
@@ -69,6 +142,17 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # A release from main: write the picked version into the build workspace,
+      # so the installer name and the app version carry it. Nothing is committed.
+      - name: Set release version
+        if: needs.version.outputs.version != ''
+        shell: bash
+        working-directory: apps/desktop
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          node -e "const fs=require('node:fs');const j=JSON.parse(fs.readFileSync('package.json','utf8'));j.version=process.env.VERSION;fs.writeFileSync('package.json',JSON.stringify(j,null,2)+'\n');"
+          node -p "require('./package.json').version"
       - run: pnpm --filter @vmem/desktop test
       # pnpm skips get-windows install scripts, so fetch the addon here. It is
       # N-API (ABI stable), so one build works for Electron. Fall back to a
@@ -101,6 +185,13 @@ jobs:
           fi
           pnpm --filter @vmem/desktop package:win
       - run: pnpm --filter @vmem/desktop check:asar "release/win-unpacked/vmem.exe"
+      - name: Check installer version
+        if: needs.version.outputs.version != ''
+        shell: bash
+        working-directory: apps/desktop
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: ls -l "release/vmem-desktop-$VERSION-"*.exe
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-windows
@@ -108,6 +199,7 @@ jobs:
           if-no-files-found: error
 
   macos:
+    needs: version
     if: github.event_name != 'pull_request'
     runs-on: macos-latest
     steps:
@@ -118,6 +210,17 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # A release from main: write the picked version into the build workspace,
+      # so the installer name and the app version carry it. Nothing is committed.
+      - name: Set release version
+        if: needs.version.outputs.version != ''
+        shell: bash
+        working-directory: apps/desktop
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          node -e "const fs=require('node:fs');const j=JSON.parse(fs.readFileSync('package.json','utf8'));j.version=process.env.VERSION;fs.writeFileSync('package.json',JSON.stringify(j,null,2)+'\n');"
+          node -p "require('./package.json').version"
       - run: pnpm --filter @vmem/desktop test
       # get-windows ships a universal Swift binary (`main`). The macOS code does
       # not use the .node addon, so nothing is rebuilt per arch. Fail early if
@@ -154,20 +257,29 @@ jobs:
         run: |
           ls -l release/*.dmg
           ls release/*-arm64.dmg release/*-x64.dmg
+      - name: Check dmg version
+        if: needs.version.outputs.version != ''
+        working-directory: apps/desktop
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: ls -l "release/vmem-desktop-$VERSION-"*-arm64.dmg "release/vmem-desktop-$VERSION-"*-x64.dmg
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-macos
           path: apps/desktop/release/*.dmg
           if-no-files-found: error
 
+  # Skipped on a dry run. On a release from main the tag does not exist yet,
+  # so `gh release create --target` makes it at the merge commit.
   publish:
-    needs: [windows, macos]
+    needs: [version, windows, macos]
+    if: inputs.dry_run != true
     runs-on: boat-large
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
-      TAG: ${{ inputs.tag || github.ref_name }}
+      TAG: ${{ needs.version.outputs.tag }}
     steps:
       - uses: actions/download-artifact@v4
         with:
