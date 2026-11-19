@@ -47,7 +47,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsrs -p tsconfig.json --noEmit",
     "test": "node --test claude-code/*.test.mjs"
   },
   "dependencies": {

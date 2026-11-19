@@ -11,18 +11,17 @@
     "desktop:dev": "pnpm --filter @vmem/desktop dev",
     "mobile:start": "pnpm --filter @vmem/mobile start",
     "docs:dev": "pnpm --filter docs dev",
-    "lint": "pnpm lint:shared-ui && oxlint --type-aware --deny-warnings && eslint . --max-warnings 0",
+    "lint": "pnpm lint:shared-ui && oxlint --type-aware --deny-warnings",
     "lint:shared-ui": "vvedantb-check-shared-ui --footer-component SiteFooter --footer-component LandingFooter --footer-component KitLandingFooter --footer-dir apps --footer-exclude sidebar --skip archive --header-page apps/web/src/routes/_components/landing/LandingPage.tsx --nav-dir apps/web/src",
     "lint:oxlint": "oxlint --type-aware",
-    "lint:eslint": "eslint .",
     "compiler:check": "node scripts/compiler-check.mjs",
     "knip": "knip --no-config-hints",
     "test:oxlint-plugin": "node --test oxlint-plugin-vmem/test/rules.test.mjs",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
     "check": "pnpm lint && pnpm typecheck:all && pnpm knip && pnpm test:oxlint-plugin && pnpm compiler:check && pnpm test && pnpm format:check",
     "typecheck": "pnpm --filter web typecheck",
-    "typecheck:e2e": "tsc -p e2e/tsconfig.json",
+    "typecheck:e2e": "tsrs -p e2e/tsconfig.json",
     "typecheck:all": "pnpm --parallel --filter web --filter @vmem/backend --filter @vmem/sdk --filter @vmem/shared --filter @vmem/chrome-extension --filter @vmem/desktop --filter @vmem/mobile typecheck && pnpm typecheck:e2e",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
     "test:e2e:headed": "playwright test --config e2e/playwright.config.ts --headed",
@@ -39,24 +38,21 @@
     "test": "pnpm --filter @vmem/backend test && pnpm --filter web test && pnpm --filter @vmem/chrome-extension test && pnpm --filter @vmem/desktop test && pnpm --filter @vmem/mobile test && pnpm --filter @vmem/sdk test"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,mjs,cjs,json,css,md,mdx,html,yml,yaml}": "prettier --write"
+    "*.{ts,tsx,js,jsx,mjs,cjs,json,css,md,mdx,html,yml,yaml}": "oxfmt --no-error-on-unmatched-pattern"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@playwright/test": "1.63.0",
     "@types/node": "catalog:node-types-22",
     "@vvedantb/config": "^0.10.0",
     "baseline-browser-mapping": "^2.9.19",
-    "eslint": "^10.7.0",
-    "globals": "^17.7.0",
     "husky": "^9.1.7",
     "knip": "^6.26.0",
     "lint-staged": "^16.2.7",
+    "oxfmt": "^0.79.0",
     "oxlint": "^1.80.0",
     "oxlint-tsgolint": "^7.0.2001",
-    "prettier": "^3.8.1",
     "syncpack": "^14.3.0",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.63.0"
+    "tsrs": "7.1.0-beta.tsrs2",
+    "typescript": "^5.9.3"
   }
 }

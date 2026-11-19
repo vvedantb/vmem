@@ -76,6 +76,8 @@
     "import/no-duplicates": "error",
     "import/no-empty-named-blocks": "error",
     "unicorn/no-abusive-eslint-disable": "error",
+    "vvedantb/no-is-record": "error",
+    "no-empty": ["error", { "allowEmptyCatch": true }],
     "vvedantb/no-unknown-shape-probing": "error",
     "vvedantb/no-json-parse": ["error", { "allowUnknownEscapeHatch": true }],
     "vvedantb/no-double-cast": "warn",

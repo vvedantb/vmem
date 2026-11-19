@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 80,
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    "**/routeTree.gen.ts",
+    "**/_generated/**",
+    "**/.wxt/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.next/**",
+    "**/.expo/**",
+    "**/.vercel/**",
+    "**/android/**",
+    "**/ios/**",
+    "pnpm-lock.yaml",
+    "e2e/.auth/**",
+    "e2e/test-results/**",
+    "e2e/playwright-report/**",
+    "e2e/blob-report/**"
+  ]
+}
