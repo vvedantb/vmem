@@ -5,7 +5,7 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction, type ActionCtx } from "../_generated/server";
 import { authAction, type AuthActionCtx } from "../auth";
-import { auditLog, ResourceTypes } from "../auditLog";
+import { ResourceTypes } from "../auditLog";
 import { oauthScopeString, oauthTokenType } from "../lib/arcticOAuth";
 import { decryptToken, encryptToken } from "../lib/crypto";
 import { pickGoogleTokenConnectorId, scopeIncludesDrive } from "./googleShared";
@@ -171,7 +171,7 @@ export async function runDisconnect(
     id: connectorId,
   });
 
-  await auditLog.log(ctx, {
+  await ctx.runMutation(internal.auditLog.logFromActionInternal, {
     action: "connector.disconnected",
     actorId: ctx.userId,
     resourceType: ResourceTypes.CONNECTOR,
@@ -270,7 +270,7 @@ export const handleCallbackInternal = internalAction({
       id: connectorId,
     });
 
-    await auditLog.log(ctx, {
+    await ctx.runMutation(internal.auditLog.logFromActionInternal, {
       action: "connector.connected",
       actorId: stateEntry.userId,
       resourceType: ResourceTypes.CONNECTOR,

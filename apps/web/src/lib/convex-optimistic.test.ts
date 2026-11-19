@@ -25,7 +25,8 @@ type QuerySeed = {
 function createStore(seed: QuerySeed[]): OptimisticLocalStore {
   const byQuery = new Map<string, Map<string, CachedQuery>>();
   const argsKey = (args: CachedQuery["args"]) => JSON.stringify(args);
-  const bucket = (query: QueryRef) => {
+  // the store methods also take the newer convex reference kind
+  const bucket = (query: Parameters<typeof getFunctionName>[0]) => {
     const path = getFunctionName(query);
     const inner = byQuery.get(path) ?? new Map<string, CachedQuery>();
     byQuery.set(path, inner);

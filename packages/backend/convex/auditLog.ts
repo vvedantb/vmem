@@ -3,7 +3,11 @@ import { v, type Infer } from "convex/values";
 import { z } from "zod";
 import { components } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { internalQuery, type QueryCtx } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  type QueryCtx,
+} from "./_generated/server";
 import { authQuery } from "./auth";
 import { getUserIdByClerkId } from "./lib/clerkUser";
 
@@ -48,6 +52,38 @@ export const ResourceTypes = {
   CONNECTOR: "connector",
   USER: "user",
 } as const;
+
+// An action cannot call auditLog.log: the client needs a mutation ctx.
+// Actions run this mutation instead, so PII redaction stays in one place.
+export const logFromActionInternal = internalMutation({
+  args: {
+    action: v.string(),
+    actorId: v.string(),
+    resourceType: v.string(),
+    resourceId: v.string(),
+    metadata: v.record(
+      v.string(),
+      v.union(
+        v.string(),
+        v.number(),
+        v.boolean(),
+        v.null(),
+        v.array(v.string()),
+      ),
+    ),
+    severity: v.union(
+      v.literal("info"),
+      v.literal("warning"),
+      v.literal("error"),
+      v.literal("critical"),
+    ),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await auditLog.log(ctx, args);
+    return null;
+  },
+});
 
 // 2xx to info, 4xx to warning, 5xx to error
 export function severityForStatus(

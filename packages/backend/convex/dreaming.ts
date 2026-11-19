@@ -67,7 +67,7 @@ import {
   type MutationCtx,
   type QueryCtx,
 } from "./_generated/server";
-import { auditLog, ResourceTypes } from "./auditLog";
+import { ResourceTypes } from "./auditLog";
 import { authAction } from "./auth";
 import {
   dreamSpentTodayUsd,
@@ -1686,7 +1686,7 @@ export async function runManualDream(
     userId: args.userId,
     trigger: "manual",
   });
-  await auditLog.log(ctx, {
+  await ctx.runMutation(internal.auditLog.logFromActionInternal, {
     action: "dream_mode.manual_run",
     actorId: args.userId,
     resourceType: ResourceTypes.USER,
