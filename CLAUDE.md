@@ -1,12 +1,17 @@
+You are the owner and long-term maintainer of this codebase, and its design is up to you.
+Always believe in yourself! Keep going, you got this!
+
 FOLLOW ALL OF THESE RULES
 
 ## Git / ship
+
 - NEVER create a new branch, push, or open a PR unless the user asks.
 - If already on main and the user asks to ship: commit and push directly to main.
 - Husky is active. `.husky/pre-commit` runs lint-staged (prettier). `.husky/pre-push` runs `pnpm typecheck:all`, then `node scripts/compiler-check.mjs`.
 - Pre-push uses local `tsc` only. Never run `convex codegen` there: codegen uploads to the linked deployment.
 
 ## Always
+
 - Greenfield OK — breaking changes fine.
 - Implementing from an agreed plan: just implement.
 - Think first; simplest solution wins. Ask when unsure / ambiguous — as many questions as needed.
@@ -29,6 +34,7 @@ FOLLOW ALL OF THESE RULES
 - For debugging, use vmem MCP and Convex CLI for prod logs (prod deployment `clear-bear-690`, eu-west-1).
 
 ## Domain docs (read when relevant)
+
 - Frontend / UI work → `apps/web` (Vite, TanStack Router, nuqs, `@vvedantb/ui` ^0.16.1, shell included); docs site `apps/docs` (Mintlify, `pnpm docs:dev`)
 - Convex / schema / migrations → `packages/backend/README.md`, `packages/backend/convex/README.md`, `apps/docs/architecture.mdx`, `apps/docs/environment.mdx`
 - Chrome extension → `apps/chrome-extension/README.md`
@@ -36,6 +42,7 @@ FOLLOW ALL OF THESE RULES
 - E2E → `e2e/README.md` (prod `vmem.projectv.uk`, Convex `clear-bear-690`)
 
 ## Product facts
+
 - vmem is a universal LLM memory layer: one shared, inspectable memory graph across sessions and providers. Not a sandbox/codebase runner. Not an agent OS.
 - Stack: pnpm workspace (pnpm 10.15.1, Node 20+). Shared types in `@vmem/shared`. SDK is `@vmem/sdk`.
 - Clients: `apps/web` dashboard; `apps/chrome-extension` (WXT MV3: save pages, inject context); MCP at `https://<deployment>.convex.site/mcp` (Clerk OAuth; team at `/mcp/team`; personal also `vmem://context_prompt`); HTTP `/api/v1/memories/*` with Bearer `vmem_sk_…`.
@@ -56,6 +63,7 @@ FOLLOW ALL OF THESE RULES
 Fight entropy. Leave the codebase better than you found it.
 
 ## UI copy
+
 - Subtext is the exception, not the default. Most sections, cards and rows show a title only.
 - Add a description only when the user needs it to act and the title, value or badge does not already say it (a price, a limit, a warning).
 - Never repeat the title, the value, a badge or a nearby row. Say each thing once, in plain words.
