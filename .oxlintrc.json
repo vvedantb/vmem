@@ -267,6 +267,72 @@
       "rules": {
         "no-restricted-imports": "off"
       }
+    },
+    {
+      // Existing no-effect findings (41 at 0.11.0). Fix each file, then delete it from the list. New files stay covered.
+      "files": ["apps/chrome-extension/src/popup/useBrowserDefaultProfile.ts"],
+      "rules": {
+        "no-effect/no-adjust-state-on-prop-change": "off",
+        "no-effect/no-chain-state-updates": "off",
+        "no-effect/no-event-handler": "off",
+        "no-effect/no-pass-data-to-parent": "off",
+        "no-effect/no-pass-live-state-to-parent": "off"
+      }
+    },
+    {
+      "files": [
+        "apps/web/src/components/_components/GraphCanvas.tsx",
+        "apps/web/src/components/settings/OAuthModal.tsx",
+        "apps/web/src/components/shell/CommandPalette.tsx"
+      ],
+      "rules": { "no-effect/no-adjust-state-on-prop-change": "off" }
+    },
+    {
+      "files": [
+        "apps/web/src/components/api-keys/ApiKeyModal.tsx",
+        "apps/web/src/components/memories/MemoryDetailPanel.tsx"
+      ],
+      "rules": {
+        "no-effect/no-adjust-state-on-prop-change": "off",
+        "no-effect/no-event-handler": "off"
+      }
+    },
+    {
+      "files": [
+        "apps/web/src/components/api-keys/EditKeyDialog.tsx",
+        "apps/web/src/components/files/FileUploadModal.tsx"
+      ],
+      "rules": {
+        "no-effect/no-derived-state": "off",
+        "no-effect/no-event-handler": "off"
+      }
+    },
+    {
+      "files": ["apps/web/src/components/files/FileUploadModal.tsx"],
+      "rules": { "no-effect/no-pass-data-to-parent": "off" }
+    },
+    {
+      "files": [
+        "apps/web/src/components/icons/animations/AnimatedCounter.tsx",
+        "apps/web/src/components/memories/MemorySearch.tsx",
+        "apps/web/src/components/skills/EditSkillDialog.tsx",
+        "apps/web/src/components/skills/SystemSkillFormDialog.tsx"
+      ],
+      "rules": { "no-effect/no-event-handler": "off" }
+    },
+    {
+      "files": ["apps/web/src/contexts/ThemeContext.tsx"],
+      "rules": {
+        "no-effect/no-event-handler": "off",
+        "no-effect/no-initialize-state": "off"
+      }
+    },
+    {
+      "files": ["apps/web/src/routes/_main/$profileId/skills/route.tsx"],
+      "rules": {
+        "no-effect/no-chain-state-updates": "off",
+        "no-effect/no-event-handler": "off"
+      }
     }
   ]
 }
