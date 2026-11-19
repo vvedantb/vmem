@@ -10,8 +10,20 @@
     <script>
       (function () {
         try {
+          var root = document.documentElement;
           if (location.pathname === "/" || location.pathname === "") {
-            document.documentElement.classList.add("dark");
+            root.classList.add("dark");
+            return;
+          }
+          var theme = localStorage.getItem("theme") || "light";
+          if (theme === "system") {
+            theme = matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          }
+          if (theme === "dark" || theme === "light") {
+            root.classList.add(theme);
+            root.style.colorScheme = theme;
           }
         } catch (e) {}
       })();
