@@ -6,10 +6,10 @@
 
 | Event                                    | Result                                                                                                      |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Push to `main` that changes an APK input | Signed build, published with the next patch version.                                                        |
+| Push to `main` that changes an APK input | Signed build, published with the next patch version. The commit message does not matter.                    |
 | Manual run (`workflow_dispatch`)         | The same. Optional `version` input (like `1.0.1`). `dry_run: true` builds and signs, but publishes nothing. |
 
-APK inputs (the `paths` filter) are only what goes into the APK: `apps/mobile/**` (not `tests/`, Markdown or `.env.example`), `packages/sdk/src/**` and `packages/sdk/package.json` (not tests), the root `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.npmrc` and `scripts/build-android-release.sh`. The Convex backend, web, extension, desktop, docs and `.github/**` do not release. The app reaches vmem over HTTP with `@vmem/sdk` only, so Metro bundles no backend code. Keep the filter equal to that import closure.
+APK inputs (the `paths` filter) are only what goes into the APK: `apps/mobile/**` (not `tests/`, Markdown or `.env.example`), `packages/sdk/src/**` and `packages/sdk/package.json` (not tests), `pnpm-workspace.yaml`, `.npmrc`, `scripts/build-android-release.sh` and `scripts/android-release.config.json`. The root `package.json` and `pnpm-lock.yaml` are not APK inputs: they have no per-app part, so every dependency change in the repo would release. A mobile dependency change edits `apps/mobile/package.json`, which is an input. The Convex backend, web, extension, desktop, docs and `.github/**` do not release. The app reaches vmem over HTTP with `@vmem/sdk` only, so Metro bundles no backend code. Keep the filter equal to that import closure.
 
 The workflow has no pull request job. `pnpm typecheck:all` and `pnpm test` (and the pre-push hook) cover the mobile typecheck and tests.
 

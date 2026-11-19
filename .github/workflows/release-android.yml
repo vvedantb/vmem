@@ -8,8 +8,9 @@ name: Release Android APK
 # Manual dispatch only. Push releases on main now run as extra jobs inside the
 # CI run (.github/workflows/ci.yml): the release-paths job there carries the
 # push path filter that used to live below, and the release job there calls the
-# same shared workflow with the same `with:` block. This file stays as the
-# workflow_dispatch entry point for an on-demand or dry-run build.
+# same shared workflow with the same `with:` block. A push releases when the
+# merge changes an APK input; the commit message does not matter. This file
+# stays as the workflow_dispatch entry point for an on-demand or dry-run build.
 on:
   workflow_dispatch:
     inputs:

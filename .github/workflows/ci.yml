@@ -34,20 +34,14 @@ jobs:
 
   # Push releases on main used to run as a separate "Release Android APK" run.
   # They run here instead, so no empty run starts on a non-release merge.
-  # This job is a cheap gate: on a push whose commit message could be a release
-  # (feat, or [release]), it checks whether any file that goes into the APK
-  # changed. Only then does the release job below start a build runner. The
-  # shared workflow still makes the exact feat / [release] decision, so this
-  # gate is a deliberate superset: GitHub `contains` is case-insensitive and
-  # matches 'feat' anywhere, which can let through more than the shared
-  # workflow releases, never less.
+  # This job is the release gate: on every push to main, it checks whether any
+  # file that goes into the APK changed. Only then does the release job below
+  # start a build runner. The commit message does not matter. The release job
+  # passes release_on: always, so the shared workflow adds no second gate.
   release-paths:
     name: release paths
     needs: check
-    if: >-
-      github.event_name == 'push' &&
-      (contains(github.event.head_commit.message, 'feat') ||
-       contains(github.event.head_commit.message, '[release]'))
+    if: github.event_name == 'push'
     runs-on: boat-large
     permissions:
       contents: read
@@ -77,8 +71,10 @@ jobs:
           # Excluded: web, chrome-extension, desktop, docs, .github/** (so a
           # CI-only merge never releases) and the Convex backend. The app
           # reaches vmem over HTTP with @vmem/sdk only; @vmem/sdk has no
-          # workspace dependencies. pnpm-lock.yaml has no per-app part, so any
-          # dependency change releases.
+          # workspace dependencies. pnpm-lock.yaml and the root package.json are
+          # not listed: they have no per-app part, so every dependency change
+          # anywhere in the repo would release. A mobile dependency change
+          # edits apps/mobile/package.json, which apps/mobile/** matches.
           pathspecs=(
             ':(glob)apps/mobile/**'
             ':(exclude,glob)apps/mobile/tests/**'
@@ -87,9 +83,6 @@ jobs:
             ':(glob)packages/sdk/package.json'
             ':(glob)packages/sdk/src/**'
             ':(exclude,glob)packages/sdk/**/*.test.ts'
-            # Root package.json holds the packageManager pin and pnpm settings.
-            ':(glob)package.json'
-            ':(glob)pnpm-lock.yaml'
             ':(glob)pnpm-workspace.yaml'
             ':(glob).npmrc'
             ':(glob)scripts/build-android-release.sh'
@@ -131,6 +124,9 @@ jobs:
     with:
       app_name: vmem
       package_id: com.projectvdotuk.vmem
+      # The release-paths job above is the only gate. Without this, the shared
+      # workflow also needs a feat commit or [release] on a push.
+      release_on: always
       # A boat.dev runner. It has no Android SDK: the shared workflow installs
       # the command line tools and sdk_packages when it finds none.
       runs_on: boat-large
