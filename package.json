@@ -18,8 +18,8 @@
     "compiler:check": "node scripts/compiler-check.mjs",
     "knip": "knip --no-config-hints",
     "test:oxlint-plugin": "node --test oxlint-plugin-vmem/test/rules.test.mjs",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
     "check": "pnpm lint && pnpm typecheck:all && pnpm knip && pnpm test:oxlint-plugin && pnpm compiler:check && pnpm test && pnpm format:check",
     "typecheck": "pnpm --filter web typecheck",
     "typecheck:e2e": "tsrs -p e2e/tsconfig.json",
@@ -39,7 +39,7 @@
     "test": "pnpm --filter @vmem/backend test && pnpm --filter web test && pnpm --filter @vmem/chrome-extension test && pnpm --filter @vmem/desktop test && pnpm --filter @vmem/mobile test && pnpm --filter @vmem/sdk test"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,mjs,cjs,json,css,md,mdx,html,yml,yaml}": "prettier --write"
+    "*.{ts,tsx,js,jsx,mjs,cjs,json,css,md,mdx,html,yml,yaml}": "oxfmt --no-error-on-unmatched-pattern"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -52,9 +52,9 @@
     "husky": "^9.1.7",
     "knip": "^6.26.0",
     "lint-staged": "^16.2.7",
+    "oxfmt": "^0.79.0",
     "oxlint": "^1.80.0",
     "oxlint-tsgolint": "^7.0.2001",
-    "prettier": "^3.8.1",
     "syncpack": "^14.3.0",
     "tsrs": "7.1.0-beta.tsrs2",
     "typescript": "^5.9.3",
