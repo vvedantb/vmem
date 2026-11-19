@@ -1,0 +1,7 @@
+{
+  "ciCommands": {
+    "pnpm typecheck:all": "It type-checks the web, backend, sdk, shared, chrome-extension, desktop and mobile packages and the e2e project, while the standard typecheck covers the web app only.",
+    "node scripts/compiler-check.mjs": "It finds web files that the React Compiler skips without any build error, and fails on a skip that is not in the recorded baseline.",
+    "pnpm test:oxlint-plugin": "It runs the tests for the repo's own oxlint rules, so a broken rule cannot pass lint by accident."
+  }
+}
