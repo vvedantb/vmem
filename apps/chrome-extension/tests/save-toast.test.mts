@@ -5,16 +5,24 @@ import assert from "node:assert/strict";
 import { toastForSaveResult } from "../src/background/save-toast.ts";
 
 await test("toastForSaveResult shows success toast only when success is true", () => {
-  assert.deepEqual(toastForSaveResult({ success: true, memoryId: "m1" }), {
-    message: "✓ Page saved to vmem",
-    color: "#4ade80",
-  });
+  assert.deepEqual(
+    toastForSaveResult({
+      success: true,
+      memoryId: "m1",
+      memoryUrl: "https://vmem.projectv.uk/memories/list/m1",
+    }),
+    {
+      type: "success",
+      message: "Saved to vmem",
+      openUrl: "https://vmem.projectv.uk/memories/list/m1",
+    },
+  );
 });
 
 await test("toastForSaveResult says already saved on a repeat save", () => {
   assert.deepEqual(
     toastForSaveResult({ success: true, memoryId: "m1", alreadySaved: true }),
-    { message: "✓ Page already saved", color: "#4ade80" },
+    { type: "success", message: "Already saved", openUrl: undefined },
   );
 });
 
@@ -24,9 +32,6 @@ await test("toastForSaveResult shows failure toast when success is false", () =>
       success: false,
       error: "Failed to extract page content",
     }),
-    {
-      message: "✗ Failed to save page",
-      color: "#f87171",
-    },
+    { type: "error", message: "Failed to save page" },
   );
 });

@@ -1,8 +1,7 @@
 import { sendMessage } from "@/lib/messaging";
 import { errorMessage } from "@/lib/error";
 import { savePageFromTab } from "./context-menu";
-import { injectPageToast } from "./inject-page-toast";
-import { toastForSaveResult } from "./save-toast";
+import { SAVE_FAILED_TOAST, toastForSaveResult } from "./save-toast";
 
 async function triggerScreenshot(tabId: number): Promise<void> {
   try {
@@ -55,19 +54,13 @@ export async function handleCommand(command: string): Promise<void> {
 
     try {
       const result = await savePageFromTab(tab);
-      const toast = toastForSaveResult(result);
-      await injectPageToast(
-        tabId,
-        toast.message,
-        toast.color,
-        result.memoryUrl,
-      );
+      await sendMessage("showToast", toastForSaveResult(result), tabId);
     } catch (err) {
       console.error("[vmem] Keyboard shortcut save failed:", err);
       try {
-        await injectPageToast(tabId, "✗ Failed to save page", "#f87171");
+        await sendMessage("showToast", SAVE_FAILED_TOAST, tabId);
       } catch {
-        // tab may have navigated before toast injection
+        // tab may have navigated, or the page has no content script
       }
     }
   }

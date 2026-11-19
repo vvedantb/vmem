@@ -4,6 +4,7 @@
 
 import { Readability } from "@mozilla/readability";
 import { onMessage, type ExtractPageData } from "@/lib/messaging";
+import { showToast } from "@/content/shared/toast";
 
 const FALLBACK_MIN_CHARS = 200;
 const STRIP_SELECTORS = [
@@ -119,6 +120,11 @@ function extract(): ExtractPageData {
     usedReadability: false,
   };
 }
+
+// this script runs on every page, so it shows the toasts the background asks for
+onMessage("showToast", ({ data }) => {
+  showToast(data);
+});
 
 onMessage("extractPage", () => {
   try {

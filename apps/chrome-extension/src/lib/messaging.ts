@@ -1,5 +1,6 @@
 import { defineExtensionMessaging } from "@webext-core/messaging";
 import type { MemoryCandidate } from "@/types/api";
+import type { ShowToastOptions } from "@/content/shared/toast";
 
 export type SaveOutcome = {
   memoryId?: string;
@@ -92,6 +93,10 @@ interface ProtocolMap {
   importProgress(data: ImportProgressData): void;
   extractPage(): ExtractPageData;
   startScreenshot(): { ok: true };
+  // deletes the memory saved from this post; removed is false when there is none
+  removeXPost(data: { url: string; handle: string }): { removed: boolean };
+  // background asks the page to show a toast
+  showToast(data: ShowToastOptions): void;
   // save shortcut: a site script saves its own item (post, video) and answers handled
   siteSave(): { handled: boolean };
 }

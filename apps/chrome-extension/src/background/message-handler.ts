@@ -1,7 +1,13 @@
 import { sanitizeTag } from "@vmem/shared";
 import type { CreateMemoryParams } from "@/types/api";
 import { base64 as base64Codec } from "@scure/base";
-import { createMemory, retrieveMemories, saveScreenshot } from "./api-client";
+import {
+  createMemory,
+  deleteMemory,
+  listMemories,
+  retrieveMemories,
+  saveScreenshot,
+} from "./api-client";
 import { importBookmarks } from "./import-bookmarks";
 import { importHistory } from "./import-history";
 import { cancelImport } from "./import-cancel";
@@ -105,6 +111,32 @@ export function saveXPostCreateParams(data: {
   };
 }
 
+const X_AUTHOR_LIST_LIMIT = 100;
+
+function pathOf(url: string | null | undefined): string | undefined {
+  return url && URL.canParse(url)
+    ? new URL(url).pathname.toLowerCase()
+    : undefined;
+}
+
+// the memory of a post is found by its author tag, then by its url
+async function removeXPost(data: {
+  url: string;
+  handle: string;
+}): Promise<{ removed: boolean }> {
+  const { memories } = await listMemories({
+    source: "x",
+    tags: [sanitizeTag(data.handle)],
+    limit: X_AUTHOR_LIST_LIMIT,
+  });
+  const path = pathOf(data.url);
+  const saved = memories.filter(
+    (memory) => path !== undefined && pathOf(memory.sourceUrl) === path,
+  );
+  await Promise.all(saved.map((memory) => deleteMemory(memory.id)));
+  return { removed: saved.length > 0 };
+}
+
 export function capturePromptCreateParams(data: {
   prompt: string;
   url: string;
@@ -168,6 +200,10 @@ export function registerMessageHandler(): void {
 
   onMessage("saveXPost", async ({ data }) => {
     return createMemoryOrThrow(saveXPostCreateParams(data));
+  });
+
+  onMessage("removeXPost", async ({ data }) => {
+    return await removeXPost(data);
   });
 
   onMessage("capturePrompt", async ({ data }) => {

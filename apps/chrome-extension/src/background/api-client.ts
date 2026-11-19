@@ -61,6 +61,7 @@ export async function getMemory(
 export async function listMemories(args: {
   searchQuery?: string;
   source?: string;
+  tags?: string[];
   limit?: number;
   offset?: number;
 }): Promise<{ memories: MemoryWithTags[]; total: number }> {
@@ -68,6 +69,7 @@ export async function listMemories(args: {
   return await client.action(api.memoryApi.listMemories, {
     searchQuery: args.searchQuery,
     source: args.source,
+    tags: args.tags,
     limit: args.limit ?? 20,
     offset: args.offset ?? 0,
   });
@@ -157,15 +159,13 @@ export async function listProfiles(): Promise<Profile[]> {
   const client = await requireAuthenticatedClient();
 
   const profiles = await client.query(api.profiles.list, {});
-  return profiles.map(
-    (p): Profile => ({
-      _id: p._id,
-      name: p.name,
-      color: p.color,
-      icon: p.icon,
-      isDefault: p.isDefault,
-    }),
-  );
+  return profiles.map((p): Profile => ({
+    _id: p._id,
+    name: p.name,
+    color: p.color,
+    icon: p.icon,
+    isDefault: p.isDefault,
+  }));
 }
 
 // http: survives popup close when websocket drops

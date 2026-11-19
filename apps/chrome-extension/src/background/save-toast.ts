@@ -1,3 +1,5 @@
+import type { ShowToastOptions } from "@/content/shared/toast";
+
 export type SavePageResult = {
   success: boolean;
   memoryId?: string;
@@ -6,18 +8,17 @@ export type SavePageResult = {
   error?: string;
 };
 
-export type SaveToast = {
-  message: string;
-  color: string;
+export const SAVE_FAILED_TOAST: ShowToastOptions = {
+  type: "error",
+  message: "Failed to save page",
 };
 
-// map savePageFromTab result to toast copy and color
-export function toastForSaveResult(result: SavePageResult): SaveToast {
-  if (result.success && result.alreadySaved) {
-    return { message: "✓ Page already saved", color: "#4ade80" };
-  }
-  if (result.success) {
-    return { message: "✓ Page saved to vmem", color: "#4ade80" };
-  }
-  return { message: "✗ Failed to save page", color: "#f87171" };
+// map savePageFromTab result to the page toast
+export function toastForSaveResult(result: SavePageResult): ShowToastOptions {
+  if (!result.success) return SAVE_FAILED_TOAST;
+  return {
+    type: "success",
+    message: result.alreadySaved ? "Already saved" : "Saved to vmem",
+    openUrl: result.memoryUrl,
+  };
 }

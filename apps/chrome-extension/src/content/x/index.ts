@@ -28,6 +28,8 @@ const LIKE_SELECTOR =
 // the control that adds a bookmark; legacy dom renames it to removeBookmark when set
 const ADD_BOOKMARK_SELECTOR =
   '[data-engagement-action="bookmark"] button:not([aria-pressed="true"]), [data-testid="bookmark"]';
+const REMOVE_BOOKMARK_SELECTOR =
+  '[data-engagement-action="bookmark"] button[aria-pressed="true"], [data-testid="removeBookmark"]';
 const TEXT_SELECTOR = '[data-testid="tweetText"], div[lang][dir="auto"]';
 const ARTICLE_VIEW_SELECTOR = '[data-testid="twitterArticleReadView"]';
 const ARTICLE_TITLE_SELECTOR = '[data-testid="twitter-article-title"]';
@@ -304,14 +306,31 @@ onMessage("siteSave", () => {
   return { handled: button !== null };
 });
 
-// a new bookmark also saves the post; removing a bookmark does nothing
-function saveOnBookmark(event: MouseEvent): void {
+async function remove(post: XPost): Promise<void> {
+  try {
+    const { removed } = await sendMessage("removeXPost", {
+      url: post.url,
+      handle: post.handle,
+    });
+    if (removed) showToast({ type: "success", message: "Removed from vmem" });
+  } catch (err) {
+    const reason = errorMessage(err);
+    console.error("[vmem] Failed to remove X post:", reason);
+    showToast({ type: "error", message: reason });
+  }
+}
+
+// a new bookmark also saves the post; removing a bookmark also removes it from vmem
+function syncWithBookmark(event: MouseEvent): void {
   if (!(event.target instanceof Element)) return;
-  if (!event.target.closest(ADD_BOOKMARK_SELECTOR)) return;
-  event.target
-    .closest("article")
-    ?.querySelector<HTMLButtonElement>(`[${BUTTON_ATTR}]`)
-    ?.click();
+  const article = event.target.closest("article");
+  if (!article) return;
+  if (event.target.closest(ADD_BOOKMARK_SELECTOR)) {
+    article.querySelector<HTMLButtonElement>(`[${BUTTON_ATTR}]`)?.click();
+  } else if (event.target.closest(REMOVE_BOOKMARK_SELECTOR)) {
+    const post = readPost(article);
+    if (post) void remove(post);
+  }
 }
 
 // x is a virtualised spa: posts mount and unmount on scroll and on navigation.
@@ -327,7 +346,7 @@ function init(): void {
     });
   });
   observer.observe(document.body, { childList: true, subtree: true });
-  document.addEventListener("click", saveOnBookmark, true);
+  document.addEventListener("click", syncWithBookmark, true);
   scan();
 }
 
