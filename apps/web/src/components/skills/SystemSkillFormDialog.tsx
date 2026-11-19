@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
@@ -37,6 +36,33 @@ export function SystemSkillFormDialog({
   onOpenChange,
   entry,
 }: SystemSkillFormDialogProps) {
+  const isEdit = entry !== undefined;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[min(90dvh,760px)] flex-col sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            {isEdit ? "Edit system skill" : "New system skill"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <SystemSkillForm
+          key={entry?._id ?? "new"}
+          entry={entry}
+          onClose={() => onOpenChange(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface SystemSkillFormProps {
+  entry: SystemSkillEntry | undefined;
+  onClose: () => void;
+}
+
+function SystemSkillForm({ entry, onClose }: SystemSkillFormProps) {
   const adminCreate = useMutation(
     api.systemSkills.adminCreate,
   ).withOptimisticUpdate((localStore, args) => {
@@ -92,30 +118,13 @@ export function SystemSkillFormDialog({
 
   const form = useForm<SystemSkillFormValues>({
     resolver: zodResolver(systemSkillFormSchema),
-    defaultValues: emptySystemSkillFormValues,
+    defaultValues:
+      entry !== undefined
+        ? systemSkillFormValuesFrom(entry)
+        : emptySystemSkillFormValues,
   });
 
   const submitting = form.formState.isSubmitting;
-  const entryId = entry?._id;
-
-  useEffect(() => {
-    if (!open) {
-      form.reset(emptySystemSkillFormValues);
-      return;
-    }
-    if (entry !== undefined) {
-      form.reset(systemSkillFormValuesFrom(entry));
-      return;
-    }
-    form.reset(emptySystemSkillFormValues);
-    // reset on open / entry identity only not on live query object churn.
-    // oxlint-disable-next-line react/exhaustive-deps -- entry snapshot at open/_id
-  }, [open, entryId, form]);
-
-  const handleOpenChange = (next: boolean) => {
-    if (!next) form.reset(emptySystemSkillFormValues);
-    onOpenChange(next);
-  };
 
   const onSubmit = async (values: SystemSkillFormValues) => {
     const trimmedCategory = values.category.trim();
@@ -134,7 +143,7 @@ export function SystemSkillFormDialog({
           category: categoryOrNull,
           published: values.published,
         });
-        onOpenChange(false);
+        onClose();
         return;
       }
 
@@ -146,55 +155,45 @@ export function SystemSkillFormDialog({
         published: values.published,
       });
       toast.success(`Created ${values.name}`);
-      handleOpenChange(false);
+      onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-h-[min(90dvh,760px)] flex-col sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {isEdit ? "Edit system skill" : "New system skill"}
-          </DialogTitle>
-        </DialogHeader>
-
-        <SkillFormShell
-          register={form.register}
-          onSubmit={form.handleSubmit(onSubmit, toastSkillFormErrors)}
-          onCancel={() => handleOpenChange(false)}
-          submitting={submitting}
-          submitLabel={isEdit ? "Done" : "Create"}
-          instructionsPlaceholder="Instructions (markdown playbook the agent follows)"
-          afterName={
-            <Input
-              placeholder="Category (optional, e.g. Learning)"
-              aria-label="Category"
-              {...form.register("category")}
-            />
-          }
-          beforeFooter={
-            <div className="flex items-center gap-2">
-              <Controller
-                control={form.control}
-                name="published"
-                render={({ field }) => (
-                  <Switch
-                    id="system-skill-published"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-              <Label htmlFor="system-skill-published" className="text-sm">
-                Published (visible in the Hub)
-              </Label>
-            </div>
-          }
+    <SkillFormShell
+      register={form.register}
+      onSubmit={form.handleSubmit(onSubmit, toastSkillFormErrors)}
+      onCancel={onClose}
+      submitting={submitting}
+      submitLabel={isEdit ? "Done" : "Create"}
+      instructionsPlaceholder="Instructions (markdown playbook the agent follows)"
+      afterName={
+        <Input
+          placeholder="Category (optional, e.g. Learning)"
+          aria-label="Category"
+          {...form.register("category")}
         />
-      </DialogContent>
-    </Dialog>
+      }
+      beforeFooter={
+        <div className="flex items-center gap-2">
+          <Controller
+            control={form.control}
+            name="published"
+            render={({ field }) => (
+              <Switch
+                id="system-skill-published"
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            )}
+          />
+          <Label htmlFor="system-skill-published" className="text-sm">
+            Published (visible in the Hub)
+          </Label>
+        </div>
+      }
+    />
   );
 }

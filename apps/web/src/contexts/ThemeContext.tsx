@@ -1,4 +1,4 @@
-import { createContext, use, useEffect, useState } from "react";
+import { createContext, use, useEffect, useSyncExternalStore } from "react";
 import { useTheme } from "@/providers/theme";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
@@ -13,11 +13,15 @@ interface ThemeContextType {
   toggleTheme: () => void;
 }
 
+const subscribeToNothing = () => () => {};
+const onClient = () => true;
+const onServer = () => false;
+
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { resolvedTheme, setTheme: setNextTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(subscribeToNothing, onClient, onServer);
 
   const settings = useQuery(api.userSettings.get);
   const updateSettings = useMutation(
@@ -25,10 +29,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   ).withOptimisticUpdate((localStore, args) => {
     patchUserSettingsGet(localStore, args);
   });
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // apply Convex theme to the document when settings load or change externally
   // do not depend on nextTheme that caused a revert flicker while mutations were in flight

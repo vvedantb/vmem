@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
@@ -22,43 +22,7 @@ interface EditKeyDialogProps {
 }
 
 export function EditKeyDialog({ apiKey, isOpen, onClose }: EditKeyDialogProps) {
-  const [draftName, setDraftName] = useState("");
   const { submitting: isSubmitting, run } = useAsyncSubmit();
-
-  const renameApiKey = useMutation(api.apiKeys.renameMy).withOptimisticUpdate(
-    (localStore, args) => {
-      const list = localStore.getQuery(api.apiKeys.listMy, {});
-      if (list === undefined) return;
-      localStore.setQuery(
-        api.apiKeys.listMy,
-        {},
-        list.map((key) =>
-          key.id === args.id ? { ...key, name: args.name } : key,
-        ),
-      );
-    },
-  );
-
-  useEffect(() => {
-    if (isOpen && apiKey) {
-      setDraftName(apiKey.name);
-    }
-  }, [isOpen, apiKey]);
-
-  const handleSubmit = async () => {
-    if (!apiKey || isSubmitting) return;
-
-    const trimmed = draftName.trim();
-    if (!trimmed || trimmed === apiKey.name) {
-      onClose();
-      return;
-    }
-
-    await run(async () => {
-      await renameApiKey({ id: apiKey.id, name: trimmed });
-      onClose();
-    }, "Failed to rename API key");
-  };
 
   return (
     <Dialog
@@ -75,37 +39,87 @@ export function EditKeyDialog({ apiKey, isOpen, onClose }: EditKeyDialogProps) {
           </DialogDescription>
         </DialogHeader>
         {isOpen && apiKey ? (
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Input
-                value={draftName}
-                onChange={(e) => setDraftName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void handleSubmit();
-                }}
-                placeholder="e.g. Production server"
-                autoFocus
-                disabled={isSubmitting}
-                aria-label="API key name"
-              />
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => void handleSubmit()}
-                disabled={isSubmitting}
-                className="text-muted"
-              >
-                {isSubmitting ? (
-                  <Spinner size={14} tone="inherit" decorative />
-                ) : null}
-                Done
-              </Button>
-            </DialogFooter>
-          </div>
+          <EditKeyForm
+            key={apiKey.id}
+            apiKey={apiKey}
+            isSubmitting={isSubmitting}
+            run={run}
+            onClose={onClose}
+          />
         ) : null}
       </DialogContent>
     </Dialog>
+  );
+}
+
+interface EditKeyFormProps {
+  apiKey: ApiKey;
+  isSubmitting: boolean;
+  run: ReturnType<typeof useAsyncSubmit>["run"];
+  onClose: () => void;
+}
+
+function EditKeyForm({ apiKey, isSubmitting, run, onClose }: EditKeyFormProps) {
+  const [draftName, setDraftName] = useState(apiKey.name);
+
+  const renameApiKey = useMutation(api.apiKeys.renameMy).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.apiKeys.listMy, {});
+      if (list === undefined) return;
+      localStore.setQuery(
+        api.apiKeys.listMy,
+        {},
+        list.map((key) =>
+          key.id === args.id ? { ...key, name: args.name } : key,
+        ),
+      );
+    },
+  );
+
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+
+    const trimmed = draftName.trim();
+    if (!trimmed || trimmed === apiKey.name) {
+      onClose();
+      return;
+    }
+
+    await run(async () => {
+      await renameApiKey({ id: apiKey.id, name: trimmed });
+      onClose();
+    }, "Failed to rename API key");
+  };
+
+  return (
+    <div className="space-y-4 py-2">
+      <div className="space-y-2">
+        <Input
+          value={draftName}
+          onChange={(e) => setDraftName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void handleSubmit();
+          }}
+          placeholder="e.g. Production server"
+          autoFocus
+          disabled={isSubmitting}
+          aria-label="API key name"
+        />
+      </div>
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => void handleSubmit()}
+          disabled={isSubmitting}
+          className="text-muted"
+        >
+          {isSubmitting ? (
+            <Spinner size={14} tone="inherit" decorative />
+          ) : null}
+          Done
+        </Button>
+      </DialogFooter>
+    </div>
   );
 }
