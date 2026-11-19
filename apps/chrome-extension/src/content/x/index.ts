@@ -33,6 +33,11 @@ const ARTICLE_PATH = /^\/([^/]+)\/article\/\d+/;
 const TWITTER_EPOCH_MS = 1288834974657n;
 const MAX_TEXT_LENGTH = 12000;
 const FALLBACK_COLOR = "#71767b";
+// the vmem mark is a thin outline; it needs more size than x's own icons to read as equal
+const ICON_SCALE = 1.2;
+const MIN_ICON_PX = 22;
+// the article reader is not an icon; its width must not set the size
+const MAX_ICON_PX = 28;
 const STATE_COLORS = { success: "#16a34a", error: "#dc2626" };
 const RESET_MS = 2000;
 
@@ -128,8 +133,7 @@ function readStandaloneArticle(view: Element): XPost | null {
 function spinner(): HTMLElement {
   const el = document.createElement("div");
   Object.assign(el.style, {
-    width: "14px",
-    height: "14px",
+    boxSizing: "border-box",
     border: "2px solid currentColor",
     borderTopColor: "transparent",
     borderRadius: "50%",
@@ -147,9 +151,16 @@ function render(button: HTMLButtonElement, state: SaveState): void {
     state === "success" || state === "error"
       ? STATE_COLORS[state]
       : (button.dataset.idleColor ?? FALLBACK_COLOR);
-  if (state === "idle") button.replaceChildren(createVmemLogo("current", 18));
+  const size = Number(button.dataset.iconSize ?? MIN_ICON_PX);
+  if (state === "idle") button.replaceChildren(createVmemLogo("current", size));
   else if (state === "saving") button.replaceChildren(spinner());
   else button.innerHTML = state === "success" ? checkIcon(16) : errorIcon(16);
+  // one size for every state, set as style so it wins over the svg attributes
+  const icon = button.firstElementChild;
+  if (icon instanceof HTMLElement || icon instanceof SVGElement) {
+    const px = `${state === "idle" ? size : size - 4}px`;
+    Object.assign(icon.style, { width: px, height: px });
+  }
 }
 
 async function save(
@@ -162,11 +173,14 @@ async function save(
   try {
     const post = read();
     if (!post) throw new Error("Post not found");
-    await sendMessage("saveXPost", {
+    const { alreadySaved } = await sendMessage("saveXPost", {
       ...post,
       text: post.text.slice(0, MAX_TEXT_LENGTH),
     });
-    showToast({ type: "success", message: "Saved to vmem" });
+    showToast({
+      type: "success",
+      message: alreadySaved ? "Already saved" : "Saved to vmem",
+    });
     render(button, "success");
   } catch (err) {
     const reason = errorMessage(err);
@@ -179,7 +193,7 @@ async function save(
 }
 
 function createButton(
-  color: string,
+  reference: Element,
   read: () => XPost | null,
 ): HTMLButtonElement {
   const button = document.createElement("button");
@@ -187,13 +201,20 @@ function createButton(
   button.setAttribute(BUTTON_ATTR, "");
   button.setAttribute("aria-label", LABEL);
   button.title = LABEL;
-  button.dataset.idleColor = color;
+  // colour and size follow the x icon beside it (timeline and post page differ)
+  button.dataset.idleColor = getComputedStyle(reference).color;
+  const scaled = Math.round(
+    reference.getBoundingClientRect().width * ICON_SCALE,
+  );
+  const iconSize = Math.min(Math.max(scaled, MIN_ICON_PX), MAX_ICON_PX);
+  button.dataset.iconSize = String(iconSize);
   Object.assign(button.style, {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    width: "34px",
-    height: "34px",
+    alignSelf: "center",
+    width: `${iconSize + 14}px`,
+    height: `${iconSize + 14}px`,
     padding: "0",
     border: "none",
     borderRadius: "50%",
@@ -216,9 +237,7 @@ function injectIntoPost(post: Element): void {
   const row = reply?.closest('[role="group"]');
   if (!reply || !row || row.querySelector(`[${BUTTON_ATTR}]`)) return;
   const icon = reply.querySelector("svg") ?? reply;
-  const button = createButton(getComputedStyle(icon).color, () =>
-    readPost(post),
-  );
+  const button = createButton(icon, () => readPost(post));
   // new dom groups bookmark and share at the row end; legacy dom is a flat row
   const share = row.querySelector(SHARE_SELECTOR);
   if (share) share.after(button);
@@ -227,9 +246,7 @@ function injectIntoPost(post: Element): void {
 
 function injectIntoStandaloneArticle(view: Element): void {
   if (view.closest("article") || view.querySelector(`[${BUTTON_ATTR}]`)) return;
-  const button = createButton(getComputedStyle(view).color, () =>
-    readStandaloneArticle(view),
-  );
+  const button = createButton(view, () => readStandaloneArticle(view));
   Object.assign(button.style, { display: "flex", marginLeft: "auto" });
   view.prepend(button);
 }

@@ -1,6 +1,7 @@
 export type SavePageResult = {
   success: boolean;
   memoryId?: string;
+  alreadySaved?: boolean;
   error?: string;
 };
 
@@ -11,6 +12,9 @@ export type SaveToast = {
 
 // map savePageFromTab result to toast copy and color
 export function toastForSaveResult(result: SavePageResult): SaveToast {
+  if (result.success && result.alreadySaved) {
+    return { message: "✓ Page already saved", color: "#4ade80" };
+  }
   if (result.success) {
     return { message: "✓ Page saved to vmem", color: "#4ade80" };
   }

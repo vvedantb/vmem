@@ -11,6 +11,13 @@ await test("toastForSaveResult shows success toast only when success is true", (
   });
 });
 
+await test("toastForSaveResult says already saved on a repeat save", () => {
+  assert.deepEqual(
+    toastForSaveResult({ success: true, memoryId: "m1", alreadySaved: true }),
+    { message: "✓ Page already saved", color: "#4ade80" },
+  );
+});
+
 await test("toastForSaveResult shows failure toast when success is false", () => {
   assert.deepEqual(
     toastForSaveResult({

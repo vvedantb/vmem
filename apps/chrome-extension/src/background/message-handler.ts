@@ -14,7 +14,7 @@ async function createMemoryOrThrow(
   params: CreateMemoryParams,
 ): Promise<SaveOutcome> {
   const memory = await createMemory(params);
-  return { memoryId: memory.id };
+  return { memoryId: memory.id, alreadySaved: memory.deduped === true };
 }
 
 function errorMessage(err: unknown): string {

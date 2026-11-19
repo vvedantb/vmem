@@ -163,13 +163,13 @@ async function handleSaveClick(): Promise<void> {
       ? rawTranscript.slice(0, 12000)
       : "(No transcript available)";
 
-    await sendMessage("saveYoutubeVideo", {
+    const { alreadySaved } = await sendMessage("saveYoutubeVideo", {
       url: window.location.href,
       title,
       channel,
       transcript,
     });
-    button.innerHTML = `<span style="color: #16a34a;">✓ Saved!</span>`;
+    button.innerHTML = `<span style="color: #16a34a;">✓ ${alreadySaved ? "Already saved" : "Saved!"}</span>`;
     button.title = "Save video to vmem";
   } catch (err) {
     const reason = errorMessage(err);

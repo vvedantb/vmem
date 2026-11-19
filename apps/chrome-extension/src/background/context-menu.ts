@@ -1,3 +1,4 @@
+import type { SavePageResult } from "./save-toast";
 import { sanitizeTag } from "@vmem/shared";
 import { truncate } from "es-toolkit/compat";
 import { sendMessage } from "@/lib/messaging";
@@ -56,7 +57,7 @@ export function registerContextMenuClickListener(): void {
 
 export async function savePageFromTab(
   tab: chrome.tabs.Tab,
-): Promise<{ success: boolean; memoryId?: string; error?: string }> {
+): Promise<SavePageResult> {
   if (!tab.id || !tab.url) {
     return { success: false, error: "Invalid tab" };
   }
@@ -86,7 +87,11 @@ export async function savePageFromTab(
       url: tab.url,
     });
 
-    return { success: true, memoryId: memory.id };
+    return {
+      success: true,
+      memoryId: memory.id,
+      alreadySaved: memory.deduped === true,
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: message };
