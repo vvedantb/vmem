@@ -7,6 +7,7 @@ import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { CURRENT_PORTRAIT } from "../tests/currentPortrait";
 import schema from "./schema";
+import { stampedAt } from "../tests/simulatorClock";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -951,7 +952,7 @@ describe("nightly portrait", () => {
     const profile = await t.run(async (ctx) => ctx.db.get(owner.profileId));
     expect(profile).toMatchObject({
       dreamPortrait: "The user builds vmem.",
-      dreamPortraitUpdatedAt: NOW,
+      dreamPortraitUpdatedAt: stampedAt(NOW),
       dreamPortraitSources: ["mem_1"],
     });
     expect((await lastRun(t, owner)).aiCalls).toBe(1);

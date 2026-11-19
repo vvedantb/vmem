@@ -57,7 +57,7 @@
     "@cosmos.gl/graph": "catalog:",
     "@edge-runtime/vm": "^5.0.0",
     "@types/node": "catalog:node-types-22",
-    "convex-test": "^0.0.38",
+    "convex-test": "0.0.70",
     "esbuild": "0.25.0",
     "gl-bench": "^1.0.42",
     "typescript": "catalog:",

@@ -13,6 +13,7 @@ import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { CURRENT_PORTRAIT } from "../tests/currentPortrait";
 import schema from "./schema";
+import { STAMP_DRIFT_MS, stampedAt } from "../tests/simulatorClock";
 import {
   TRANSCRIPT_MAX_ATTEMPTS,
   TRANSCRIPT_RETENTION_MS,
@@ -297,7 +298,7 @@ describe("nightly transcript distill", () => {
     expect(after).toMatchObject({
       status: "processed",
       attempts: 1,
-      processedAt: NOW,
+      processedAt: stampedAt(NOW),
     });
     expect(after.storageId).toBeUndefined();
     const storageId = before.storageId;
@@ -413,7 +414,7 @@ describe("nightly transcript distill", () => {
       status: "failed",
       attempts: 1,
       error: "malformed reply",
-      failedAt: NOW,
+      failedAt: stampedAt(NOW),
     });
     expect(failed.storageId).toBeDefined();
     expect(await pendingProposals(t, owner)).toEqual([]);
@@ -561,7 +562,7 @@ describe("transcript undo", () => {
     expect(action).toMatchObject({
       kind: "create",
       memoryIds: [memory._id],
-      undoExpiresAt: NOW + 30 * 24 * 60 * 60 * 1000,
+      undoExpiresAt: stampedAt(NOW + 30 * 24 * 60 * 60 * 1000),
     });
     const listed = await owner.user.query(api.dream.listActions, {
       runId: run._id,
@@ -572,7 +573,9 @@ describe("transcript undo", () => {
     await owner.user.mutation(api.dream.undoAction, { actionId: action._id });
 
     expect(await memoriesFromTranscripts(t)).toEqual([]);
-    expect((await t.run((ctx) => ctx.db.get(action._id)))?.undoneAt).toBe(NOW);
+    expect((await t.run((ctx) => ctx.db.get(action._id)))?.undoneAt).toEqual(
+      stampedAt(NOW),
+    );
   });
 
   it("refuses undo after the window or once the memory is deleted", async () => {
@@ -633,7 +636,7 @@ describe("transcript retention", () => {
     const oldRow = await transcriptOf(t, oldId);
     vi.setSystemTime(NOW + TRANSCRIPT_RETENTION_MS / 2);
     const freshId = await addTranscript(t, owner, "fresh");
-    vi.setSystemTime(NOW + TRANSCRIPT_RETENTION_MS + 1);
+    vi.setSystemTime(NOW + TRANSCRIPT_RETENTION_MS + STAMP_DRIFT_MS + 1);
 
     expect(
       await t.mutation(internal.transcripts.purgeExpiredInternal, {}),

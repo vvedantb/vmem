@@ -9,6 +9,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type * as RollupActions from "./rollupActions";
 import { CURRENT_PORTRAIT } from "../tests/currentPortrait";
 import schema from "./schema";
+import { stampedAt } from "../tests/simulatorClock";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -283,7 +284,7 @@ describe("nightly dreaming: exact dedupe", () => {
     expect(run).toMatchObject({
       trigger: "nightly",
       status: "ok",
-      windowThrough: NOW,
+      windowThrough: stampedAt(NOW),
       counts: { exactMerged: 2, keyMerged: 0 },
     });
     if (!run) return;
@@ -321,7 +322,7 @@ describe("nightly dreaming: exact dedupe", () => {
     const [second] = await runsOf(t, owner);
     expect(second).toMatchObject({
       status: "ok",
-      windowThrough: NOW + DAY_MS,
+      windowThrough: stampedAt(NOW + DAY_MS),
       counts: { exactMerged: 0 },
     });
   });
@@ -371,7 +372,7 @@ describe("nightly dreaming: first run", () => {
     });
     expect((await runsOf(t, owner))[0]).toMatchObject({
       status: "ok",
-      windowThrough: NOW,
+      windowThrough: stampedAt(NOW),
       counts: { exactMerged: 1 },
     });
   });
@@ -536,7 +537,7 @@ describe("nightly dreaming: decay", () => {
     const [run] = await runsOf(t, owner);
     expect(run).toMatchObject({
       counts: { archived: 1 },
-      decayThrough: NOW - 30 * DAY_MS,
+      decayThrough: stampedAt(NOW - 30 * DAY_MS),
     });
     if (!run) return;
     expect(await actionsOf(t, run._id)).toEqual([

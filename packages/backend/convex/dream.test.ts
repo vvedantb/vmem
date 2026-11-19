@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import schema from "./schema";
+import { stampedAt } from "../tests/simulatorClock";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -230,7 +231,7 @@ describe("dream.applyMerge + undo", () => {
       kind: "merge",
       keeperId,
       memoryIds: [loserId],
-      undoExpiresAt: NOW + 30 * DAY_MS,
+      undoExpiresAt: stampedAt(NOW + 30 * DAY_MS),
     });
 
     await owner.user.mutation(api.dream.undoAction, { actionId });
@@ -254,9 +255,9 @@ describe("dream.applyMerge + undo", () => {
     expect(await linkCount(t, "mem_lose", "mem_other")).toBe(1);
     expect(await mentionNames(t, "mem_keep")).toEqual(["convex"]);
     expect(await mentionNames(t, "mem_lose")).toEqual(["convex", "pnpm"]);
-    expect((await t.run(async (ctx) => ctx.db.get(actionId)))?.undoneAt).toBe(
-      NOW,
-    );
+    expect(
+      (await t.run(async (ctx) => ctx.db.get(actionId)))?.undoneAt,
+    ).toEqual(stampedAt(NOW));
   });
 
   it("refuses a double undo and an undo after the window", async () => {
@@ -355,7 +356,7 @@ describe("dream.applyMerge + undo", () => {
     });
     expect(await getDoc(t, loserId)).toMatchObject({
       suppressedBy: "dream-ai",
-      suppressedAt: Date.now(),
+      suppressedAt: stampedAt(Date.now()),
     });
   });
 

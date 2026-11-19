@@ -226,7 +226,9 @@ const CASES: Array<{ message: string; expected: string[] }> = [
   },
   {
     message: "where are the convex secrets",
-    expected: ["secrets", "convex", "rollback", "staging", "deploy", "editor"],
+    // recorded again with convex-test 0.0.70: its text search matches each
+    // query word, as Convex does, so the full-text leg now returns hits
+    expected: ["secrets", "convex", "rollback", "deploy", "staging", "editor"],
   },
 ];
 
