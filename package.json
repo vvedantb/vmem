@@ -22,7 +22,7 @@
     "format:check": "prettier --check .",
     "check": "pnpm lint && pnpm typecheck:all && pnpm knip && pnpm test:oxlint-plugin && pnpm compiler:check && pnpm test && pnpm format:check",
     "typecheck": "pnpm --filter web typecheck",
-    "typecheck:e2e": "tsc -p e2e/tsconfig.json",
+    "typecheck:e2e": "tsrs -p e2e/tsconfig.json",
     "typecheck:all": "pnpm --parallel --filter web --filter @vmem/backend --filter @vmem/sdk --filter @vmem/shared --filter @vmem/chrome-extension --filter @vmem/desktop --filter @vmem/mobile typecheck && pnpm typecheck:e2e",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
     "test:e2e:headed": "playwright test --config e2e/playwright.config.ts --headed",
@@ -56,6 +56,7 @@
     "oxlint-tsgolint": "^7.0.2001",
     "prettier": "^3.8.1",
     "syncpack": "^14.3.0",
+    "tsrs": "7.1.0-beta.tsrs2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.63.0"
   }
