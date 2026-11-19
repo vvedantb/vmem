@@ -32,7 +32,10 @@ const STATUS_PATH = /^\/([^/]+)\/status\/(\d+)$/;
 const ARTICLE_PATH = /^\/([^/]+)\/article\/\d+/;
 const TWITTER_EPOCH_MS = 1288834974657n;
 const MAX_TEXT_LENGTH = 12000;
-const FALLBACK_COLOR = "#71767b";
+// white disc so the button shows on x's dark and light themes
+const IDLE_COLOR = "#0f1419";
+const BACKGROUND = "#fff";
+const IDLE_OPACITY = "0.8";
 // the vmem mark is a thin outline; it needs more size than x's own icons to read as equal
 const ICON_SCALE = 1.2;
 const MIN_ICON_PX = 22;
@@ -148,9 +151,7 @@ function spinner(): HTMLElement {
 function render(button: HTMLButtonElement, state: SaveState): void {
   button.dataset.state = state;
   button.style.color =
-    state === "success" || state === "error"
-      ? STATE_COLORS[state]
-      : (button.dataset.idleColor ?? FALLBACK_COLOR);
+    state === "success" || state === "error" ? STATE_COLORS[state] : IDLE_COLOR;
   const size = Number(button.dataset.iconSize ?? MIN_ICON_PX);
   if (state === "idle") button.replaceChildren(createVmemLogo("current", size));
   else if (state === "saving") button.replaceChildren(spinner());
@@ -201,8 +202,7 @@ function createButton(
   button.setAttribute(BUTTON_ATTR, "");
   button.setAttribute("aria-label", LABEL);
   button.title = LABEL;
-  // colour and size follow the x icon beside it (timeline and post page differ)
-  button.dataset.idleColor = getComputedStyle(reference).color;
+  // size follows the x icon beside it (timeline and post page differ)
   const scaled = Math.round(
     reference.getBoundingClientRect().width * ICON_SCALE,
   );
@@ -213,14 +213,22 @@ function createButton(
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "center",
-    width: `${iconSize + 14}px`,
-    height: `${iconSize + 14}px`,
+    width: `${iconSize + 10}px`,
+    height: `${iconSize + 10}px`,
     padding: "0",
     border: "none",
     borderRadius: "50%",
-    background: "transparent",
+    background: BACKGROUND,
+    opacity: IDLE_OPACITY,
+    transition: "opacity 150ms ease",
     cursor: "pointer",
     flexShrink: "0",
+  });
+  button.addEventListener("mouseenter", () => {
+    button.style.opacity = "1";
+  });
+  button.addEventListener("mouseleave", () => {
+    button.style.opacity = IDLE_OPACITY;
   });
   render(button, "idle");
   // the post itself is a link; keep the click from opening it
