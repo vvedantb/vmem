@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, internal } from "../_generated/api";
 import type { Id, TableNames } from "../_generated/dataModel";
 import schema from "../schema";
+import { STAMP_DRIFT_MS } from "../../tests/simulatorClock";
 import {
   ARTIFACT_STATE_DAILY_CAP,
   ARTIFACT_TRASH_MS,
@@ -85,7 +86,7 @@ async function countRows(
 }
 
 function tick(ms = 1_000) {
-  vi.setSystemTime(Date.now() + ms);
+  vi.setSystemTime(Date.now() + ms + STAMP_DRIFT_MS);
 }
 
 describe("artifacts create / update / versions", () => {

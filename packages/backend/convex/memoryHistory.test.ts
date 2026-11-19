@@ -5,6 +5,7 @@ import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { supersedeRow } from "./dream";
 import schema from "./schema";
+import { stampedAt } from "../tests/simulatorClock";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -141,7 +142,7 @@ describe("version history: dream supersede vs duplicate merge", () => {
       status: "suppressed",
       suppressedBy: "dream-supersede",
       supersededBy: newer,
-      supersededAt: NOW,
+      supersededAt: stampedAt(NOW),
     });
     const history = await owner.user.query(api.memoryApi.history, {
       memoryId: "mem_new",

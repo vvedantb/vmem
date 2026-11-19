@@ -844,8 +844,8 @@ importers:
         specifier: catalog:node-types-22
         version: 22.19.17
       convex-test:
-        specifier: ^0.0.38
-        version: 0.0.38(convex@1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.18.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))
+        specifier: 0.0.70
+        version: 0.0.70(convex@1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.18.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))
       esbuild:
         specifier: 0.25.0
         version: 0.25.0
@@ -7348,10 +7348,10 @@ packages:
       zod:
         optional: true
 
-  convex-test@0.0.38:
-    resolution: {integrity: sha512-1o/3GvUR9gMLjiqq7SxchI/0OYQaWwbQC4INmB1SNt1WLBjUgEM8+brgpqrZwJ+Vb1DdGZokCVeihwT5IPk49w==}
+  convex-test@0.0.70:
+    resolution: {integrity: sha512-8/sRPBb2Av0OStepINBMDBpFk2VZdnJ28jnUiIszbVWcJIWB/ywbLHGH5w5b87ypQylmEIS65+LE3PmqZD3nTA==}
     peerDependencies:
-      convex: ^1.16.4
+      convex: ^1.43.0
 
   convex@1.48.0:
     resolution: {integrity: sha512-M9jEgTvCN8ziP/VgQQUH+j0ijM7g+NmQd8tFlvETK8/HMC/aaqHZwcu4hBO30X5DV2VIyYK4mOoLQGIb1766ew==}
@@ -20903,7 +20903,7 @@ snapshots:
       zod: 3.25.76
     optional: true
 
-  convex-test@0.0.38(convex@1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.18.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)):
+  convex-test@0.0.70(convex@1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.18.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)):
     dependencies:
       convex: 1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.18.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)
 

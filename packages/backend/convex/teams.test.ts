@@ -71,13 +71,7 @@ describe("teams sharing", () => {
       if (!(err instanceof ConvexError)) {
         throw err;
       }
-      const data: unknown = err.data;
-      let message: unknown = data;
-      if (typeof data === "string") {
-        const parsed: unknown = JSON.parse(data);
-        if (typeof parsed === "string") message = parsed;
-      }
-      expect(message).toBe("No vmem account for that email");
+      expect(err.data).toBe("No vmem account for that email");
     }
   });
 

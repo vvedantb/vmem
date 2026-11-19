@@ -7,6 +7,7 @@ import { DREAM_UNDO_WINDOW_MS } from "../engine/memory/dream/merge";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import schema from "./schema";
+import { stampedAt } from "../tests/simulatorClock";
 
 // Dreaming page proposal history: approved / rejected proposals, and undo of
 // an approved merge through the dream action it made.
@@ -176,8 +177,11 @@ describe("proposal history", () => {
       title: proposal.proposedTitle,
       reason: proposal.reason,
       createdAt: proposal.createdAt,
-      resolvedAt: NOW,
-      undo: { actionId, undoExpiresAt: NOW + DREAM_UNDO_WINDOW_MS },
+      resolvedAt: stampedAt(NOW),
+      undo: {
+        actionId,
+        undoExpiresAt: stampedAt(NOW + DREAM_UNDO_WINDOW_MS),
+      },
     });
 
     await owner.user.mutation(api.dream.undoAction, { actionId });
@@ -186,8 +190,8 @@ describe("proposal history", () => {
     const [after] = await history(owner);
     expect(after?.undo).toEqual({
       actionId,
-      undoExpiresAt: NOW + DREAM_UNDO_WINDOW_MS,
-      undoneAt: NOW,
+      undoExpiresAt: stampedAt(NOW + DREAM_UNDO_WINDOW_MS),
+      undoneAt: stampedAt(NOW),
     });
     await expect(
       owner.user.mutation(api.dream.undoAction, { actionId }),
