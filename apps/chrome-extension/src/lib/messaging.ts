@@ -57,6 +57,16 @@ interface ProtocolMap {
     transcript: string;
     profileId?: string;
   }): SaveOutcome;
+  saveXPost(data: {
+    url: string;
+    authorName: string;
+    handle: string;
+    text: string;
+    postedAt?: string;
+    quotedText?: string;
+    articleTitle?: string;
+    profileId?: string;
+  }): SaveOutcome;
   capturePrompt(data: {
     prompt: string;
     url: string;

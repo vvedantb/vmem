@@ -111,6 +111,7 @@ const MEMORY_SOURCE_LABELS: Record<string, string> = {
   "browser-extension": "Extension",
   "prompt-capture": "Prompt Capture",
   youtube: "YouTube",
+  x: "X",
   google_drive: "Google Drive",
   notion: "Notion",
   gmail: "Gmail",

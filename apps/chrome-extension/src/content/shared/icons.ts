@@ -1,10 +1,12 @@
 import { appMarkSvg } from "@vvedantb/ui/brand";
 
-export type VmemLogoVariant = "dark" | "light";
+export type VmemLogoVariant = "dark" | "light" | "current";
 
 const LOGO_COLORS: Record<VmemLogoVariant, string> = {
   dark: "#000",
   light: "#fff",
+  // follows the css color of the parent, for host-page icon rows
+  current: "currentColor",
 };
 
 // inline package mark, no web_accessible_resources file for pages to probe

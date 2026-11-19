@@ -1,5 +1,6 @@
 import {
   IconBookmark,
+  IconBrandX,
   IconBrandYoutube,
   IconHistory,
   IconMessageChatbot,
@@ -44,6 +45,8 @@ export function MemorySourceIcon({
       return (
         <IconBrandYoutube size={size} stroke={1.7} className={className} />
       );
+    case "x":
+      return <IconBrandX size={size} stroke={1.7} className={className} />;
     case "web":
       return <IconWorld size={size} stroke={1.7} className={className} />;
     case "browsing-history":

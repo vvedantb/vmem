@@ -20,6 +20,8 @@ export default defineConfig({
       "https://claude.ai/*",
       "https://www.youtube.com/*",
       "https://youtube.com/*",
+      "https://x.com/*",
+      "https://twitter.com/*",
       "<all_urls>",
     ],
     // staging hosts ship in development builds only

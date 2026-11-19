@@ -21,6 +21,11 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Unknown error";
 }
 
+function truncatedTitle(text: string): string {
+  const trimmed = text.trim();
+  return trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
+}
+
 export function savePageCreateParams(data: {
   url: string;
   title: string;
@@ -63,16 +68,46 @@ export function saveYoutubeCreateParams(data: {
   };
 }
 
+export function saveXPostCreateParams(data: {
+  url: string;
+  authorName: string;
+  handle: string;
+  text: string;
+  postedAt?: string;
+  quotedText?: string;
+  articleTitle?: string;
+  profileId?: string;
+}): CreateMemoryParams {
+  const content = [
+    `Author: ${data.authorName} (@${data.handle})`,
+    ...(data.postedAt ? [`Posted: ${data.postedAt}`] : []),
+    "",
+    data.text,
+    ...(data.quotedText ? ["", "Quoted post:", data.quotedText] : []),
+  ].join("\n");
+  return {
+    title:
+      data.articleTitle ||
+      truncatedTitle(data.text) ||
+      `Post by @${data.handle}`,
+    content: content.slice(0, 10000),
+    type: "knowledge",
+    source: "x",
+    tags: ["x", data.handle],
+    confidence: 1.0,
+    url: data.url,
+    profileId: data.profileId,
+  };
+}
+
 export function capturePromptCreateParams(data: {
   prompt: string;
   url: string;
   platform: string;
   profileId?: string;
 }): CreateMemoryParams {
-  const trimmed = data.prompt.trim();
-  const title = trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
   return {
-    title,
+    title: truncatedTitle(data.prompt),
     content: data.prompt.slice(0, 10000),
     type: "knowledge",
     source: "prompt-capture",
@@ -88,11 +123,9 @@ export function saveSelectionCreateParams(data: {
   pageUrl: string;
   profileId?: string;
 }): CreateMemoryParams {
-  const trimmed = data.selectedText.trim();
-  const title = trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
   const hostname = sanitizeTag(data.pageUrl);
   return {
-    title,
+    title: truncatedTitle(data.selectedText),
     content: data.selectedText.slice(0, 10000),
     type: "knowledge",
     source: "browser-extension",
@@ -126,6 +159,10 @@ export function registerMessageHandler(): void {
 
   onMessage("saveYoutubeVideo", async ({ data }) => {
     return createMemoryOrThrow(saveYoutubeCreateParams(data));
+  });
+
+  onMessage("saveXPost", async ({ data }) => {
+    return createMemoryOrThrow(saveXPostCreateParams(data));
   });
 
   onMessage("capturePrompt", async ({ data }) => {
