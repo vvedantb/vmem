@@ -23,7 +23,11 @@ const BUTTON_ATTR = "data-vmem-x-save";
 const LABEL = "Save to vmem";
 const REPLY_SELECTOR =
   '[data-testid="reply"], [data-engagement-action="reply"]';
-const SHARE_SELECTOR = '[data-engagement-action="share"]';
+const LIKE_SELECTOR =
+  '[data-engagement-action="like"], [data-testid="like"], [data-testid="unlike"]';
+// the control that adds a bookmark; legacy dom renames it to removeBookmark when set
+const ADD_BOOKMARK_SELECTOR =
+  '[data-engagement-action="bookmark"] button:not([aria-pressed="true"]), [data-testid="bookmark"]';
 const TEXT_SELECTOR = '[data-testid="tweetText"], div[lang][dir="auto"]';
 const ARTICLE_VIEW_SELECTOR = '[data-testid="twitterArticleReadView"]';
 const ARTICLE_TITLE_SELECTOR = '[data-testid="twitter-article-title"]';
@@ -246,9 +250,12 @@ function injectIntoPost(post: Element): void {
   if (!reply || !row || row.querySelector(`[${BUTTON_ATTR}]`)) return;
   const icon = reply.querySelector("svg") ?? reply;
   const button = createButton(icon, () => readPost(post));
-  // new dom groups bookmark and share at the row end; legacy dom is a flat row
-  const share = row.querySelector(SHARE_SELECTOR);
-  if (share) share.after(button);
+  // own slot between like and bookmark; the slot is the row child that holds like
+  const likeSlot = [...row.children].find(
+    (child) =>
+      child.matches(LIKE_SELECTOR) || child.querySelector(LIKE_SELECTOR),
+  );
+  if (likeSlot) likeSlot.after(button);
   else row.append(button);
 }
 
@@ -296,6 +303,16 @@ onMessage("siteSave", () => {
   return { handled: button !== null };
 });
 
+// a new bookmark also saves the post; removing a bookmark does nothing
+function saveOnBookmark(event: MouseEvent): void {
+  if (!(event.target instanceof Element)) return;
+  if (!event.target.closest(ADD_BOOKMARK_SELECTOR)) return;
+  event.target
+    .closest("article")
+    ?.querySelector<HTMLButtonElement>(`[${BUTTON_ATTR}]`)
+    ?.click();
+}
+
 // x is a virtualised spa: posts mount and unmount on scroll and on navigation.
 // buttons live inside the post nodes, so x removes them with the post
 function init(): void {
@@ -309,6 +326,7 @@ function init(): void {
     });
   });
   observer.observe(document.body, { childList: true, subtree: true });
+  document.addEventListener("click", saveOnBookmark, true);
   scan();
 }
 
