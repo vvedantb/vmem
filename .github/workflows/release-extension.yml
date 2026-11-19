@@ -1,22 +1,70 @@
 name: Release Chrome Extension
 
-# Tag push `extension-vX.Y.Z` → build, zip, upload + publish to the Chrome Web Store,
-# attach the zip to a GitHub Release.
+# Push to main on the paths below → pick the next version, build, zip, upload +
+# publish to the Chrome Web Store, create the tag `extension-vX.Y.Z` at the merge
+# commit and attach the zip to its GitHub Release.
+# Tag push `extension-vX.Y.Z` → the same release for that tag. The source version
+# must match the tag.
 # Manual dispatch on a branch → build + zip + workflow artifact only (no CWS publish).
 # Manual dispatch on an `extension-v*` tag behaves like a tag push.
-# Never runs on push to main.
+# Manual dispatch with dry_run → pick the version as a release from main does,
+# build + zip + workflow artifact only. Publishes nothing, on any ref.
+# The tag that a main release creates is made with GITHUB_TOKEN, so it starts no
+# second run.
+#
+# Chrome Web Store limits for a release on every merge:
+# - The store takes a version only if it is higher than the last upload. The
+#   picked version is higher than every `extension-v*` tag, but the job cannot
+#   see a version that was uploaded by hand.
+# - While an earlier upload is in review, the store refuses a new upload and the
+#   job fails at the upload step. No tag is made, so the next release from main
+#   picks the same version again and carries those changes.
 
 on:
   push:
+    branches: [main]
     tags:
       - "extension-v*"
+    # GitHub checks these paths for branch pushes only; a tag push always runs.
+    # Only what goes into the zip: the extension, the @vmem/shared source it
+    # bundles, the two @vmem/backend files it bundles (index.ts and the
+    # generated api.js, which is a fixed proxy; the rest of the backend gives
+    # types only), and the install and build inputs. Excluded: tests, docs,
+    # .env.example and .github/** (so a CI-only merge never releases).
+    # pnpm-lock.yaml and the root package.json are not listed: they have no
+    # per-app part, so every dependency change anywhere in the repo would
+    # release. An extension dependency change edits
+    # apps/chrome-extension/package.json, which apps/chrome-extension/** matches.
+    paths:
+      - "apps/chrome-extension/**"
+      - "!apps/chrome-extension/tests/**"
+      - "!apps/chrome-extension/**/*.md"
+      - "!apps/chrome-extension/.env.example"
+      - "packages/shared/package.json"
+      - "packages/shared/src/**"
+      - "!packages/shared/**/*.test.ts"
+      - "packages/backend/index.ts"
+      - "packages/backend/convex/_generated/api.js"
+      - "pnpm-workspace.yaml"
+      - ".npmrc"
+      - "tsconfig.base.json"
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Pick the version and build as a release from main does, but skip the Chrome Web Store and the GitHub Release."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+# One release at a time, never cancelled while it runs. The version is picked
+# inside the job, so a queued run sees the tag that the run before it created.
+# GitHub keeps only the newest pending run; that run builds the newest main, so
+# it includes the skipped merges.
 concurrency:
-  group: release-extension-${{ github.ref }}
+  group: release-extension
   cancel-in-progress: false
 
 jobs:
@@ -25,7 +73,8 @@ jobs:
     permissions:
       contents: write
     env:
-      PUBLISH: ${{ startsWith(github.ref, 'refs/tags/extension-v') }}
+      PUBLISH: ${{ (startsWith(github.ref, 'refs/tags/extension-v') || (github.event_name == 'push' && github.ref == 'refs/heads/main')) && inputs.dry_run != true }}
+      PICK_VERSION: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || inputs.dry_run == true }}
       REF_NAME: ${{ github.ref_name }}
       EXT_DIR: apps/chrome-extension/dist/chrome-mv3
     steps:
@@ -48,7 +97,7 @@ jobs:
 
       - name: Note build-only run
         if: env.PUBLISH != 'true'
-        run: echo "::notice::Ref '$REF_NAME' is not an extension-v* tag. Build + artifact only; Chrome Web Store publish skipped."
+        run: echo "::notice::Ref '$REF_NAME' is a dry run or a manual run that is not on an extension-v* tag. Build + artifact only; Chrome Web Store publish skipped."
 
       - uses: actions/checkout@v6
 
@@ -61,6 +110,38 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Sets the release tag. A release from main (or a dry run) gets the next
+      # version (.github/scripts/pick-release-version.sh), written into
+      # package.json and wxt.config.ts in this workspace, so the built manifest
+      # carries it. Nothing is committed. A tag release keeps its tag and the
+      # source version. A build-only run has no tag.
+      - name: Pick version
+        id: pick
+        run: |
+          set -euo pipefail
+          if [ "$PICK_VERSION" != "true" ]; then
+            if [ "$PUBLISH" = "true" ]; then
+              echo "tag=$REF_NAME" >> "$GITHUB_OUTPUT"
+            else
+              echo "tag=" >> "$GITHUB_OUTPUT"
+            fi
+            exit 0
+          fi
+          source_version="$(jq -r .version apps/chrome-extension/package.json)"
+          version="$(bash .github/scripts/pick-release-version.sh extension-v "$source_version")"
+          cd apps/chrome-extension
+          jq --arg v "$version" '.version = $v' package.json > package.json.tmp
+          mv package.json.tmp package.json
+          line='^([[:space:]]*version: )"[0-9.]+",$'
+          count="$(grep -cE "$line" wxt.config.ts || true)"
+          if [ "$count" != "1" ]; then
+            echo "::error::Expected one manifest version line in wxt.config.ts, found $count."
+            exit 1
+          fi
+          sed -i -E "s/$line/\\1\"$version\",/" wxt.config.ts
+          grep -nE "$line" wxt.config.ts
+          echo "tag=extension-v$version" >> "$GITHUB_OUTPUT"
+
       # Production values. Publishable keys and the Convex URL are public by design.
       - name: Build extension
         env:
@@ -71,6 +152,8 @@ jobs:
 
       - name: Check version
         id: version
+        env:
+          TAG: ${{ steps.pick.outputs.tag }}
         run: |
           manifest_version="$(jq -r .version "$EXT_DIR/manifest.json")"
           package_version="$(jq -r .version apps/chrome-extension/package.json)"
@@ -80,10 +163,10 @@ jobs:
             echo "::error::Built manifest version ($manifest_version) does not match package.json ($package_version). Bump both package.json and wxt.config.ts manifest.version."
             exit 1
           fi
-          if [ "$PUBLISH" = "true" ]; then
-            tag_version="${REF_NAME#extension-v}"
+          if [ -n "$TAG" ]; then
+            tag_version="${TAG#extension-v}"
             if [ "$tag_version" != "$manifest_version" ]; then
-              echo "::error::Tag $REF_NAME expects version $tag_version, but built manifest.json has $manifest_version."
+              echo "::error::Tag $TAG expects version $tag_version, but built manifest.json has $manifest_version."
               exit 1
             fi
           fi
@@ -166,15 +249,18 @@ jobs:
           fi
           echo "Published. Status: $(jq -c .status publish.json)"
 
+      # On a release from main the tag does not exist yet, so
+      # `gh release create --target` makes it at the merge commit.
       - name: Attach zip to GitHub Release
         if: env.PUBLISH == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.pick.outputs.tag }}
           ZIP_PATH: ${{ steps.zip.outputs.path }}
         run: |
-          if gh release view "$REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$REF_NAME" "$ZIP_PATH" --clobber --repo "$GITHUB_REPOSITORY"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP_PATH" --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$REF_NAME" "$ZIP_PATH" --repo "$GITHUB_REPOSITORY" \
-              --target "$GITHUB_SHA" --title "vmem Chrome extension $REF_NAME" --generate-notes
+            gh release create "$TAG" "$ZIP_PATH" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --title "vmem Chrome extension $TAG" --generate-notes
           fi
