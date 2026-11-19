@@ -15,6 +15,16 @@ async function triggerScreenshot(tabId: number): Promise<void> {
   }
 }
 
+// x and youtube save their own item; no answer means no site script on this tab
+async function triggerSiteSave(tabId: number): Promise<boolean> {
+  try {
+    const { handled } = await sendMessage("siteSave", undefined, tabId);
+    return handled;
+  } catch {
+    return false;
+  }
+}
+
 export function registerCommandListener(): void {
   chrome.commands.onCommand.addListener((command) => {
     void handleCommand(command);
@@ -41,6 +51,7 @@ export async function handleCommand(command: string): Promise<void> {
 
     console.log("[vmem] Keyboard shortcut: saving page", tab.url);
     const tabId = tab.id;
+    if (await triggerSiteSave(tabId)) return;
 
     try {
       const result = await savePageFromTab(tab);

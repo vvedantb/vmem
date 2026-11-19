@@ -1,4 +1,6 @@
-// shadow-dom toasts for any host page, stack top-right, auto-dismiss
+// shadow-dom toasts for any host page, stack top-right, auto-dismiss.
+// looks like SonnerToaster from @vvedantb/ui: same token values, sonner's icons and motion.
+// the package toaster needs react + tailwind, too heavy for a content script on host pages
 
 import { escape } from "es-toolkit";
 import { createShadowHost } from "./dom-utils";
@@ -17,20 +19,47 @@ let listEl: HTMLElement | null = null;
 let counter = 0;
 const active = new Map<string, ToastEntry>();
 
-const CHECK_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
-const ERROR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-const INFO_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
-const SPINNER_HTML = `<div class="spinner"></div>`;
+const EXIT_MS = 400;
+
+// sonner's default 20px filled icons
+function filledIcon(path: string): string {
+  return `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="${path}"/></svg>`;
+}
 
 const ICON_MAP: Record<ToastType, string> = {
-  success: CHECK_SVG,
-  error: ERROR_SVG,
-  info: INFO_SVG,
-  loading: SPINNER_HTML,
+  success: filledIcon(
+    "M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z",
+  ),
+  error: filledIcon(
+    "M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z",
+  ),
+  info: filledIcon(
+    "M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z",
+  ),
+  loading: `<div class="spinner"></div>`,
 };
 
+// colour values copied from @vvedantb/ui/tokens (light and dark)
 const STYLES = `
-  :host { all: initial; }
+  :host {
+    all: initial;
+    --overlay: oklch(100% 0 0);
+    --foreground: oklch(21.03% 0 0);
+    --border: oklch(90% 0 0);
+    --muted: oklch(55.17% 0 0);
+    --success: oklch(73.29% 0.1941 150.81);
+    --danger: oklch(65.32% 0.2335 25.74);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :host {
+      --overlay: oklch(21.03% 0 0);
+      --foreground: oklch(99.11% 0 0);
+      --border: oklch(28% 0 0);
+      --muted: oklch(70.5% 0 0);
+      --danger: oklch(59.4% 0.1973 24.63);
+    }
+  }
 
   #toast-list {
     position: fixed;
@@ -38,34 +67,37 @@ const STYLES = `
     right: 16px;
     display: flex;
     flex-direction: column-reverse;
-    gap: 8px;
+    gap: 12px;
+    width: 356px;
+    max-width: calc(100vw - 32px);
     z-index: 2147483647;
     pointer-events: none;
   }
 
   .toast {
+    box-sizing: border-box;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 16px;
-    border-radius: 10px;
-    background: rgba(24, 24, 28, 0.92);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    color: #e5e5e5;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: var(--overlay);
+    color: var(--foreground);
     font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
+    line-height: 1.375;
     pointer-events: auto;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
-    transform: translateX(120%);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--border) 60%, transparent),
+      0 4px 12px rgb(0 0 0 / 0.08);
+    transform: translateY(-100%);
     opacity: 0;
-    transition: transform 300ms cubic-bezier(0.22,1,0.36,1), opacity 300ms ease;
-    max-width: 320px;
+    transition: transform 400ms ease, opacity 400ms ease;
   }
 
-  .toast.show { transform: translateX(0); opacity: 1; }
-  .toast.hide { transform: translateX(120%); opacity: 0; }
+  .toast.show { transform: translateY(0); opacity: 1; }
 
   .toast-icon {
     display: flex;
@@ -76,23 +108,28 @@ const STYLES = `
     flex-shrink: 0;
   }
 
-  .toast-success .toast-icon { color: #4ade80; }
-  .toast-error .toast-icon { color: #f87171; }
-  .toast-info .toast-icon { color: #60a5fa; }
-  .toast-loading .toast-icon { color: #a0a0a0; }
+  .toast-success .toast-icon { color: var(--success); }
+  .toast-error .toast-icon { color: var(--danger); }
+  .toast-info .toast-icon { color: var(--foreground); }
+  .toast-loading .toast-icon { color: var(--muted); }
 
-  .toast-message { flex: 1; line-height: 1.3; }
+  .toast-message { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 
   .spinner {
+    box-sizing: border-box;
     width: 16px;
     height: 16px;
-    border: 2px solid rgba(255,255,255,0.2);
-    border-top-color: #a0a0a0;
+    border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+    border-top-color: currentColor;
     border-radius: 50%;
     animation: spin 600ms linear infinite;
   }
 
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .toast { transform: none; transition: opacity 200ms ease; }
+  }
 `;
 
 function ensureContainer(): void {
@@ -102,6 +139,8 @@ function ensureContainer(): void {
 
   listEl = document.createElement("div");
   listEl.id = "toast-list";
+  listEl.setAttribute("role", "status");
+  listEl.setAttribute("aria-live", "polite");
   shadow.appendChild(listEl);
 
   document.documentElement.appendChild(host);
@@ -142,10 +181,9 @@ function hideToast(id: string): void {
 
   if (entry.timer) clearTimeout(entry.timer);
   entry.element.classList.remove("show");
-  entry.element.classList.add("hide");
 
   setTimeout(() => {
     entry.element.remove();
     active.delete(id);
-  }, 300);
+  }, EXIT_MS);
 }

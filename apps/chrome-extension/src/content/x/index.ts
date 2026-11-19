@@ -1,6 +1,6 @@
 // save button on x posts and articles; x ships two doms (legacy with data-testid, new without)
 
-import { sendMessage } from "@/lib/messaging";
+import { onMessage, sendMessage } from "@/lib/messaging";
 import { createVmemLogo } from "@/content/shared/icons";
 import { onDocumentReady } from "@/content/shared/dom-utils";
 import { checkIcon, errorIcon } from "@/content/shared/status-icons";
@@ -166,6 +166,7 @@ async function save(
       ...post,
       text: post.text.slice(0, MAX_TEXT_LENGTH),
     });
+    showToast({ type: "success", message: "Saved to vmem" });
     render(button, "success");
   } catch (err) {
     const reason = errorMessage(err);
@@ -242,6 +243,33 @@ function scan(): void {
     .querySelectorAll(ARTICLE_VIEW_SELECTOR)
     .forEach(injectIntoStandaloneArticle);
 }
+
+function samePath(url: string): boolean {
+  return (
+    new URL(url).pathname.toLowerCase() === location.pathname.toLowerCase()
+  );
+}
+
+// button of the post or article that the open page is about; a timeline has none
+function pageButton(): HTMLButtonElement | null {
+  const standalone = document.querySelector<HTMLButtonElement>(
+    `${ARTICLE_VIEW_SELECTOR} > [${BUTTON_ATTR}]`,
+  );
+  if (standalone) return standalone;
+  for (const post of document.querySelectorAll("article")) {
+    const url = readPost(post)?.url;
+    if (url && samePath(url)) {
+      return post.querySelector<HTMLButtonElement>(`[${BUTTON_ATTR}]`);
+    }
+  }
+  return null;
+}
+
+onMessage("siteSave", () => {
+  const button = pageButton();
+  button?.click();
+  return { handled: button !== null };
+});
 
 // x is a virtualised spa: posts mount and unmount on scroll and on navigation.
 // buttons live inside the post nodes, so x removes them with the post

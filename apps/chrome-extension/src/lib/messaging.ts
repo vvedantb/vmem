@@ -88,6 +88,8 @@ interface ProtocolMap {
   importProgress(data: ImportProgressData): void;
   extractPage(): ExtractPageData;
   startScreenshot(): { ok: true };
+  // save shortcut: a site script saves its own item (post, video) and answers handled
+  siteSave(): { handled: boolean };
 }
 
 const messenger = defineExtensionMessaging<ProtocolMap>();

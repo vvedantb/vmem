@@ -1,6 +1,6 @@
 // save button on video pages, transcript via dom because caption apis need botguard
 
-import { sendMessage } from "@/lib/messaging";
+import { onMessage, sendMessage } from "@/lib/messaging";
 import { createVmemLogo } from "@/content/shared/icons";
 import { onDocumentReady, waitForProbe } from "@/content/shared/dom-utils";
 import { errorMessage } from "@/lib/error";
@@ -141,7 +141,7 @@ function createSaveButton(): HTMLButtonElement {
 
 async function handleSaveClick(): Promise<void> {
   const buttonEl = document.getElementById("vmem-youtube-save");
-  if (!(buttonEl instanceof HTMLButtonElement)) return;
+  if (!(buttonEl instanceof HTMLButtonElement) || buttonEl.disabled) return;
   const button = buttonEl;
 
   const videoId = getVideoId();
@@ -250,5 +250,11 @@ function init(): void {
 
   window.addEventListener("yt-navigate-finish", handleNavigation);
 }
+
+onMessage("siteSave", () => {
+  const button = document.getElementById("vmem-youtube-save");
+  button?.click();
+  return { handled: button !== null };
+});
 
 onDocumentReady(init);
