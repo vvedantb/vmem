@@ -153,8 +153,8 @@ importers:
         specifier: catalog:node-types-22
         version: 22.19.17
       '@vvedantb/config':
-        specifier: ^0.10.0
-        version: 0.10.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@5.9.3))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
+        specifier: ^0.11.0
+        version: 0.11.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@5.9.3))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
       baseline-browser-mapping:
         specifier: ^2.9.19
         version: 2.10.20
@@ -280,8 +280,8 @@ importers:
         specifier: ^4.4.0
         version: 4.7.0(vite@6.4.2(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
       '@vvedantb/config':
-        specifier: ^0.10.0
-        version: 0.10.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@7.0.1-rc))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@26.6.5)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
+        specifier: ^0.11.0
+        version: 0.11.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@7.0.1-rc))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@26.6.5)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
       happy-dom:
         specifier: ^20.0.2
         version: 20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6)
@@ -353,8 +353,8 @@ importers:
         specifier: ^4.4.0
         version: 4.7.0(vite@6.4.2(@types/node@22.19.17)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
       '@vvedantb/config':
-        specifier: ^0.10.0
-        version: 0.10.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@7.0.1-rc))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
+        specifier: ^0.11.0
+        version: 0.11.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@7.0.1-rc))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
       '@vvedantb/ui':
         specifier: ^0.50.1
         version: 0.50.1(c10bc53ddb815067f11c9046c8f61fe8)
@@ -542,8 +542,8 @@ importers:
         specifier: 'catalog:'
         version: 19.3.0
       '@vvedantb/config':
-        specifier: ^0.10.0
-        version: 0.10.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@7.0.1-rc))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@1.21.7)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
+        specifier: ^0.11.0
+        version: 0.11.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@7.0.1-rc))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@1.21.7)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))
       babel-preset-expo:
         specifier: ~57.0.16
         version: 57.0.16(@babel/core@7.29.7)(@babel/runtime@7.29.10)(expo@57.0.31)(react-refresh@0.17.0)
@@ -6181,8 +6181,8 @@ packages:
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
 
-  '@vvedantb/config@0.10.0':
-    resolution: {integrity: sha512-EX8TfGQ/GGgcYqIrx9eGUZyIY8TZ22O8MUhTMEhLgHSGPiI8ir63HQayZ00MqgfFUG+DJ0qaGDWCQM86h6UQ/Q==}
+  '@vvedantb/config@0.11.0':
+    resolution: {integrity: sha512-LVlddb/z5t6Q5cESIfLCTZbGNFrsfu5wo9Im5G5mda+zxQDUeVV4AEUD1MB4p+Z11oXwJtWYLFdf1uL4ml7nkQ==}
     hasBin: true
     peerDependencies:
       '@electron/asar': ^3.2.0 || ^4.0.0
@@ -19488,25 +19488,25 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
-  '@vvedantb/config@0.10.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@5.9.3))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))':
+  '@vvedantb/config@0.11.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@5.9.3))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))':
     optionalDependencies:
       '@electron/asar': 3.4.1
       '@expo/config-plugins': 57.0.11(typescript@5.9.3)
       vitest: 3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1)
 
-  '@vvedantb/config@0.10.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@7.0.1-rc))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@1.21.7)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))':
+  '@vvedantb/config@0.11.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@7.0.1-rc))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@1.21.7)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))':
     optionalDependencies:
       '@electron/asar': 3.4.1
       '@expo/config-plugins': 57.0.11(typescript@7.0.1-rc)
       vitest: 3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@1.21.7)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1)
 
-  '@vvedantb/config@0.10.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@7.0.1-rc))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))':
+  '@vvedantb/config@0.11.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@7.0.1-rc))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))':
     optionalDependencies:
       '@electron/asar': 3.4.1
       '@expo/config-plugins': 57.0.11(typescript@7.0.1-rc)
       vitest: 3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@22.19.17)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1)
 
-  '@vvedantb/config@0.10.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@7.0.1-rc))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@26.6.5)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))':
+  '@vvedantb/config@0.11.0(@electron/asar@3.4.1)(@expo/config-plugins@57.0.11(typescript@7.0.1-rc))(vitest@3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@26.6.5)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1))':
     optionalDependencies:
       '@electron/asar': 3.4.1
       '@expo/config-plugins': 57.0.11(typescript@7.0.1-rc)
