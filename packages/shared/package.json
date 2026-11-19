@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsrs -p tsconfig.json --noEmit"
   },
   "exports": {
     ".": "./src/index.ts",
