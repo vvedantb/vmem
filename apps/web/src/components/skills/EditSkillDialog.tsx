@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
@@ -8,7 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@vvedantb/ui";
 import { toast } from "sonner";
 import { SkillFormShell } from "@/components/skills/SkillFormShell";
 import {
-  emptySkillFormValues,
   skillFormSchema,
   skillFormValuesFrom,
   toastSkillFormErrors,
@@ -27,45 +25,6 @@ export function EditSkillDialog({
   open,
   onOpenChange,
 }: EditSkillDialogProps) {
-  const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
-    (localStore, args) => {
-      patchSkillInLists(localStore, args);
-    },
-  );
-
-  const form = useForm<SkillFormValues>({
-    resolver: zodResolver(skillFormSchema),
-    defaultValues: emptySkillFormValues,
-  });
-
-  const submitting = form.formState.isSubmitting;
-  const skillId = skill?._id;
-
-  useEffect(() => {
-    if (!open || !skill) return;
-    form.reset(skillFormValuesFrom(skill));
-    // reset only when the dialog opens or the edited skill changes not on
-    // every live query identity churn while the form is dirty.
-    // oxlint-disable-next-line react/exhaustive-deps -- skill snapshot at open/_id
-  }, [open, skillId, form]);
-
-  const onSubmit = async (values: SkillFormValues) => {
-    if (!skill) return;
-
-    try {
-      await updateSkill({
-        id: skill._id,
-        name: values.name,
-        description: values.description.trim(),
-        instructions: values.instructions,
-      });
-      onOpenChange(false);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to update skill";
-      toast.error(msg);
-    }
-  };
-
   if (!skill) return null;
 
   return (
@@ -75,18 +34,61 @@ export function EditSkillDialog({
           <DialogTitle>Edit skill</DialogTitle>
         </DialogHeader>
 
-        <SkillFormShell
-          register={form.register}
-          onSubmit={form.handleSubmit(onSubmit, toastSkillFormErrors)}
-          onCancel={() => onOpenChange(false)}
-          submitting={submitting}
-          submitLabel="Done"
-          nameId="edit-skill-name"
-          descriptionId="edit-skill-description"
-          instructionsId="edit-skill-instructions"
-          labeledSections
+        <EditSkillForm
+          key={skill._id}
+          skill={skill}
+          onClose={() => onOpenChange(false)}
         />
       </DialogContent>
     </Dialog>
+  );
+}
+
+interface EditSkillFormProps {
+  skill: Doc<"skills">;
+  onClose: () => void;
+}
+
+function EditSkillForm({ skill, onClose }: EditSkillFormProps) {
+  const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
+    (localStore, args) => {
+      patchSkillInLists(localStore, args);
+    },
+  );
+
+  const form = useForm<SkillFormValues>({
+    resolver: zodResolver(skillFormSchema),
+    defaultValues: skillFormValuesFrom(skill),
+  });
+
+  const submitting = form.formState.isSubmitting;
+
+  const onSubmit = async (values: SkillFormValues) => {
+    try {
+      await updateSkill({
+        id: skill._id,
+        name: values.name,
+        description: values.description.trim(),
+        instructions: values.instructions,
+      });
+      onClose();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to update skill";
+      toast.error(msg);
+    }
+  };
+
+  return (
+    <SkillFormShell
+      register={form.register}
+      onSubmit={form.handleSubmit(onSubmit, toastSkillFormErrors)}
+      onCancel={onClose}
+      submitting={submitting}
+      submitLabel="Done"
+      nameId="edit-skill-name"
+      descriptionId="edit-skill-description"
+      instructionsId="edit-skill-instructions"
+      labeledSections
+    />
   );
 }
