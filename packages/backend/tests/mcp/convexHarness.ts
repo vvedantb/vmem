@@ -5,11 +5,6 @@ import { z } from "zod";
 import { register as registerAuditLog } from "convex-audit-log/test";
 import aggregateTest from "@convex-dev/aggregate/test";
 import cronsTest from "@convex-dev/crons/test";
-import type {
-  FunctionReference,
-  FunctionReturnType,
-  OptionalRestArgs,
-} from "convex/server";
 import { api, internal } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { ActionCtx } from "../../convex/_generated/server";
@@ -69,22 +64,9 @@ export function convexActionCtx(
   vectorSearch: VectorSearch = noVectorHits,
 ) {
   return requireActionCtx({
-    runQuery: <Query extends FunctionReference<"query", "public" | "internal">>(
-      query: Query,
-      ...args: OptionalRestArgs<Query>
-    ): Promise<FunctionReturnType<Query>> => t.query(query, ...args),
-    runMutation: <
-      Mutation extends FunctionReference<"mutation", "public" | "internal">,
-    >(
-      mutation: Mutation,
-      ...args: OptionalRestArgs<Mutation>
-    ): Promise<FunctionReturnType<Mutation>> => t.mutation(mutation, ...args),
-    runAction: <
-      Action extends FunctionReference<"action", "public" | "internal">,
-    >(
-      action: Action,
-      ...args: OptionalRestArgs<Action>
-    ): Promise<FunctionReturnType<Action>> => t.action(action, ...args),
+    runQuery: t.query,
+    runMutation: t.mutation,
+    runAction: t.action,
     scheduler: {
       runAfter: async () => null,
       runAt: async () => null,

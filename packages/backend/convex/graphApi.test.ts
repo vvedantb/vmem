@@ -8,6 +8,7 @@ import {
   newestGraphMemories,
 } from "./graphApi";
 import schema from "./schema";
+import { actionRunners } from "../tests/actionRunners";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -179,7 +180,7 @@ describe("graph reads", () => {
     expect(expected.edges).toHaveLength(MEMORY_COUNT * ENTITY_COUNT);
     expect(expected.links).toHaveLength(1_100);
 
-    const ctx = { runQuery: t.query };
+    const ctx = actionRunners(t);
     const [entities, links] = await Promise.all([
       loadGraphEntities(ctx, memories),
       loadGraphLinks(ctx, memories),
@@ -246,7 +247,7 @@ describe("graph reads", () => {
         });
       }
     });
-    const ctx = { runQuery: t.query };
+    const ctx = actionRunners(t);
 
     const full = await loadGraphEntities(ctx, memories);
     expect(full.entityNodes.map((node) => node.id)).toEqual([

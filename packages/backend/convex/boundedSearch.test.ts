@@ -6,6 +6,7 @@ import { internal } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
 import { listMemoriesForClerk } from "./memoryRuntime";
 import schema from "./schema";
+import { actionRunners } from "../tests/actionRunners";
 import {
   CONVEX_FTS_SCAN_MAX,
   FTS_PAGE_SIZE,
@@ -53,6 +54,7 @@ async function seed(t: Harness) {
 function recordingCtx(t: Harness) {
   const queries: string[] = [];
   const numItems: number[] = [];
+  const runners = actionRunners(t);
   const ctx: Pick<ActionCtx, "runQuery" | "runMutation"> = {
     runQuery: async (ref, ...args) => {
       queries.push(getFunctionName(ref));
@@ -60,9 +62,9 @@ function recordingCtx(t: Harness) {
       if (arg && typeof arg === "object" && "numItems" in arg) {
         if (typeof arg.numItems === "number") numItems.push(arg.numItems);
       }
-      return await t.query(ref, ...args);
+      return await runners.runQuery(ref, ...args);
     },
-    runMutation: async (ref, ...args) => await t.mutation(ref, ...args),
+    runMutation: runners.runMutation,
   };
   return { ctx, queries, numItems };
 }

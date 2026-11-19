@@ -15,7 +15,7 @@ import { LLM_MODEL } from "./lib/openRouter/shared";
 import { userFacingError } from "./lib/userFacingError";
 import type { MemoryReadScope } from "../engine/memory/scope";
 import { UPDATES_LINK_REASON } from "../engine/memory/supersede";
-import { auditLog, ResourceTypes } from "./auditLog";
+import { ResourceTypes } from "./auditLog";
 import { createDreamSkill } from "./skills";
 import { saveTranscriptMemory, TRANSCRIPT_SOURCE } from "./transcripts";
 import type { ProposedUpdateNode } from "./memoryApi/types";
@@ -454,7 +454,7 @@ export async function resolveProposalWithAudit(
     },
   );
   if (result) {
-    await auditLog.log(ctx, {
+    await ctx.runMutation(internal.auditLog.logFromActionInternal, {
       action: "proposed_update.resolved",
       actorId: args.actorUserId,
       resourceType: ResourceTypes.PROPOSED_UPDATE,

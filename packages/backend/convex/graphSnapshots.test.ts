@@ -16,6 +16,7 @@ import {
   GRAPH_TOMBSTONE_RETENTION_MS,
 } from "./graphSnapshots";
 import schema from "./schema";
+import { actionRunners } from "../tests/actionRunners";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -423,18 +424,15 @@ describe("graph snapshot caps", () => {
       maxPages?: number;
       pageSize?: number;
     }) =>
-      loadScopedGraph(
-        { runQuery: t.query },
-        {
-          userId,
-          clerkId: CLERK_ID,
-          profileId,
-          includeSkills: false,
-          maxNodes: 8_000,
-          maxEdges: 8_000,
-          ...limits,
-        },
-      );
+      loadScopedGraph(actionRunners(t), {
+        userId,
+        clerkId: CLERK_ID,
+        profileId,
+        includeSkills: false,
+        maxNodes: 8_000,
+        maxEdges: 8_000,
+        ...limits,
+      });
     return { t, read };
   }
 

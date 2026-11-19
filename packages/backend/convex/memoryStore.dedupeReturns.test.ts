@@ -1,7 +1,12 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { register as registerAuditLog } from "convex-audit-log/test";
-import { v, type GenericValidator, type Value } from "convex/values";
+import {
+  CommitTsPlaceholder,
+  v,
+  type GenericValidator,
+  type Value,
+} from "convex/values";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import { createOrUpsertResultValidator } from "./memoryStore/functions";
@@ -63,7 +68,8 @@ function returnsError(
         typeof value !== "object" ||
         value === null ||
         Array.isArray(value) ||
-        value instanceof ArrayBuffer
+        value instanceof ArrayBuffer ||
+        value instanceof CommitTsPlaceholder
       ) {
         return mismatch;
       }
@@ -93,6 +99,9 @@ function returnsError(
       }
       return null;
     }
+    // no memory validator uses this kind: fail, do not pass it unchecked
+    case "commitTs":
+      return `This check does not support the validator kind ${validator.kind}. Path: ${path || "."}`;
   }
 }
 

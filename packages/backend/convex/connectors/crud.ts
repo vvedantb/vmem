@@ -375,7 +375,7 @@ export async function runDeleteConnectorData(
     id: connectorId,
   });
 
-  await auditLog.log(ctx, {
+  await ctx.runMutation(internal.auditLog.logFromActionInternal, {
     action: "connector.data_deleted",
     actorId: ctx.userId,
     resourceType: ResourceTypes.CONNECTOR,

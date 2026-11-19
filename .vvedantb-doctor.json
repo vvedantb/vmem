@@ -1,7 +1,4 @@
 {
-  "waivers": {
-    "no-plain-tsc": "web, backend, chrome-extension and mobile keep tsc: tsrs 7.1.0-beta.tsrs2 reports 6 errors (TS5115, TS2615) inside node_modules/convex-helpers/server/zod3.ts and zod4.ts, reached through packages/backend/convex/validators.ts. tsc 7.0.1-rc reports none. shared, sdk, desktop, e2e and the mobile tests run tsrs. Remove this waiver when tsrs accepts convex-helpers."
-  },
   "ciCommands": {
     "pnpm typecheck:all": "It type-checks the web, backend, sdk, shared, chrome-extension, desktop and mobile packages and the e2e project, while the standard typecheck covers the web app only.",
     "node scripts/compiler-check.mjs": "It finds web files that the React Compiler skips without any build error, and fails on a skip that is not in the recorded baseline.",
