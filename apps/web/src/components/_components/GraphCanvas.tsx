@@ -83,6 +83,8 @@ const LABEL_HALO_PX = 3;
 const FOCUSED_LINK_WIDTH_INCREASE = 2;
 const CENTER_ZOOM_SCALE = 2;
 const CENTER_DURATION_MS = 500;
+// a filter change keeps the layout: the simulation gets only a small push
+const FILTER_SETTLE_ALPHA = 0.02;
 
 function fitPaddingForNodeCount(nodeCount: number): number {
   if (nodeCount <= 10) return 0.35;
@@ -121,13 +123,14 @@ function GraphCanvas({
   const hoveredIndexRef = useRef<number | undefined>(undefined);
   const hoveredLinkIndexRef = useRef<number | undefined>(undefined);
   const lastPositionsRef = useRef(new Map<string, { x: number; y: number }>());
-  // camera at last teardown restored on same node set rebuilds (live edge
-  // events, refetches) so background data churn does not reset zoom/pan
+  // camera at last teardown, restored when the rebuilt graph has only known
+  // nodes (filter change, live edge event, refetch) so zoom/pan stay
   const lastCameraRef = useRef<{
     x: number;
     y: number;
     zoom: number;
     nodeCount: number;
+    focusNodeId: string | null;
   } | null>(null);
   const [webglError, setWebglError] = useState(false);
 
@@ -489,6 +492,8 @@ function GraphCanvas({
 
     setWebglError(false);
     let cancelled = false;
+    const builtFocusNodeId = focusNodeIdRef.current ?? null;
+    const savedPositions = lastPositionsRef.current;
     root.style.opacity = "0";
     const buffers = buildCosmosGraphBuffers(
       nodes,
@@ -674,25 +679,28 @@ function GraphCanvas({
     void graph.ready.then(() => {
       if (cancelled) return;
       graph.pause();
-      const seededCount = lastPositionsRef.current.size;
-      const mostlyPersisted =
-        seededCount > 0 && seededCount >= buffers.indexToNode.length * 0.5;
-      const warmupTicks = mostlyPersisted
-        ? Math.min(cosmosWarmupTicks(buffers.indexToNode.length), 30)
-        : cosmosWarmupTicks(buffers.indexToNode.length);
-      for (let i = 0; i < warmupTicks; i++) graph.step();
-      // same node set as the previous graph (rebuild from a live edge event
-      // or an equal refetch) → restore the camera instead of re-fitting
+      const nodeCount = buffers.indexToNode.length;
       const camera = lastCameraRef.current;
       let persistedCount = 0;
       for (const id of buffers.indexToId) {
         if (lastPositionsRef.current.has(id)) persistedCount += 1;
       }
-      const sameNodeSet =
+      // every node has its old position and the view is the same (global or
+      // one neighbourhood) → restore the camera instead of re-fitting
+      const keepCamera =
         camera !== null &&
-        camera.nodeCount === buffers.indexToNode.length &&
-        persistedCount === buffers.indexToNode.length;
-      if (sameNodeSet) {
+        persistedCount === nodeCount &&
+        camera.focusNodeId === builtFocusNodeId;
+      // known nodes went away or came back: a filter change. No warm-up, so
+      // the nodes that stay do not move
+      const keepLayout = keepCamera && camera.nodeCount !== nodeCount;
+      const warmupTicks = keepLayout
+        ? 0
+        : persistedCount >= nodeCount * 0.5
+          ? Math.min(cosmosWarmupTicks(nodeCount), 30)
+          : cosmosWarmupTicks(nodeCount);
+      for (let i = 0; i < warmupTicks; i++) graph.step();
+      if (keepCamera) {
         graph.setZoomTransformByPointPositions(
           Float32Array.from([camera.x, camera.y]),
           0,
@@ -713,7 +721,9 @@ function GraphCanvas({
       paintSceneOverlays(graph);
       applyConnectorLogos(graph, true);
       root.style.opacity = "1";
-      graph.start(COSMOS_INITIAL_SETTLE_ALPHA);
+      graph.start(
+        keepLayout ? FILTER_SETTLE_ALPHA : COSMOS_INITIAL_SETTLE_ALPHA,
+      );
     });
 
     void loadCosmosConnectorLogoAtlas().then((atlas) => {
@@ -726,10 +736,13 @@ function GraphCanvas({
     return () => {
       cancelled = true;
       root.style.opacity = "";
-      lastPositionsRef.current = capturePointPositions(
+      // merge: a node that a filter removed gets its old place when it returns
+      for (const [id, position] of capturePointPositions(
         buffers.indexToId,
         graph.getPointPositions(),
-      );
+      )) {
+        savedPositions.set(id, position);
+      }
       const [centerX, centerY] = graph.screenToSpacePosition([
         root.clientWidth / 2,
         root.clientHeight / 2,
@@ -739,6 +752,7 @@ function GraphCanvas({
         y: centerY,
         zoom: graph.getZoomLevel(),
         nodeCount: buffers.indexToNode.length,
+        focusNodeId: builtFocusNodeId,
       };
       graph.destroy();
       if (graphRef.current === graph) graphRef.current = null;

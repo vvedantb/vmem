@@ -40,6 +40,7 @@ export default function MemoryGraph({
     canvasRef,
     onSelectNode,
     onRevealNode,
+    onClearFilters,
     isFocused,
     resolvedFocusNodeId,
     loadedMemoryCount,
@@ -121,6 +122,21 @@ export default function MemoryGraph({
         onClickNode={interaction.handleClickNode}
         onFocusNode={interaction.handleFocusNode}
       />
+
+      {/* over the canvas, not in place of it: the canvas keeps its layout */}
+      {graphNodes.length === 0 ? (
+        <div className="absolute inset-0">
+          <GraphStatus
+            variant="empty"
+            title="No nodes match the filters"
+            action={
+              <Button variant="outline" size="sm" onClick={onClearFilters}>
+                Clear filters
+              </Button>
+            }
+          />
+        </div>
+      ) : null}
 
       <GraphNavControls
         onZoomIn={() => canvasRef.current?.zoomIn()}
