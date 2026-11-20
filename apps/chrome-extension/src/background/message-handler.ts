@@ -125,31 +125,33 @@ export function saveSiteItemCreateParams(data: SiteItem): CreateMemoryParams {
     tags: [data.source, data.tag],
     confidence: 1.0,
     url: data.url,
+    externalId: keyOf(data.url),
   };
 }
 
 const TAG_LIST_LIMIT = 100;
 
-// path without the last slash; sites write the same item with and without it
-function pathOf(url: string | null | undefined): string | undefined {
-  return url && URL.canParse(url)
+// key of a site item: its path without the last slash; sites write the same
+// item with and without it. The backend stores the key as sourceId
+function keyOf(url: string): string | undefined {
+  return URL.canParse(url)
     ? new URL(url).pathname.toLowerCase().replace(/\/$/, "")
     : undefined;
 }
 
-// the memory of an item is found by its tag, then by its url
+// the memory of an item is found by its tag, then by its key; the api does
+// not return the url of a memory
 async function removeSiteItem(
   data: SiteItemRef,
 ): Promise<{ removed: boolean }> {
+  const key = keyOf(data.url);
+  if (key === undefined) return { removed: false };
   const { memories } = await listMemories({
     source: data.source,
     tags: [sanitizeTag(data.tag)],
     limit: TAG_LIST_LIMIT,
   });
-  const path = pathOf(data.url);
-  const saved = memories.filter(
-    (memory) => path !== undefined && pathOf(memory.sourceUrl) === path,
-  );
+  const saved = memories.filter((memory) => memory.sourceId === key);
   await Promise.all(saved.map((memory) => deleteMemory(memory.id)));
   return { removed: saved.length > 0 };
 }

@@ -25,11 +25,27 @@ jobs:
     with:
       runs_on: boat-large
       node_version: "22"
+      fetch_depth: 0
+      parallel: true
+      # Cap concurrent commands at 3. All-at-once (0) was ~3 s faster but
+      # oversubscribed the runner: two heavy convex tests hit the 5 s default
+      # timeout under load. A cap of 3 keeps most of the speed-up and runs green.
+      max_parallel: 3
+      affected_tests: true
+      full_run_paths: |
+        packages/backend/tests/frontiermemory/fixtures/
+        packages/backend/eval/e2e-ab/fixtures/
+        packages/backend/eval/frontiermemory/tasks\.json
       commands: |
         pnpm typecheck:all
         pnpm lint
         node scripts/compiler-check.mjs
-        pnpm test
+        pnpm --filter @vmem/backend exec vitest run $VV_TEST_CHANGED ${VV_TEST_CHANGED:+--passWithNoTests}
+        pnpm --filter web exec vitest run $VV_TEST_CHANGED ${VV_TEST_CHANGED:+--passWithNoTests}
+        pnpm --filter @vmem/chrome-extension test
+        pnpm --filter @vmem/desktop test
+        pnpm --filter @vmem/mobile test
+        pnpm --filter @vmem/sdk test
         pnpm test:oxlint-plugin
 
   # Push releases on main used to run as a separate "Release Android APK" run.
