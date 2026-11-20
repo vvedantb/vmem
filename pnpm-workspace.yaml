@@ -61,9 +61,19 @@ packageExtensions:
       use-stick-to-bottom: "^1.1.0"
       vaul: "^1.1.0"
 
+# Hold the mobile Clerk packages on the set published 12 November 2026, so
+# nothing under @clerk/expo is newer than the 7-day age gate allows. Remove
+# these once the catalog moves to a newer @clerk/expo that is 7 days old.
+overrides:
+  "@clerk/expo>@clerk/react": 6.18.7
+  "@clerk/expo>@clerk/shared": 4.45.0
+  "@clerk/expo>@clerk/clerk-js": 6.43.0
+  "@clerk/react@6.18.7>@clerk/shared": 4.45.0
+  "@clerk/clerk-js@6.43.0>@clerk/shared": 4.45.0
+
 catalog:
   "@clerk/backend": ^2.30.1
-  "@clerk/expo": ^4.17.2
+  "@clerk/expo": 4.16.0
   "@cosmos.gl/graph": 3.3.0
   "@clerk/chrome-extension": ^3.1.111
   "@modelcontextprotocol/sdk": 1.29.0
