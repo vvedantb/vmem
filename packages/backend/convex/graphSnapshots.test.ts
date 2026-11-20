@@ -66,10 +66,25 @@ async function createMemory(t: TestConvex, i: number) {
   });
 }
 
-// MEMORY_COUNT memories, every one mentioning every entity (1,200 mentions)
-// and LINK_COUNT links: more than one 1,000-row page of each
-async function seedGraph(t: TestConvex, userId: Id<"users">) {
-  for (let i = 0; i < MEMORY_COUNT; i += 1) await createMemory(t, i);
+type GraphSize = { memories: number; entities: number; links: number };
+
+const FULL_GRAPH: GraphSize = {
+  memories: MEMORY_COUNT,
+  entities: ENTITY_COUNT,
+  links: LINK_COUNT,
+};
+// a tenth of the rows, for the test that reads them in 2-row pages: 3 pages of
+// entities, as FULL_GRAPH has in 10-row pages
+const SMALL_GRAPH: GraphSize = { memories: 20, entities: 6, links: 110 };
+
+// By default MEMORY_COUNT memories, every one mentioning every entity (1,200
+// mentions) and LINK_COUNT links: more than one 1,000-row page of each
+async function seedGraph(
+  t: TestConvex,
+  userId: Id<"users">,
+  size: GraphSize = FULL_GRAPH,
+) {
+  for (let i = 0; i < size.memories; i += 1) await createMemory(t, i);
   await t.run(async (ctx) => {
     const extracted = [
       ...(await ctx.db.query("memoryLinks").collect()),
@@ -77,7 +92,7 @@ async function seedGraph(t: TestConvex, userId: Id<"users">) {
       ...(await ctx.db.query("memoryEntityMentions").collect()),
     ];
     for (const row of extracted) await ctx.db.delete(row._id);
-    for (let e = 0; e < ENTITY_COUNT; e += 1) {
+    for (let e = 0; e < size.entities; e += 1) {
       const normalizedName = `ent-${String(e)}`;
       const entityId = await ctx.db.insert("memoryEntities", {
         userId: CLERK_ID,
@@ -86,7 +101,7 @@ async function seedGraph(t: TestConvex, userId: Id<"users">) {
         type: "project",
         createdAt: e,
       });
-      for (let m = 0; m < MEMORY_COUNT; m += 1) {
+      for (let m = 0; m < size.memories; m += 1) {
         await ctx.db.insert("memoryEntityMentions", {
           userId: CLERK_ID,
           memoryId: `mem-${String(m)}`,
@@ -97,8 +112,8 @@ async function seedGraph(t: TestConvex, userId: Id<"users">) {
       }
     }
     let links = 0;
-    for (let s = 0; s < MEMORY_COUNT && links < LINK_COUNT; s += 1) {
-      for (let d = 0; d < MEMORY_COUNT && links < LINK_COUNT; d += 1) {
+    for (let s = 0; s < size.memories && links < size.links; s += 1) {
+      for (let d = 0; d < size.memories && links < size.links; d += 1) {
         if (s === d) continue;
         await ctx.db.insert("memoryLinks", {
           userId: CLERK_ID,
@@ -414,10 +429,10 @@ describe("graph snapshot build", () => {
 });
 
 describe("graph snapshot caps", () => {
-  async function seeded() {
+  async function seeded(size: GraphSize = FULL_GRAPH) {
     const t = testConvex();
     const { userId, profileId } = await seedUser(t);
-    await seedGraph(t, userId);
+    await seedGraph(t, userId, size);
     const read = (limits: {
       maxNodes?: number;
       maxEdges?: number;
@@ -437,22 +452,23 @@ describe("graph snapshot caps", () => {
   }
 
   it("keeps the 50-page cap by default and reads every page with a build budget", async () => {
-    const { t, read } = await seeded();
-    // 10-row pages: 110 pages of links, 120 of mentions
-    const capped = await read({ pageSize: 10 });
-    expect(capped.relatesToEdges).toHaveLength(500);
-    expect(capped.mentionsEdges).toHaveLength(500);
+    const size = SMALL_GRAPH;
+    const { t, read } = await seeded(size);
+    // 2-row pages: 55 pages of links, 60 of mentions
+    const capped = await read({ pageSize: 2 });
+    expect(capped.relatesToEdges).toHaveLength(100);
+    expect(capped.mentionsEdges).toHaveLength(100);
     expect(capped.capsHit).toEqual(["link_pages", "mention_pages"]);
 
-    const full = await read({ pageSize: 10, maxPages: 2_000 });
-    expect(full.relatesToEdges).toHaveLength(LINK_COUNT);
-    expect(full.mentionsEdges).toHaveLength(MEMORY_COUNT * ENTITY_COUNT);
-    expect(full.nodes).toHaveLength(MEMORY_COUNT + ENTITY_COUNT);
+    const full = await read({ pageSize: 2, maxPages: 2_000 });
+    expect(full.relatesToEdges).toHaveLength(size.links);
+    expect(full.mentionsEdges).toHaveLength(size.memories * size.entities);
+    expect(full.nodes).toHaveLength(size.memories + size.entities);
     expect(full.capsHit).toEqual([]);
 
-    const tight = await read({ pageSize: 10, maxPages: 3 });
+    const tight = await read({ pageSize: 2, maxPages: 3 });
     expect(tight.capsHit).toEqual(["link_pages", "mention_pages"]);
-    expect((await read({ pageSize: 10, maxPages: 120 })).capsHit).toEqual([]);
+    expect((await read({ pageSize: 2, maxPages: 60 })).capsHit).toEqual([]);
     await drain(t);
   });
 
