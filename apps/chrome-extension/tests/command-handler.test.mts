@@ -14,10 +14,9 @@ const { registerContextMenu } =
   await import("../src/background/context-menu.ts");
 
 function toastMessages(): Array<{ tabId: number; data: unknown }> {
-  return chromeState.tabMessages.flatMap(({ tabId, message }) => {
-    const sent = message as { type?: string; data?: unknown };
-    return sent.type === "showToast" ? [{ tabId, data: sent.data }] : [];
-  });
+  return chromeState.tabMessages.flatMap(({ tabId, message }) =>
+    message.type === "showToast" ? [{ tabId, data: message.data }] : [],
+  );
 }
 
 await test("handleCommand save-page sends the failure toast when extract fails", async () => {
