@@ -4,7 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { installChromeMock } from "./helpers/chrome-mock.mts";
-import { toastForSaveResult } from "../src/background/save-toast.ts";
+import { SAVE_FAILED_TOAST } from "../src/background/save-toast.ts";
 
 const chromeState = installChromeMock();
 
@@ -13,8 +13,14 @@ const { handleCommand, registerCommandListener } =
 const { registerContextMenu } =
   await import("../src/background/context-menu.ts");
 
-await test("handleCommand save-page injects the failure toast when extract fails", async () => {
-  chromeState.executeScriptCalls.length = 0;
+function toastMessages(): Array<{ tabId: number; data: unknown }> {
+  return chromeState.tabMessages.flatMap(({ tabId, message }) =>
+    message.type === "showToast" ? [{ tabId, data: message.data }] : [],
+  );
+}
+
+await test("handleCommand save-page sends the failure toast when extract fails", async () => {
+  chromeState.tabMessages.length = 0;
   chromeState.activeTab = {
     id: 7,
     url: "https://example.com/article",
@@ -23,23 +29,19 @@ await test("handleCommand save-page injects the failure toast when extract fails
 
   await handleCommand("save-page");
 
-  const toast = toastForSaveResult({
-    success: false,
-    error: "Failed to extract page content",
-  });
-  assert.equal(chromeState.executeScriptCalls.length, 1);
-  assert.deepEqual(chromeState.executeScriptCalls[0]?.args, [
-    toast.message,
-    toast.color,
-  ]);
-  assert.equal(toast.message, "✗ Failed to save page");
+  // the mock tab never answers, so the handler sends the toast a second time
+  const toasts = toastMessages();
+  assert.ok(toasts.length > 0);
+  for (const toast of toasts) {
+    assert.deepEqual(toast, { tabId: 7, data: SAVE_FAILED_TOAST });
+  }
 });
 
 await test("handleCommand save-page is a no-op without a tab url", async () => {
-  chromeState.executeScriptCalls.length = 0;
+  chromeState.tabMessages.length = 0;
   chromeState.activeTab = { id: 8 };
   await handleCommand("save-page");
-  assert.equal(chromeState.executeScriptCalls.length, 0);
+  assert.equal(chromeState.tabMessages.length, 0);
 });
 
 await test("handleCommand take-screenshot does not throw on restricted pages", async () => {

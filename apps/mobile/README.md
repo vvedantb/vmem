@@ -23,7 +23,7 @@ Defaults point at production: sign-in on `clerk.projectv.uk` and uploads to `htt
 
 ## Sign-in
 
-Sign-in uses Clerk through `@vvedantb/native-ui/auth`, as the Verve and vibot apps do: `AuthProviders` (Clerk only, no Convex client) with `tokenCache` from `@clerk/clerk-expo/token-cache`, and the package `SignInScreen` and `SignUpScreen` in `app/(auth)/`. They offer Google (`useSSO()`) first, then email and password, with an emailed code for sign-up. It is the same Clerk instance as vmem web, so existing accounts work. The app copy does not name the provider.
+Sign-in uses Clerk through `@vvedantb/native-ui/auth`, as the Verve and vibot apps do: `AuthProviders` (Clerk only, no Convex client) with `tokenCache` from `@clerk/expo/token-cache`, and the package `SignInScreen` and `SignUpScreen` in `app/(auth)/`. They offer Google (`useSSO()`) first, then email and password, with an emailed code for sign-up. It is the same Clerk instance as vmem web, so existing accounts work. The app copy does not name the provider.
 
 No Clerk dashboard change is needed:
 

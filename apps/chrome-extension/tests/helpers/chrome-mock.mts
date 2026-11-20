@@ -13,6 +13,12 @@ export type TabStub = {
   title?: string;
 };
 
+// envelope @webext-core/messaging sends
+export type TabMessageStub = {
+  type: string;
+  data?: unknown;
+};
+
 export type CookieChangeStub = {
   removed: boolean;
   cookie?: { name: string; domain: string };
@@ -23,6 +29,8 @@ export type ChromeMockState = {
   session: Record<string, unknown>;
   alarms: Map<string, AlarmOpts>;
   executeScriptCalls: Array<{ tabId: number; args: unknown[] }>;
+  // messages the background sent to a tab; no content script answers them
+  tabMessages: Array<{ tabId: number; message: TabMessageStub }>;
   contextMenusCreated: Array<Record<string, unknown>>;
   cookieChangeListeners: Array<(changeInfo: CookieChangeStub) => void>;
   commandListeners: Array<(command: string) => void>;
@@ -66,6 +74,7 @@ export function installChromeMock(): ChromeMockState {
     session: {},
     alarms: new Map(),
     executeScriptCalls: [],
+    tabMessages: [],
     contextMenusCreated: [],
     cookieChangeListeners: [],
     commandListeners: [],
@@ -139,6 +148,16 @@ export function installChromeMock(): ChromeMockState {
       tabs: {
         async query(): Promise<TabStub[]> {
           return state.activeTab ? [state.activeTab] : [];
+        },
+        // callback style: webextension-polyfill appends the callback
+        sendMessage(
+          tabId: number,
+          message: TabMessageStub,
+          ...rest: unknown[]
+        ): void {
+          state.tabMessages.push({ tabId, message });
+          const callback = rest.at(-1);
+          if (typeof callback === "function") callback(undefined);
         },
         async captureVisibleTab(): Promise<string> {
           throw new Error("Cannot capture chrome:// or extension pages");

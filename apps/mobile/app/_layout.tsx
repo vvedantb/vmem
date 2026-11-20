@@ -1,6 +1,6 @@
 import "../global.css";
 
-import { tokenCache } from "@clerk/clerk-expo/token-cache";
+import { tokenCache } from "@clerk/expo/token-cache";
 import {
   InstrumentSans_400Regular,
   InstrumentSans_500Medium,
