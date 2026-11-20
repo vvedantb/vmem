@@ -436,23 +436,28 @@ describe("graph snapshot caps", () => {
     return { t, read };
   }
 
-  it("keeps the 50-page cap by default and reads every page with a build budget", async () => {
+  // 20-row pages: 55 pages of links, 60 of mentions. Two tests, because one
+  // test with all four reads ran close to the 5 s limit.
+  it("keeps the 50-page cap by default", async () => {
     const { t, read } = await seeded();
-    // 10-row pages: 110 pages of links, 120 of mentions
-    const capped = await read({ pageSize: 10 });
-    expect(capped.relatesToEdges).toHaveLength(500);
-    expect(capped.mentionsEdges).toHaveLength(500);
+    const capped = await read({ pageSize: 20 });
+    expect(capped.relatesToEdges).toHaveLength(1_000);
+    expect(capped.mentionsEdges).toHaveLength(1_000);
     expect(capped.capsHit).toEqual(["link_pages", "mention_pages"]);
 
-    const full = await read({ pageSize: 10, maxPages: 2_000 });
+    const tight = await read({ pageSize: 20, maxPages: 3 });
+    expect(tight.capsHit).toEqual(["link_pages", "mention_pages"]);
+    await drain(t);
+  });
+
+  it("reads every page with a build budget", async () => {
+    const { t, read } = await seeded();
+    // 60 pages is the exact number that the mentions need.
+    const full = await read({ pageSize: 20, maxPages: 60 });
     expect(full.relatesToEdges).toHaveLength(LINK_COUNT);
     expect(full.mentionsEdges).toHaveLength(MEMORY_COUNT * ENTITY_COUNT);
     expect(full.nodes).toHaveLength(MEMORY_COUNT + ENTITY_COUNT);
     expect(full.capsHit).toEqual([]);
-
-    const tight = await read({ pageSize: 10, maxPages: 3 });
-    expect(tight.capsHit).toEqual(["link_pages", "mention_pages"]);
-    expect((await read({ pageSize: 10, maxPages: 120 })).capsHit).toEqual([]);
     await drain(t);
   });
 
