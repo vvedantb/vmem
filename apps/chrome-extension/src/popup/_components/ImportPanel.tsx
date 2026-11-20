@@ -171,7 +171,7 @@ export function ImportPanel() {
               description={
                 autoSyncEnabled && nextSyncLabel
                   ? `Next sync ${nextSyncLabel}`
-                  : "Periodically import new bookmarks and browsing history."
+                  : undefined
               }
               checked={autoSyncEnabled}
               onCheckedChange={handleAutoSyncToggle}

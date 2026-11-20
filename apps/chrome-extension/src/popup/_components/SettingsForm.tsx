@@ -150,11 +150,7 @@ export function SettingsForm() {
               </Select>
             </SettingsField>
 
-            <SettingsField
-              layout="horizontal"
-              label="Active profile"
-              description="Default profile for saving memories from this extension. Synced across browsers when signed in."
-            >
+            <SettingsField layout="horizontal" label="Active profile">
               {profiles === undefined ? (
                 <Skeleton className="h-9 w-[160px] rounded-field" />
               ) : (
@@ -177,7 +173,6 @@ export function SettingsForm() {
             <PopupSwitchRow
               id="selection-popup-toggle"
               label="Save popup on text selection"
-              description="Show a quick-save chip when you highlight text on a page."
               checked={settings?.extensionSelectionPopupEnabled ?? true}
               onCheckedChange={handleSelectionPopupToggle}
               disabled={settings === undefined}
@@ -185,7 +180,6 @@ export function SettingsForm() {
             <PopupSwitchRow
               id="auto-search-toggle"
               label="Auto-search memories in chats"
-              description="Inject relevant memories when you send a message in ChatGPT or Claude."
               checked={autoSearchEnabled}
               onCheckedChange={handleAutoSearchToggle}
               icon={<IconBrain size={16} />}
@@ -193,7 +187,6 @@ export function SettingsForm() {
             <PopupSwitchRow
               id="auto-capture-toggle"
               label="Auto-capture prompts"
-              description="Save outgoing prompts from supported chat sites automatically."
               checked={autoCaptureEnabled}
               onCheckedChange={handleAutoCaptureToggle}
               icon={<IconSend size={16} />}
@@ -209,7 +202,6 @@ export function SettingsForm() {
             <PopupSwitchRow
               id="auto-sync-toggle"
               label="Auto-sync history & bookmarks"
-              description="Periodically import new browsing history and bookmarks into your memories."
               checked={settings?.extensionAutoSyncEnabled ?? true}
               onCheckedChange={handleAutoSyncToggle}
               disabled={settings === undefined}
@@ -229,7 +221,6 @@ export function SettingsForm() {
               <LabeledSliderRow
                 id="sync-frequency-slider"
                 label="Sync frequency"
-                description="How often to check for new history and bookmarks."
                 {...syncRange}
                 value={[syncIndex]}
                 onValueChange={([index]) => {
@@ -254,15 +245,7 @@ export function SettingsForm() {
         <h3 className="text-base font-medium text-foreground">AI agents</h3>
         <Card className="shadow-none">
           <CardContent className="space-y-4 p-4">
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                System prompt
-              </p>
-              <p className="mt-1 text-xs text-muted text-pretty">
-                Copy the recommended vmem prompt and paste it into your AI
-                agent&apos;s system prompt settings.
-              </p>
-            </div>
+            <p className="text-sm font-medium text-foreground">System prompt</p>
             <Button
               variant="outline"
               className="w-full"
