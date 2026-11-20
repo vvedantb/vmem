@@ -47,11 +47,8 @@ export interface GraphCanvasHandle {
   zoomIn: () => void;
   zoomOut: () => void;
   fit: () => void;
-}
-
-export interface GraphCameraTarget {
-  nodeId: string;
-  seq: number;
+  // move the camera to a node: a search result or a related-node pick
+  centerOn: (nodeId: string) => void;
 }
 
 interface GraphCanvasProps {
@@ -61,8 +58,6 @@ interface GraphCanvasProps {
   focusNodeId?: string | null;
   // node with the open detail panel: ringed, lit with its neighbours
   selectedNodeId?: string | null;
-  // camera move request; a new seq re-centres on the same node
-  cameraTarget?: GraphCameraTarget | null;
   searchMatchSet: Set<string>;
   isSearchActive: boolean;
   showLabels: boolean;
@@ -100,7 +95,6 @@ function GraphCanvas({
   viewTheme,
   focusNodeId,
   selectedNodeId,
-  cameraTarget,
   searchMatchSet,
   isSearchActive,
   showLabels,
@@ -129,8 +123,6 @@ function GraphCanvas({
     nodeCount: number;
   } | null>(null);
   const [webglError, setWebglError] = useState(false);
-  // a request made before this mount is old: do not replay it
-  const handledCameraSeqRef = useRef(cameraTarget?.seq);
 
   const themeRef = useRef(viewTheme);
   const focusNodeIdRef = useRef(focusNodeId);
@@ -756,24 +748,6 @@ function GraphCanvas({
     paintSceneOverlays,
   ]);
 
-  // camera follows a search result or a related-node pick
-  useEffect(() => {
-    const graph = graphRef.current;
-    const buffers = buffersRef.current;
-    if (!graph || !buffers || !cameraTarget) return;
-    if (handledCameraSeqRef.current === cameraTarget.seq) return;
-    handledCameraSeqRef.current = cameraTarget.seq;
-    const index = buffers.idToIndex.get(cameraTarget.nodeId);
-    if (index === undefined) return;
-    graph.zoomToPointByIndex(
-      index,
-      CENTER_DURATION_MS,
-      CENTER_ZOOM_SCALE,
-      false,
-      false,
-    );
-  }, [cameraTarget]);
-
   useEffect(() => {
     const graph = graphRef.current;
     if (!graph) return;
@@ -804,6 +778,17 @@ function GraphCanvas({
     zoomIn: handleZoomIn,
     zoomOut: handleZoomOut,
     fit: handleFit,
+    centerOn: (nodeId: string) => {
+      const index = buffersRef.current?.idToIndex.get(nodeId);
+      if (index === undefined) return;
+      graphRef.current?.zoomToPointByIndex(
+        index,
+        CENTER_DURATION_MS,
+        CENTER_ZOOM_SCALE,
+        false,
+        false,
+      );
+    },
   }));
 
   if (webglError) {

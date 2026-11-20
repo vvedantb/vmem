@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useRef, useState } from "react";
 import { useAction } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
@@ -9,7 +9,7 @@ import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 import { buildGraphData, getGraphFacets } from "@/lib/graph/graph-data";
 import type { GraphSettings } from "@/lib/graph/graph-types";
-import type { GraphCameraTarget } from "@/components/_components/GraphCanvas";
+import type { GraphCanvasHandle } from "@/components/_components/GraphCanvas";
 import { getViewTheme } from "@/components/_components/graph-view-themes";
 import type { ListItemKind } from "@/lib/list-items";
 import type { MemoryType } from "@/lib/memories";
@@ -85,9 +85,8 @@ export function useMemoryGraphController({
 
   // selection lives here because the header search and the canvas share it
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [cameraTarget, setCameraTarget] = useState<GraphCameraTarget | null>(
-    null,
-  );
+  // the header search moves the camera through this handle
+  const canvasRef = useRef<GraphCanvasHandle>(null);
 
   const filters: MemoryViewFilterParams = {
     kinds: params.kinds,
@@ -198,7 +197,7 @@ export function useMemoryGraphController({
     searchResults,
     isSearchActive,
     selectedNodeId,
-    cameraTarget,
+    canvasRef,
     allTags,
     allKinds,
     allSources,
@@ -238,7 +237,7 @@ export function useMemoryGraphController({
     // select the node and move the camera to it
     onRevealNode: (nodeId: string) => {
       setSelectedNodeId(nodeId);
-      setCameraTarget((prev) => ({ nodeId, seq: (prev?.seq ?? 0) + 1 }));
+      canvasRef.current?.centerOn(nodeId);
     },
     onSearchChange: (q: string) => {
       void setParams({ q: q.trim().length === 0 ? null : q });

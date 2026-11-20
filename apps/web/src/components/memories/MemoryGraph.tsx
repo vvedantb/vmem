@@ -1,12 +1,10 @@
 // force-directed graph canvas + canvas-local overlays (filters live in controller)
 
-import { useRef } from "react";
 import { IconArrowBack, IconRefresh } from "@tabler/icons-react";
 import { Button } from "@vvedantb/ui";
 import { formatRelativeTime } from "@vmem/shared";
 import { useMemoryContext } from "@/contexts/MemoryContext";
 import GraphCanvas from "@/components/_components/GraphCanvas";
-import type { GraphCanvasHandle } from "@/components/_components/GraphCanvas";
 import GraphNavControls from "@/components/_components/GraphNavControls";
 import GraphNodeTooltip from "@/components/_components/GraphNodeTooltip";
 import GraphEdgeTooltip from "@/components/_components/GraphEdgeTooltip";
@@ -29,7 +27,6 @@ export default function MemoryGraph({
   onFocusChange,
 }: MemoryGraphProps) {
   const { deleteMemory } = useMemoryContext();
-  const canvasRef = useRef<GraphCanvasHandle>(null);
 
   const {
     apiNodes,
@@ -40,7 +37,7 @@ export default function MemoryGraph({
     searchMatchSet,
     isSearchActive,
     selectedNodeId,
-    cameraTarget,
+    canvasRef,
     onSelectNode,
     onRevealNode,
     isFocused,
@@ -116,7 +113,6 @@ export default function MemoryGraph({
         viewTheme={viewTheme}
         focusNodeId={resolvedFocusNodeId ?? focusNodeId}
         selectedNodeId={selectedNodeId}
-        cameraTarget={cameraTarget}
         searchMatchSet={searchMatchSet}
         isSearchActive={isSearchActive}
         showLabels={graphSettings.showLabels}
