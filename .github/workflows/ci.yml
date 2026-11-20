@@ -48,90 +48,36 @@ jobs:
         pnpm --filter @vmem/sdk test
         pnpm test:oxlint-plugin
 
-  # Push releases on main used to run as a separate "Release Android APK" run.
-  # They run here instead, so no empty run starts on a non-release merge.
-  # This job is the release gate: on every push to main, it checks whether any
-  # file that goes into the APK changed. Only then does the release job below
-  # start a build runner. The commit message does not matter. The release job
-  # passes release_on: always, so the shared workflow adds no second gate.
-  release-paths:
-    name: release paths
-    needs: check
-    if: github.event_name == 'push'
-    runs-on: boat-large
-    permissions:
-      contents: read
-    outputs:
-      changed: ${{ steps.diff.outputs.changed }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - id: diff
-        shell: bash
-        env:
-          BEFORE: ${{ github.event.before }}
-          AFTER: ${{ github.sha }}
-        run: |
-          # The push `paths` filter that used to live in release-android.yml,
-          # translated one for one into git pathspecs. This is the one place
-          # the list lives, so the tested list is the committed list. A
-          # positive `x/**` becomes ':(glob)x/**', a plain file a root-anchored
-          # ':(glob)file', and a negative `!y` an ':(exclude,glob)y'. GitHub
-          # evaluates the paths list in order, but no positive pattern here
-          # re-includes a file an earlier negative excluded, so git's
-          # set-based excludes match the old filter exactly.
-          #
-          # Only what goes into the APK: the mobile app, the workspace code
-          # that Metro bundles into it, and the install and build inputs.
-          # Excluded: web, chrome-extension, desktop, docs, .github/** (so a
-          # CI-only merge never releases) and the Convex backend. The app
-          # reaches vmem over HTTP with @vmem/sdk only; @vmem/sdk has no
-          # workspace dependencies. pnpm-lock.yaml and the root package.json are
-          # not listed: they have no per-app part, so every dependency change
-          # anywhere in the repo would release. A mobile dependency change
-          # edits apps/mobile/package.json, which apps/mobile/** matches.
-          pathspecs=(
-            ':(glob)apps/mobile/**'
-            ':(exclude,glob)apps/mobile/tests/**'
-            ':(exclude,glob)apps/mobile/**/*.md'
-            ':(exclude,glob)apps/mobile/.env.example'
-            ':(glob)packages/sdk/package.json'
-            ':(glob)packages/sdk/src/**'
-            ':(exclude,glob)packages/sdk/**/*.test.ts'
-            ':(glob)pnpm-workspace.yaml'
-            ':(glob).npmrc'
-            ':(glob)scripts/build-android-release.sh'
-            ':(glob)scripts/android-release.config.json'
-          )
-
-          # A forced push or a new branch gives a BEFORE we do not have (or all
-          # zeros). Release to be safe; the shared workflow still gates on the
-          # commit message.
-          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            echo "BEFORE '$BEFORE' is not a commit we have; treating release paths as changed."
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          matched="$(git diff --name-only "$BEFORE" "$AFTER" -- "${pathspecs[@]}")"
-          if [ -n "$matched" ]; then
-            echo "Release paths changed between $BEFORE and $AFTER:"
-            echo "$matched"
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "No release paths changed between $BEFORE and $AFTER."
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  # Builds and publishes the signed Android APK, the same shared workflow
-  # release-android.yml calls on dispatch. The job-level concurrency group is
-  # shared with that caller, so push and dispatch releases serialise. version
-  # and dry_run are dropped: on push they are empty and false.
+  # The Android release runs in parallel with check, on pushes to main only.
+  # Pull requests never release. It uses a second runner, so the APK build
+  # (the slow part) overlaps the checks instead of waiting for them.
+  #
+  # The shared workflow owns both gates. `pathspecs` lists the files that go
+  # into the APK. The shared workflow diffs the push against its base and
+  # starts the build only when one of them changed. The commit message does
+  # not matter: release_on is always. `wait_for_check_job` names the check job
+  # above ("Check"). The build starts at once, but the shared workflow
+  # publishes only after Check succeeds. If Check fails, nothing publishes.
+  #
+  # The pathspec list is the APK input list. A positive `x/**` is ':(glob)x/**',
+  # a plain file is a root-anchored ':(glob)file', and a negative is an
+  # ':(exclude,glob)y'. It holds only what goes into the APK: the mobile app,
+  # the workspace code that Metro bundles into it, and the install and build
+  # inputs. Excluded: web, chrome-extension, desktop, docs, .github/** (so a
+  # CI-only merge never releases) and the Convex backend. The app reaches vmem
+  # over HTTP with @vmem/sdk only; @vmem/sdk has no workspace dependencies.
+  # pnpm-lock.yaml and the root package.json are not listed: they have no
+  # per-app part, so every dependency change anywhere in the repo would
+  # release. A mobile dependency change edits apps/mobile/package.json, which
+  # apps/mobile/** matches.
+  #
+  # The job-level concurrency group is shared with release-android.yml, so push
+  # and dispatch releases serialise. version and dry_run are dropped: on push
+  # they are empty and false.
   release:
-    needs: release-paths
-    if: needs.release-paths.outputs.changed == 'true'
+    if: github.event_name == 'push'
     permissions:
+      actions: read
       contents: write
     concurrency:
       group: release-android
@@ -140,9 +86,22 @@ jobs:
     with:
       app_name: vmem
       package_id: com.projectvdotuk.vmem
-      # The release-paths job above is the only gate. Without this, the shared
+      # The pathspecs input is the only gate. Without this, the shared
       # workflow also needs a feat commit or [release] on a push.
       release_on: always
+      wait_for_check_job: Check
+      pathspecs: |
+        :(glob)apps/mobile/**
+        :(exclude,glob)apps/mobile/tests/**
+        :(exclude,glob)apps/mobile/**/*.md
+        :(exclude,glob)apps/mobile/.env.example
+        :(glob)packages/sdk/package.json
+        :(glob)packages/sdk/src/**
+        :(exclude,glob)packages/sdk/**/*.test.ts
+        :(glob)pnpm-workspace.yaml
+        :(glob).npmrc
+        :(glob)scripts/build-android-release.sh
+        :(glob)scripts/android-release.config.json
       # A boat.dev runner. It has no Android SDK: the shared workflow installs
       # the command line tools and sdk_packages when it finds none.
       runs_on: boat-large

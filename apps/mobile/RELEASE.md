@@ -4,12 +4,14 @@
 
 ## When it runs
 
-| Event                                    | Result                                                                                                      |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Push to `main` that changes an APK input | Signed build, published with the next patch version. The commit message does not matter.                    |
-| Manual run (`workflow_dispatch`)         | The same. Optional `version` input (like `1.0.1`). `dry_run: true` builds and signs, but publishes nothing. |
+| Event                                    | Result                                                                                                       |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Push to `main` that changes an APK input | Signed build, published with the next patch version. The commit message does not matter. Runs in the CI run. |
+| Manual run (`workflow_dispatch`)         | The same. Optional `version` input (like `1.0.1`). `dry_run: true` builds and signs, but publishes nothing.  |
 
-APK inputs (the `paths` filter) are only what goes into the APK: `apps/mobile/**` (not `tests/`, Markdown or `.env.example`), `packages/sdk/src/**` and `packages/sdk/package.json` (not tests), `pnpm-workspace.yaml`, `.npmrc`, `scripts/build-android-release.sh` and `scripts/android-release.config.json`. The root `package.json` and `pnpm-lock.yaml` are not APK inputs: they have no per-app part, so every dependency change in the repo would release. A mobile dependency change edits `apps/mobile/package.json`, which is an input. The Convex backend, web, extension, desktop, docs and `.github/**` do not release. The app reaches vmem over HTTP with `@vmem/sdk` only, so Metro bundles no backend code. Keep the filter equal to that import closure.
+APK inputs are the `pathspecs` input of the `release` job in `.github/workflows/ci.yml`. They are only what goes into the APK: `apps/mobile/**` (not `tests/`, Markdown or `.env.example`), `packages/sdk/src/**` and `packages/sdk/package.json` (not tests), `pnpm-workspace.yaml`, `.npmrc`, `scripts/build-android-release.sh` and `scripts/android-release.config.json`. The root `package.json` and `pnpm-lock.yaml` are not APK inputs: they have no per-app part, so every dependency change in the repo would release. A mobile dependency change edits `apps/mobile/package.json`, which is an input. The Convex backend, web, extension, desktop, docs and `.github/**` do not release. The app reaches vmem over HTTP with `@vmem/sdk` only, so Metro bundles no backend code. Keep the list equal to that import closure.
+
+Push releases run inside the CI run (`.github/workflows/ci.yml`), not in `release-android.yml`. The build runs in parallel with the `Check` job. The shared workflow publishes only after `Check` succeeds, set by `wait_for_check_job`. `release-android.yml` is for manual runs only and has no `pathspecs`.
 
 The workflow has no pull request job. `pnpm typecheck:all` and `pnpm test` (and the pre-push hook) cover the mobile typecheck and tests.
 

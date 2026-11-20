@@ -5,12 +5,13 @@ name: Release Android APK
 # Release. dry_run builds and signs the APK but publishes nothing. Secrets and
 # versions: apps/mobile/RELEASE.md.
 #
-# Manual dispatch only. Push releases on main now run as extra jobs inside the
-# CI run (.github/workflows/ci.yml): the release-paths job there carries the
-# push path filter that used to live below, and the release job there calls the
-# same shared workflow with the same `with:` block. A push releases when the
-# merge changes an APK input; the commit message does not matter. This file
-# stays as the workflow_dispatch entry point for an on-demand or dry-run build.
+# Manual dispatch only. Push releases on main run inside the CI run
+# (.github/workflows/ci.yml). There, the release job passes `pathspecs` (the
+# APK input list) and `wait_for_check_job` to the same shared workflow, so it
+# builds in parallel with Check and publishes only after Check succeeds. This
+# file sets neither input: a dispatch run has no Check sibling to wait for and
+# no push diff to filter. It is the entry point for an on-demand or dry-run
+# build.
 on:
   workflow_dispatch:
     inputs:
