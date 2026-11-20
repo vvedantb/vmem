@@ -13,30 +13,29 @@ const LABEL_DEPTH = 6;
 const SAVE_LABELS = ["save"];
 const UNSAVE_LABELS = ["unsave", "remove from saved"];
 
-function listingOf<T extends z.ZodType>(data: T) {
-  return z.object({
-    data: z.object({ children: z.array(z.object({ data })) }),
-  });
-}
+const postSchema = z.object({
+  title: z.string(),
+  author: z.string(),
+  selftext: z.string(),
+  url: z.string(),
+});
 
-const threadSchema = z.tuple([
-  listingOf(
-    z.object({
-      title: z.string(),
-      author: z.string(),
-      selftext: z.string(),
-      url: z.string(),
-    }),
-  ),
-  // a "load more" row has no body
-  listingOf(
-    z.object({
-      author: z.string().optional(),
-      body: z.string().optional(),
-      score: z.number().optional(),
-    }),
-  ),
-]);
+// a "load more" row has no body
+const commentSchema = z.object({
+  author: z.string().optional(),
+  body: z.string().optional(),
+  score: z.number().optional(),
+});
+
+const postListingSchema = z.object({
+  data: z.object({ children: z.array(z.object({ data: postSchema })) }),
+});
+
+const commentListingSchema = z.object({
+  data: z.object({ children: z.array(z.object({ data: commentSchema })) }),
+});
+
+const threadSchema = z.tuple([postListingSchema, commentListingSchema]);
 
 function refOf(path: string): SiteItemRef | null {
   const subreddit = POST_PATH.exec(path)?.[1];
