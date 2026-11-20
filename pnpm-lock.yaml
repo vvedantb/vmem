@@ -439,8 +439,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       '@vvedantb/native-ui':
-        specifier: ^0.20.1
-        version: 0.20.1(ae6325e06cfbac08f7177c040249ec49)
+        specifier: ^0.31.0
+        version: 0.31.0(1500f8f80219cfb864246d6c37d96feb)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -6199,20 +6199,20 @@ packages:
       vitest:
         optional: true
 
-  '@vvedantb/native-ui@0.20.1':
-    resolution: {integrity: sha512-H3QZUJ7ZKNZ+hcGapryxNCAMv8zLRlxEXUIUfDzpSSMkQZMkmPuotm/goqcO7MUFIFxnO8GiccCTomw/szA+7g==}
+  '@vvedantb/native-ui@0.31.0':
+    resolution: {integrity: sha512-pLDZePKzQVcka1ktWQVKuL9YZZ4CB5QtXpQbVq/2I2Qzk3vXNGkdtB2W/DRv8ZE/jNIeHOHaWlwqN7S7QPh3uA==}
     peerDependencies:
       '@clerk/clerk-expo': '*'
       '@expo/vector-icons': '*'
-      '@gorhom/bottom-sheet': '>=5'
       '@json-render/core': '>=0.21.0'
       '@json-render/react-native': '>=0.21.0'
       '@react-native-community/datetimepicker': '*'
       '@rn-primitives/select': '*'
       '@rn-primitives/slot': '*'
       '@rn-primitives/switch': '*'
+      '@swmansion/react-native-bottom-sheet': '>=1.1.0'
       '@tabler/icons-react-native': '*'
-      '@vvedantb/server': '>=0.17.0'
+      '@vvedantb/server': '>=0.17.1'
       class-variance-authority: '>=0.7.0'
       clsx: '>=2.0.0'
       convex: '*'
@@ -6224,6 +6224,7 @@ packages:
       expo-haptics: '*'
       expo-linear-gradient: '*'
       expo-notifications: '*'
+      expo-paste-input: '>=0.2.0'
       expo-router: '*'
       expo-video: '*'
       expo-web-browser: '*'
@@ -6244,13 +6245,13 @@ packages:
     peerDependenciesMeta:
       '@clerk/clerk-expo':
         optional: true
-      '@gorhom/bottom-sheet':
-        optional: true
       '@json-render/core':
         optional: true
       '@json-render/react-native':
         optional: true
       '@react-native-community/datetimepicker':
+        optional: true
+      '@swmansion/react-native-bottom-sheet':
         optional: true
       '@vvedantb/server':
         optional: true
@@ -6271,6 +6272,8 @@ packages:
       expo-linear-gradient:
         optional: true
       expo-notifications:
+        optional: true
+      expo-paste-input:
         optional: true
       expo-router:
         optional: true
@@ -13602,17 +13605,6 @@ snapshots:
 
   '@chevrotain/types@11.1.2': {}
 
-  '@clerk/backend@2.33.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
-    dependencies:
-      '@clerk/shared': 3.47.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@clerk/types': 4.101.22(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      standardwebhooks: 1.0.0
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - react
-      - react-dom
-    optional: true
-
   '@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@clerk/shared': 3.47.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -13846,19 +13838,6 @@ snapshots:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
 
-  '@clerk/shared@3.47.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
-    dependencies:
-      csstype: 3.1.3
-      dequal: 2.0.3
-      glob-to-regexp: 0.4.1
-      js-cookie: 3.0.5
-      std-env: 3.10.0
-      swr: 2.3.4(react@19.2.3)
-    optionalDependencies:
-      react: 19.2.3
-      react-dom: 19.2.3(react@19.2.3)
-    optional: true
-
   '@clerk/shared@3.47.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       csstype: 3.1.3
@@ -13926,14 +13905,6 @@ snapshots:
     optionalDependencies:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
-
-  '@clerk/types@4.101.22(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
-    dependencies:
-      '@clerk/shared': 3.47.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-    transitivePeerDependencies:
-      - react
-      - react-dom
-    optional: true
 
   '@clerk/types@4.101.22(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
@@ -18977,7 +18948,7 @@ snapshots:
       '@expo/config-plugins': 57.0.11(typescript@7.0.1-rc)
       vitest: 3.2.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.13)(@types/node@26.6.5)(happy-dom@20.14.5(bufferutil@4.1.0)(utf-8-validate@6.0.6))(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.1)
 
-  '@vvedantb/native-ui@0.20.1(ae6325e06cfbac08f7177c040249ec49)':
+  '@vvedantb/native-ui@0.31.0(1500f8f80219cfb864246d6c37d96feb)':
     dependencies:
       '@expo/vector-icons': 15.1.1(expo-font@57.0.4)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(react@19.2.3)
       '@rn-primitives/select': 1.5.2(@rn-primitives/portal@1.5.3(@types/react@19.3.0)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(react@19.2.3)
@@ -18996,7 +18967,6 @@ snapshots:
       tailwind-merge: 2.6.1
     optionalDependencies:
       '@clerk/clerk-expo': 2.20.2(@solana/web3.js@1.98.4(bufferutil@4.1.0)(encoding@0.1.13)(typescript@7.0.1-rc)(utf-8-validate@6.0.6))(@types/react@19.3.0)(bs58@6.0.0)(bufferutil@4.1.0)(expo-auth-session@57.0.16(expo@57.0.31)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(react@19.2.3))(expo-crypto@57.0.4(expo@57.0.31))(expo-secure-store@57.0.4(expo@57.0.31))(expo-web-browser@57.0.3(expo@57.0.31)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6)))(react-dom@19.2.3(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(react@19.2.3)(typescript@7.0.1-rc)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@6.0.6)(zod@3.25.76)
-      '@vvedantb/server': 0.17.0(@ai-sdk/gateway@4.0.88(zod@3.25.76))(@clerk/backend@2.33.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(ai@7.0.108(zod@3.25.76))(convex-helpers@0.1.135(@standard-schema/spec@1.1.0)(convex@1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@clerk/react@6.19.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(hono@4.12.14)(prettier@3.8.3)(react@19.2.3)(typescript@7.0.1-rc)(zod@3.25.76))(convex@1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@clerk/react@6.19.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(zod@3.25.76)
       convex: 1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@clerk/react@6.19.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6)
       dayjs: 1.11.23
       expo-auth-session: 57.0.16(expo@57.0.31)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(react@19.2.3)
@@ -19007,17 +18977,6 @@ snapshots:
       expo-web-browser: 57.0.3(expo@57.0.31)(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))
       react-native-gesture-handler: 3.4.0(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(react@19.2.3)
       react-native-svg: 15.15.4(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.3.0)(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(react@19.2.3)
-
-  '@vvedantb/server@0.17.0(@ai-sdk/gateway@4.0.88(zod@3.25.76))(@clerk/backend@2.33.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(ai@7.0.108(zod@3.25.76))(convex-helpers@0.1.135(@standard-schema/spec@1.1.0)(convex@1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@clerk/react@6.19.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(hono@4.12.14)(prettier@3.8.3)(react@19.2.3)(typescript@7.0.1-rc)(zod@3.25.76))(convex@1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@clerk/react@6.19.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(zod@3.25.76)':
-    optionalDependencies:
-      '@ai-sdk/gateway': 4.0.88(zod@3.25.76)
-      '@clerk/backend': 2.33.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
-      ai: 7.0.108(zod@3.25.76)
-      convex: 1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@clerk/react@6.19.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6)
-      convex-helpers: 0.1.135(@standard-schema/spec@1.1.0)(convex@1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@clerk/react@6.19.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(hono@4.12.14)(prettier@3.8.3)(react@19.2.3)(typescript@7.0.1-rc)(zod@3.25.76)
-      zod: 3.25.76
-    optional: true
 
   '@vvedantb/server@0.17.0(@ai-sdk/gateway@4.0.88(zod@3.25.76))(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(ai@7.0.108(zod@3.25.76))(convex-helpers@0.1.135(@standard-schema/spec@1.1.0)(convex@1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.19.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(hono@4.12.14)(prettier@3.8.3)(react@19.3.0)(typescript@7.0.1-rc)(zod@3.25.76))(convex@1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.19.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
     optionalDependencies:
@@ -20298,18 +20257,6 @@ snapshots:
       convex: 1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.19.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)
     optionalDependencies:
       react: 19.3.0
-
-  convex-helpers@0.1.135(@standard-schema/spec@1.1.0)(convex@1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@clerk/react@6.19.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6))(hono@4.12.14)(prettier@3.8.3)(react@19.2.3)(typescript@7.0.1-rc)(zod@3.25.76):
-    dependencies:
-      convex: 1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@clerk/react@6.19.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(bufferutil@4.1.0)(react@19.2.3)(utf-8-validate@6.0.6)
-    optionalDependencies:
-      '@standard-schema/spec': 1.1.0
-      hono: 4.12.14
-      prettier: 3.8.3
-      react: 19.2.3
-      typescript: 7.0.1-rc
-      zod: 3.25.76
-    optional: true
 
   convex-helpers@0.1.135(@standard-schema/spec@1.1.0)(convex@1.48.0(@clerk/clerk-react@5.61.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.19.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(hono@4.12.14)(prettier@3.8.3)(react@19.3.0)(typescript@7.0.1-rc)(zod@3.25.76):
     dependencies:

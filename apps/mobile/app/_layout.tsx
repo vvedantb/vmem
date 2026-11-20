@@ -17,6 +17,7 @@ import { PUBLISHABLE_KEY } from "@/config";
 import { convex } from "@/convex/client";
 import { EnsureUser } from "@/providers/EnsureUser";
 import { navigationTheme, useScheme } from "@/ui/theme";
+import { UpdateDialog } from "@/update/UpdateDialog";
 
 export default function RootLayout() {
   const scheme = useScheme();
@@ -38,6 +39,7 @@ export default function RootLayout() {
         <NativeUiProvider>
           <EnsureUser />
           <Slot />
+          <UpdateDialog />
           <Toaster />
           <StatusBar style={scheme === "dark" ? "light" : "dark"} />
         </NativeUiProvider>

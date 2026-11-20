@@ -23,7 +23,7 @@
     "@vmem/backend": "workspace:*",
     "@vmem/sdk": "workspace:*",
     "@vmem/shared": "workspace:*",
-    "@vvedantb/native-ui": "^0.20.1",
+    "@vvedantb/native-ui": "^0.31.0",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "convex": "catalog:",
