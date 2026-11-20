@@ -1,4 +1,4 @@
-import { getClerkInstance } from "@clerk/clerk-expo";
+import { getClerkInstance } from "@clerk/expo";
 import { toast } from "@vvedantb/native-ui/toast";
 import * as Clipboard from "expo-clipboard";
 import { useSyncExternalStore } from "react";

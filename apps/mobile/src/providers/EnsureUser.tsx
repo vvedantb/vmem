@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { api } from "@vmem/backend";
 import { useMutation } from "convex/react";
 import { useEffect } from "react";

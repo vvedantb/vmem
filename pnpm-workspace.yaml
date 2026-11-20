@@ -63,7 +63,7 @@ packageExtensions:
 
 catalog:
   "@clerk/backend": ^2.30.1
-  "@clerk/clerk-expo": ^2.20.2
+  "@clerk/expo": ^4.17.2
   "@cosmos.gl/graph": 3.3.0
   "@clerk/chrome-extension": ^3.1.111
   "@modelcontextprotocol/sdk": 1.29.0

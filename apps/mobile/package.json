@@ -12,7 +12,7 @@
     "test": "tsx --tsconfig tests/tsconfig.json --test --test-concurrency=1 tests/*.test.ts"
   },
   "dependencies": {
-    "@clerk/clerk-expo": "catalog:",
+    "@clerk/expo": "catalog:",
     "@expo-google-fonts/instrument-sans": "^0.4.2",
     "@expo/metro-runtime": "~57.0.17",
     "@expo/vector-icons": "^15.1.1",
@@ -23,7 +23,7 @@
     "@vmem/backend": "workspace:*",
     "@vmem/sdk": "workspace:*",
     "@vmem/shared": "workspace:*",
-    "@vvedantb/native-ui": "^0.20.1",
+    "@vvedantb/native-ui": "^0.32.0",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "convex": "catalog:",

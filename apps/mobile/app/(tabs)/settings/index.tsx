@@ -1,4 +1,4 @@
-import { useAuth, useUser } from "@clerk/clerk-expo";
+import { useAuth, useUser } from "@clerk/expo";
 import { Button } from "@vvedantb/native-ui/button";
 import {
   MoreFromProjectV,
