@@ -39,7 +39,8 @@ concurrency:
 
 jobs:
   release:
-    uses: vvedantb/packages/.github/workflows/release-android-apk.yml@main
+    # Pin: #320 follow-up with actions:read for wait_for_check_job (and fetch-depth fix). Return to @main after it lands.
+    uses: vvedantb/packages/.github/workflows/release-android-apk.yml@aa70acf92cee5aa5b58723aa2f7180c4c14f6192
     with:
       app_name: vmem
       package_id: com.projectvdotuk.vmem
