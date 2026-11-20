@@ -2,7 +2,6 @@
 // looks like SonnerToaster from @vvedantb/ui: same token values, sonner's icons and motion.
 // the package toaster needs react + tailwind, too heavy for a content script on host pages
 
-import { escape } from "es-toolkit";
 import { createShadowHost } from "./dom-utils";
 
 type ToastType = "success" | "error" | "loading" | "info";
@@ -21,23 +20,40 @@ const active = new Map<string, ToastEntry>();
 
 const EXIT_MS = 400;
 
-// sonner's default 20px filled icons
-function filledIcon(path: string): string {
-  return `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="${path}"/></svg>`;
-}
+const SVG_NS = "http://www.w3.org/2000/svg";
 
-const ICON_MAP: Record<ToastType, string> = {
-  success: filledIcon(
+// sonner's default 20px filled icons; the loading type has a spinner and no path
+const ICON_PATHS: Record<Exclude<ToastType, "loading">, string> = {
+  success:
     "M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z",
-  ),
-  error: filledIcon(
+  error:
     "M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z",
-  ),
-  info: filledIcon(
-    "M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z",
-  ),
-  loading: `<div class="spinner"></div>`,
+  info: "M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z",
 };
+
+// built node by node: sites with trusted types (reddit) reject innerHTML
+function iconOf(type: ToastType): Element {
+  if (type === "loading") {
+    const spinner = document.createElement("div");
+    spinner.className = "spinner";
+    return spinner;
+  }
+  const svg = document.createElementNS(SVG_NS, "svg");
+  for (const [name, value] of Object.entries({
+    width: "20",
+    height: "20",
+    viewBox: "0 0 20 20",
+    fill: "currentColor",
+    "aria-hidden": "true",
+  }))
+    svg.setAttribute(name, value);
+  const path = document.createElementNS(SVG_NS, "path");
+  path.setAttribute("fill-rule", "evenodd");
+  path.setAttribute("clip-rule", "evenodd");
+  path.setAttribute("d", ICON_PATHS[type]);
+  svg.append(path);
+  return svg;
+}
 
 // colour values copied from @vvedantb/ui/tokens (light and dark)
 const STYLES = `
@@ -172,7 +188,13 @@ export function showToast(options: ShowToastOptions): string {
   const id = `vmem-toast-${++counter}`;
   const el = document.createElement("div");
   el.className = `toast toast-${options.type}`;
-  el.innerHTML = `<div class="toast-icon">${ICON_MAP[options.type]}</div><span class="toast-message">${escape(options.message)}</span>`;
+  const icon = document.createElement("div");
+  icon.className = "toast-icon";
+  icon.append(iconOf(options.type));
+  const message = document.createElement("span");
+  message.className = "toast-message";
+  message.textContent = options.message;
+  el.append(icon, message);
   if (options.openUrl) {
     const link = document.createElement("a");
     link.className = "toast-action";

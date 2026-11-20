@@ -10,6 +10,19 @@ export type SaveOutcome = {
   alreadySaved?: boolean;
 };
 
+// one saved thing from a site script; source and tag find its memory again
+export type SiteItemRef = {
+  source: "x" | "reddit" | "github" | "linkedin";
+  // author, subreddit or repo owner
+  tag: string;
+  url: string;
+};
+
+export type SiteItem = SiteItemRef & {
+  title: string;
+  content: string;
+};
+
 type ImportOutcome = {
   count: number;
   skipped?: number;
@@ -93,8 +106,9 @@ interface ProtocolMap {
   importProgress(data: ImportProgressData): void;
   extractPage(): ExtractPageData;
   startScreenshot(): { ok: true };
-  // deletes the memory saved from this post; removed is false when there is none
-  removeXPost(data: { url: string; handle: string }): { removed: boolean };
+  saveSiteItem(data: SiteItem): SaveOutcome;
+  // deletes the memory saved from this item; removed is false when there is none
+  removeSiteItem(data: SiteItemRef): { removed: boolean };
   // background asks the page to show a toast
   showToast(data: ShowToastOptions): void;
   // save shortcut: a site script saves its own item (post, video) and answers handled

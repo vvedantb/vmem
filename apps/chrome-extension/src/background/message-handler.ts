@@ -13,7 +13,12 @@ import { importHistory } from "./import-history";
 import { cancelImport } from "./import-cancel";
 import { runAutoSyncNow } from "./sync-scheduler";
 import { lastBookmarkSyncItem, lastHistorySyncItem } from "@/lib/storage";
-import { onMessage, type SaveOutcome } from "@/lib/messaging";
+import {
+  onMessage,
+  type SaveOutcome,
+  type SiteItem,
+  type SiteItemRef,
+} from "@/lib/messaging";
 import { htmlToMarkdownSafe } from "@/lib/page-extraction";
 import { memoryWebUrl } from "@/lib/memory-url";
 
@@ -111,23 +116,35 @@ export function saveXPostCreateParams(data: {
   };
 }
 
-const X_AUTHOR_LIST_LIMIT = 100;
+export function saveSiteItemCreateParams(data: SiteItem): CreateMemoryParams {
+  return {
+    title: truncatedTitle(data.title),
+    content: data.content.slice(0, 10000),
+    type: "knowledge",
+    source: data.source,
+    tags: [data.source, data.tag],
+    confidence: 1.0,
+    url: data.url,
+  };
+}
 
+const TAG_LIST_LIMIT = 100;
+
+// path without the last slash; sites write the same item with and without it
 function pathOf(url: string | null | undefined): string | undefined {
   return url && URL.canParse(url)
-    ? new URL(url).pathname.toLowerCase()
+    ? new URL(url).pathname.toLowerCase().replace(/\/$/, "")
     : undefined;
 }
 
-// the memory of a post is found by its author tag, then by its url
-async function removeXPost(data: {
-  url: string;
-  handle: string;
-}): Promise<{ removed: boolean }> {
+// the memory of an item is found by its tag, then by its url
+async function removeSiteItem(
+  data: SiteItemRef,
+): Promise<{ removed: boolean }> {
   const { memories } = await listMemories({
-    source: "x",
-    tags: [sanitizeTag(data.handle)],
-    limit: X_AUTHOR_LIST_LIMIT,
+    source: data.source,
+    tags: [sanitizeTag(data.tag)],
+    limit: TAG_LIST_LIMIT,
   });
   const path = pathOf(data.url);
   const saved = memories.filter(
@@ -202,8 +219,12 @@ export function registerMessageHandler(): void {
     return createMemoryOrThrow(saveXPostCreateParams(data));
   });
 
-  onMessage("removeXPost", async ({ data }) => {
-    return await removeXPost(data);
+  onMessage("saveSiteItem", async ({ data }) => {
+    return createMemoryOrThrow(saveSiteItemCreateParams(data));
+  });
+
+  onMessage("removeSiteItem", async ({ data }) => {
+    return await removeSiteItem(data);
   });
 
   onMessage("capturePrompt", async ({ data }) => {

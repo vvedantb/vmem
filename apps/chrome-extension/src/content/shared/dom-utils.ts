@@ -77,6 +77,13 @@ export function createShadowHost(
     zIndex,
     pointerEvents: "none",
   });
+  // web-component sites (reddit) hide tags that are not registered, and a page rule beats :host
+  for (const [name, value] of Object.entries({
+    display: "block",
+    visibility: "visible",
+    opacity: "1",
+  }))
+    host.style.setProperty(name, value, "important");
 
   const shadow = host.attachShadow({ mode: "closed" });
 

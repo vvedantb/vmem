@@ -5,6 +5,7 @@ import { createVmemLogo } from "@/content/shared/icons";
 import { onDocumentReady } from "@/content/shared/dom-utils";
 import { checkIcon, errorIcon } from "@/content/shared/status-icons";
 import { showToast } from "@/content/shared/toast";
+import { removeSiteItem } from "@/content/shared/site-save";
 import { errorMessage } from "@/lib/error";
 
 type SaveState = "idle" | "saving" | "success" | "error";
@@ -306,20 +307,6 @@ onMessage("siteSave", () => {
   return { handled: button !== null };
 });
 
-async function remove(post: XPost): Promise<void> {
-  try {
-    const { removed } = await sendMessage("removeXPost", {
-      url: post.url,
-      handle: post.handle,
-    });
-    if (removed) showToast({ type: "success", message: "Removed from vmem" });
-  } catch (err) {
-    const reason = errorMessage(err);
-    console.error("[vmem] Failed to remove X post:", reason);
-    showToast({ type: "error", message: reason });
-  }
-}
-
 // a new bookmark also saves the post; removing a bookmark also removes it from vmem
 function syncWithBookmark(event: MouseEvent): void {
   if (!(event.target instanceof Element)) return;
@@ -329,7 +316,13 @@ function syncWithBookmark(event: MouseEvent): void {
     article.querySelector<HTMLButtonElement>(`[${BUTTON_ATTR}]`)?.click();
   } else if (event.target.closest(REMOVE_BOOKMARK_SELECTOR)) {
     const post = readPost(article);
-    if (post) void remove(post);
+    if (post) {
+      void removeSiteItem(() => ({
+        source: "x",
+        tag: post.handle,
+        url: post.url,
+      }));
+    }
   }
 }
 
