@@ -37,8 +37,8 @@ jobs:
         pnpm typecheck:all
         pnpm lint
         node scripts/compiler-check.mjs
-        pnpm --filter @vmem/backend test -- $VV_TEST_CHANGED ${VV_TEST_CHANGED:+--passWithNoTests}
-        pnpm --filter web test -- $VV_TEST_CHANGED ${VV_TEST_CHANGED:+--passWithNoTests}
+        pnpm --filter @vmem/backend exec vitest run $VV_TEST_CHANGED ${VV_TEST_CHANGED:+--passWithNoTests}
+        pnpm --filter web exec vitest run $VV_TEST_CHANGED ${VV_TEST_CHANGED:+--passWithNoTests}
         pnpm --filter @vmem/chrome-extension test
         pnpm --filter @vmem/desktop test
         pnpm --filter @vmem/mobile test
