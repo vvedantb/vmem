@@ -6,6 +6,9 @@ export interface ComputeHighlightPointsInput {
     targetIndex: number;
     linkIndex: number;
   } | null;
+  // node with the open detail panel; hover wins over it, it wins over search
+  selectedPointIndex?: number;
+  selectedNeighborIndices?: readonly number[];
   isSearchActive: boolean;
   searchMatchIndices?: readonly number[];
 }
@@ -33,6 +36,8 @@ export function computeHighlightPoints(
     hoveredPointIndex,
     neighborIndices,
     hoveredLinkEndpoints,
+    selectedPointIndex,
+    selectedNeighborIndices,
     isSearchActive,
     searchMatchIndices,
   } = input;
@@ -67,6 +72,17 @@ export function computeHighlightPoints(
         highlightedPointIndices.length > 0
           ? highlightedPointIndices
           : undefined,
+      focusedLinkIndex: undefined,
+    };
+  }
+
+  if (selectedPointIndex !== undefined) {
+    const selectedSet = new Set<number>([selectedPointIndex]);
+    if (selectedNeighborIndices !== undefined) {
+      for (const n of selectedNeighborIndices) selectedSet.add(n);
+    }
+    return {
+      highlightedPointIndices: [...selectedSet],
       focusedLinkIndex: undefined,
     };
   }

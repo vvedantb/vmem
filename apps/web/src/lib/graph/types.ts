@@ -31,4 +31,7 @@ export interface RelatedNode {
   id: string;
   title: string;
   weight: number;
+  // strongest link to the selected node: relates_to, then mentions, then tag
+  edgeType: GraphEdgeType;
+  reason?: string;
 }

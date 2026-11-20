@@ -39,6 +39,10 @@ export default function MemoryGraph({
     viewTheme,
     searchMatchSet,
     isSearchActive,
+    selectedNodeId,
+    cameraTarget,
+    onSelectNode,
+    onRevealNode,
     isFocused,
     resolvedFocusNodeId,
     loadedMemoryCount,
@@ -60,6 +64,9 @@ export default function MemoryGraph({
   const interaction = useGraphNodeInteraction({
     graphNodes,
     graphEdges,
+    selectedNodeId,
+    onSelectNode,
+    onRevealNode,
     onFocusChange,
   });
 
@@ -108,6 +115,8 @@ export default function MemoryGraph({
         edges={graphEdges}
         viewTheme={viewTheme}
         focusNodeId={resolvedFocusNodeId ?? focusNodeId}
+        selectedNodeId={selectedNodeId}
+        cameraTarget={cameraTarget}
         searchMatchSet={searchMatchSet}
         isSearchActive={isSearchActive}
         showLabels={graphSettings.showLabels}

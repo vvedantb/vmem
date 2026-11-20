@@ -14,12 +14,15 @@ import { useActiveProfile } from "@/components/workspace/active-profile";
 export function useGraphNodeInteraction(args: {
   graphNodes: GraphNode[];
   graphEdges: GraphEdge[];
+  selectedNodeId: string | null;
+  onSelectNode: (nodeId: string | null) => void;
+  onRevealNode: (nodeId: string) => void;
   onFocusChange: (id: string | null) => void;
 }) {
   const getNodeContent = useAction(api.graphApi.getNodeContent);
   const activeProfileId = useActiveProfile()._id;
 
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const { selectedNodeId } = args;
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
 
@@ -65,7 +68,7 @@ export function useGraphNodeInteraction(args: {
       : getRelatedNodes(selectedNodeId, args.graphEdges, nodeById);
 
   function handleClickNode(nodeId: string) {
-    setSelectedNodeId(nodeId);
+    args.onSelectNode(nodeId);
     setHoveredNode(null);
   }
 
@@ -73,15 +76,15 @@ export function useGraphNodeInteraction(args: {
     const node = nodeById.get(nodeId);
     if (!node || node.kind !== "memory") return;
     args.onFocusChange(nodeId);
-    setSelectedNodeId(null);
+    args.onSelectNode(null);
   }
 
   function handleCloseDetail() {
-    setSelectedNodeId(null);
+    args.onSelectNode(null);
   }
 
   function handleNavigateNode(nodeId: string) {
-    setSelectedNodeId(nodeId);
+    args.onRevealNode(nodeId);
   }
 
   function handleBackToGlobal() {

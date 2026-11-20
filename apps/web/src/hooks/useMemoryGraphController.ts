@@ -9,6 +9,7 @@ import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 import { buildGraphData, getGraphFacets } from "@/lib/graph/graph-data";
 import type { GraphSettings } from "@/lib/graph/graph-types";
+import type { GraphCameraTarget } from "@/components/_components/GraphCanvas";
 import { getViewTheme } from "@/components/_components/graph-view-themes";
 import type { ListItemKind } from "@/lib/list-items";
 import type { MemoryType } from "@/lib/memories";
@@ -82,6 +83,12 @@ export function useMemoryGraphController({
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
 
+  // selection lives here because the header search and the canvas share it
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [cameraTarget, setCameraTarget] = useState<GraphCameraTarget | null>(
+    null,
+  );
+
   const filters: MemoryViewFilterParams = {
     kinds: params.kinds,
     tags: params.tags,
@@ -151,6 +158,10 @@ export function useMemoryGraphController({
     return matches;
   })();
 
+  const searchResults = isSearchActive
+    ? graphNodes.filter((node) => searchMatchSet.has(node.id))
+    : [];
+
   const loadedMemoryCount = apiNodes.filter((n) => n.kind === "memory").length;
 
   const loadedRelationshipCount =
@@ -184,7 +195,10 @@ export function useMemoryGraphController({
     graphNodes,
     graphEdges,
     searchMatchSet,
+    searchResults,
     isSearchActive,
+    selectedNodeId,
+    cameraTarget,
     allTags,
     allKinds,
     allSources,
@@ -217,6 +231,14 @@ export function useMemoryGraphController({
     onSettingsChange: (next: GraphSettings) => {
       setGraphSettingsState(next);
       setGraphSettings(next);
+    },
+    onSelectNode: (nodeId: string | null) => {
+      setSelectedNodeId(nodeId);
+    },
+    // select the node and move the camera to it
+    onRevealNode: (nodeId: string) => {
+      setSelectedNodeId(nodeId);
+      setCameraTarget((prev) => ({ nodeId, seq: (prev?.seq ?? 0) + 1 }));
     },
     onSearchChange: (q: string) => {
       void setParams({ q: q.trim().length === 0 ? null : q });

@@ -5,7 +5,7 @@ import type { MemoryType } from "@/lib/memories";
 import { MEMORY_TYPES } from "@/lib/memories";
 import type { ListItemKind } from "@/lib/list-items";
 import { apiGraphNodePassesFilters } from "@/lib/memory-view-filters";
-import type { GraphNode, GraphEdge, RelatedNode } from "./types";
+import type { GraphNode, GraphEdge, GraphEdgeType, RelatedNode } from "./types";
 
 export type GraphResponse = FunctionReturnType<
   typeof api.graphApi.getGraphData
@@ -203,23 +203,41 @@ export function buildGraphData(
   return { graphNodes, graphEdges };
 }
 
+const RELATED_EDGE_RANK: Record<GraphEdgeType, number> = {
+  tag: 0,
+  mentions: 1,
+  relates_to: 2,
+};
+
 export function getRelatedNodes(
   nodeId: string,
   graphEdges: GraphEdge[],
   nodeById: ReadonlyMap<string, GraphNode>,
 ): RelatedNode[] {
-  const related = new Map<string, number>();
+  const related = new Map<string, RelatedNode>();
   for (const edge of graphEdges) {
     const sId = typeof edge.source === "string" ? edge.source : edge.source.id;
     const tId = typeof edge.target === "string" ? edge.target : edge.target.id;
-    if (sId === nodeId) {
-      related.set(tId, (related.get(tId) ?? 0) + edge.weight);
-    } else if (tId === nodeId) {
-      related.set(sId, (related.get(sId) ?? 0) + edge.weight);
+    const otherId = sId === nodeId ? tId : tId === nodeId ? sId : null;
+    if (otherId === null) continue;
+    const existing = related.get(otherId);
+    if (existing === undefined) {
+      related.set(otherId, {
+        id: otherId,
+        title: nodeById.get(otherId)?.title ?? otherId,
+        weight: edge.weight,
+        edgeType: edge.edgeType,
+        reason: edge.reason,
+      });
+      continue;
+    }
+    existing.weight += edge.weight;
+    if (
+      RELATED_EDGE_RANK[edge.edgeType] > RELATED_EDGE_RANK[existing.edgeType]
+    ) {
+      existing.edgeType = edge.edgeType;
+      existing.reason = edge.reason;
     }
   }
-  return Array.from(related.entries()).map(([id, weight]) => {
-    const node = nodeById.get(id);
-    return { id, title: node?.title ?? id, weight };
-  });
+  return [...related.values()];
 }

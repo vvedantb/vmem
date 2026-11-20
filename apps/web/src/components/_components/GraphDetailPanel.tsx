@@ -22,6 +22,14 @@ interface GraphDetailPanelProps {
   onFocusNode: (nodeId: string) => void;
 }
 
+function relatedNodeLabel(node: RelatedNode): string {
+  if (node.edgeType === "tag") {
+    return `${String(node.weight)} shared tag${node.weight > 1 ? "s" : ""}`;
+  }
+  if (node.edgeType === "mentions") return "Mentions";
+  return node.reason ?? "Related";
+}
+
 async function runGraphDelete(
   onDelete: (nodeId: string) => Promise<boolean>,
   nodeId: string,
@@ -179,9 +187,8 @@ export default function GraphDetailPanel({
                     <p className="text-sm font-medium text-foreground truncate">
                       {neighbor.title}
                     </p>
-                    <p className="text-xs text-muted mt-0.5">
-                      {neighbor.weight} shared tag
-                      {neighbor.weight > 1 ? "s" : ""}
+                    <p className="text-xs text-muted mt-0.5 truncate">
+                      {relatedNodeLabel(neighbor)}
                     </p>
                   </Button>
                 ))}

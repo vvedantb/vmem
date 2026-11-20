@@ -49,11 +49,20 @@ export interface GraphCanvasHandle {
   fit: () => void;
 }
 
+export interface GraphCameraTarget {
+  nodeId: string;
+  seq: number;
+}
+
 interface GraphCanvasProps {
   nodes: GraphNode[];
   edges: GraphEdge[];
   viewTheme: GraphViewTheme;
   focusNodeId?: string | null;
+  // node with the open detail panel: ringed, lit with its neighbours
+  selectedNodeId?: string | null;
+  // camera move request; a new seq re-centres on the same node
+  cameraTarget?: GraphCameraTarget | null;
   searchMatchSet: Set<string>;
   isSearchActive: boolean;
   showLabels: boolean;
@@ -70,6 +79,8 @@ const ZOOM_OUT_FACTOR = 0.7;
 const POINT_SAMPLING_DISTANCE = 80;
 const MAX_LABELS = 48;
 const FOCUSED_LINK_WIDTH_INCREASE = 2;
+const CENTER_ZOOM_SCALE = 2;
+const CENTER_DURATION_MS = 500;
 
 function fitPaddingForNodeCount(nodeCount: number): number {
   if (nodeCount <= 10) return 0.35;
@@ -88,6 +99,8 @@ function GraphCanvas({
   edges,
   viewTheme,
   focusNodeId,
+  selectedNodeId,
+  cameraTarget,
   searchMatchSet,
   isSearchActive,
   showLabels,
@@ -116,9 +129,12 @@ function GraphCanvas({
     nodeCount: number;
   } | null>(null);
   const [webglError, setWebglError] = useState(false);
+  // a request made before this mount is old: do not replay it
+  const handledCameraSeqRef = useRef(cameraTarget?.seq);
 
   const themeRef = useRef(viewTheme);
   const focusNodeIdRef = useRef(focusNodeId);
+  const selectedNodeIdRef = useRef(selectedNodeId);
   const searchMatchSetRef = useRef(searchMatchSet);
   const isSearchActiveRef = useRef(isSearchActive);
   const showLabelsRef = useRef(showLabels);
@@ -135,6 +151,7 @@ function GraphCanvas({
   useLayoutEffect(() => {
     themeRef.current = viewTheme;
     focusNodeIdRef.current = focusNodeId;
+    selectedNodeIdRef.current = selectedNodeId;
     searchMatchSetRef.current = searchMatchSet;
     isSearchActiveRef.current = isSearchActive;
     showLabelsRef.current = showLabels;
@@ -156,8 +173,20 @@ function GraphCanvas({
         ? buffers.idToIndex.get(focusId)
         : undefined;
 
+    const selectedId = selectedNodeIdRef.current;
+    const selectedPointIndex =
+      selectedId !== undefined && selectedId !== null
+        ? buffers.idToIndex.get(selectedId)
+        : undefined;
+
     const outlined: number[] = [];
     if (focusedPointIndex !== undefined) outlined.push(focusedPointIndex);
+    if (
+      selectedPointIndex !== undefined &&
+      selectedPointIndex !== focusedPointIndex
+    ) {
+      outlined.push(selectedPointIndex);
+    }
 
     const zoom = graph.getZoomLevel();
     const skipHoverHighlight =
@@ -198,12 +227,18 @@ function GraphCanvas({
         hoveredPointIndex,
         neighborIndices,
         hoveredLinkEndpoints,
+        selectedPointIndex,
+        selectedNeighborIndices:
+          selectedPointIndex !== undefined
+            ? graph.getNeighboringPointIndices(selectedPointIndex)
+            : undefined,
         isSearchActive: isSearchActiveRef.current,
         searchMatchIndices: searchMatches,
       });
 
     graph.setConfigPartial({
-      focusedPointIndex,
+      // the ring follows the selection; the URL focus node keeps its outline
+      focusedPointIndex: selectedPointIndex ?? focusedPointIndex,
       focusedLinkIndex,
       focusedLinkWidthIncrease: FOCUSED_LINK_WIDTH_INCREASE,
       highlightedPointIndices,
@@ -254,13 +289,20 @@ function GraphCanvas({
     const theme = themeRef.current;
     const hoveredIndex = hoveredIndexRef.current;
     const hoveredLinkIndex = hoveredLinkIndexRef.current;
+    const selectedId = selectedNodeIdRef.current;
+    const selectedIndex =
+      selectedId !== undefined && selectedId !== null
+        ? buffers.idToIndex.get(selectedId)
+        : undefined;
+    // labels follow the hovered node, else the selected node
+    const anchorIndex = hoveredIndex ?? selectedIndex;
     const hasHover =
-      hoveredIndex !== undefined || hoveredLinkIndex !== undefined;
+      anchorIndex !== undefined || hoveredLinkIndex !== undefined;
     const lowZoom = zoom < COSMOS_LOW_ZOOM_THRESHOLD;
     const neighborSet = new Set<number>();
-    if (hoveredIndex !== undefined) {
-      neighborSet.add(hoveredIndex);
-      for (const n of graph.getNeighboringPointIndices(hoveredIndex)) {
+    if (anchorIndex !== undefined) {
+      neighborSet.add(anchorIndex);
+      for (const n of graph.getNeighboringPointIndices(anchorIndex)) {
         neighborSet.add(n);
       }
     }
@@ -274,7 +316,7 @@ function GraphCanvas({
     const toDraw = new Map<number, { x: number; y: number }>();
 
     const allPositions = graph.getPointPositions();
-    if (hoveredIndex !== undefined) {
+    if (anchorIndex !== undefined) {
       for (const idx of neighborSet) {
         const px = allPositions[idx * 2];
         const py = allPositions[idx * 2 + 1];
@@ -304,7 +346,7 @@ function GraphCanvas({
 
       const pointSize = buffers.sizes[idx] ?? Math.max(2, node.size * 2);
       const screenRadius = (pointSize / 2) * zoom;
-      const isHovered = idx === hoveredIndex;
+      const isHovered = idx === anchorIndex;
       const isNeighbor = neighborSet.has(idx);
 
       if (
@@ -337,7 +379,7 @@ function GraphCanvas({
         if (!meta) continue;
         const isHoveredEdge = hoveredLinkIndex === linkIdx;
         const isHoveredNodeEdge =
-          hoveredIndex !== undefined &&
+          anchorIndex !== undefined &&
           neighborSet.has(meta.sourceIndex) &&
           neighborSet.has(meta.targetIndex);
         if (!isHoveredEdge && !isHoveredNodeEdge) continue;
@@ -704,7 +746,33 @@ function GraphCanvas({
     const graph = graphRef.current;
     if (!graph) return;
     applyVisualState(graph);
-  }, [focusNodeId, searchMatchSet, isSearchActive, applyVisualState]);
+    paintSceneOverlays(graph);
+  }, [
+    focusNodeId,
+    selectedNodeId,
+    searchMatchSet,
+    isSearchActive,
+    applyVisualState,
+    paintSceneOverlays,
+  ]);
+
+  // camera follows a search result or a related-node pick
+  useEffect(() => {
+    const graph = graphRef.current;
+    const buffers = buffersRef.current;
+    if (!graph || !buffers || !cameraTarget) return;
+    if (handledCameraSeqRef.current === cameraTarget.seq) return;
+    handledCameraSeqRef.current = cameraTarget.seq;
+    const index = buffers.idToIndex.get(cameraTarget.nodeId);
+    if (index === undefined) return;
+    graph.zoomToPointByIndex(
+      index,
+      CENTER_DURATION_MS,
+      CENTER_ZOOM_SCALE,
+      false,
+      false,
+    );
+  }, [cameraTarget]);
 
   useEffect(() => {
     const graph = graphRef.current;

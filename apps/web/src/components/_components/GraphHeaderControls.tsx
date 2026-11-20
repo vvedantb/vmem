@@ -8,6 +8,7 @@ import {
   PopoverTrigger,
   Switch,
   Separator,
+  cn,
 } from "@vvedantb/ui";
 import AddMemoryIconTrigger from "@/components/memories/AddMemoryIconTrigger";
 import HeaderSearchPopover from "./HeaderSearchPopover";
@@ -32,7 +33,11 @@ export default function GraphHeaderControls({
         onChange={controller.onSearchChange}
         placeholder="Search nodes..."
         label="Search nodes"
-      />
+      >
+        {controller.isSearchActive ? (
+          <GraphSearchResults controller={controller} />
+        ) : null}
+      </HeaderSearchPopover>
       <GraphFiltersButton controller={controller} />
       <OptionsPopover
         settings={controller.graphSettings}
@@ -40,6 +45,52 @@ export default function GraphHeaderControls({
       />
       <AddMemoryIconTrigger />
     </div>
+  );
+}
+
+// first matches only; the count line tells the user when there are more
+const MAX_SEARCH_RESULTS = 50;
+
+function GraphSearchResults({
+  controller,
+}: {
+  controller: MemoryGraphController;
+}) {
+  const { searchResults, selectedNodeId, onRevealNode } = controller;
+  const shown = searchResults.slice(0, MAX_SEARCH_RESULTS);
+
+  return (
+    <>
+      <p className="px-1 text-xs text-muted tabular-nums">
+        {searchResults.length === 0
+          ? "No matches"
+          : searchResults.length > shown.length
+            ? `First ${String(shown.length)} of ${searchResults.length.toLocaleString()} matches`
+            : `${String(searchResults.length)} match${searchResults.length === 1 ? "" : "es"}`}
+      </p>
+      {shown.length > 0 ? (
+        <div className="max-h-64 space-y-0.5 overflow-y-auto">
+          {shown.map((node) => (
+            <Button
+              key={node.id}
+              type="button"
+              variant="ghost"
+              shape="rounded"
+              aria-current={node.id === selectedNodeId ? "true" : undefined}
+              onClick={() => onRevealNode(node.id)}
+              className={cn(
+                "h-auto w-full justify-start px-2 py-1.5 text-left",
+                node.id === selectedNodeId && "bg-surface-tertiary",
+              )}
+            >
+              <span className="truncate text-sm text-foreground">
+                {node.title}
+              </span>
+            </Button>
+          ))}
+        </div>
+      ) : null}
+    </>
   );
 }
 
