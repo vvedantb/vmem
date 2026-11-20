@@ -154,3 +154,5 @@ export function dashboardStatsFromCounts(
   acc.tags = new Set(counts.tags);
   return finishDashboardStats(acc);
 }
+
+// affected-tests demo: source-only change to show scope=changed narrowing
