@@ -32,8 +32,10 @@ import {
   COSMOS_EDGE_LABEL,
   COSMOS_HIGH_NODE_COUNT,
   COSMOS_LOW_ZOOM_THRESHOLD,
-  shouldShowCosmosLabel,
+  COSMOS_LABEL_RANK,
+  placeCosmosLabels,
   shouldSkipCosmosLabels,
+  type CosmosLabelCandidate,
   truncateCosmosLabel,
 } from "./cosmos/cosmos-labels";
 import {
@@ -73,6 +75,11 @@ const ZOOM_IN_FACTOR = 1.3;
 const ZOOM_OUT_FACTOR = 0.7;
 const POINT_SAMPLING_DISTANCE = 80;
 const MAX_LABELS = 48;
+const LABEL_FONT_PX = 12;
+const LABEL_GAP_PX = 3;
+const LABEL_PADDING_PX = 3;
+// outline in the background colour, so a label stays readable over links
+const LABEL_HALO_PX = 3;
 const FOCUSED_LINK_WIDTH_INCREASE = 2;
 const CENTER_ZOOM_SCALE = 2;
 const CENTER_DURATION_MS = 500;
@@ -129,6 +136,8 @@ function GraphCanvas({
   const selectedNodeIdRef = useRef(selectedNodeId);
   const searchMatchSetRef = useRef(searchMatchSet);
   const isSearchActiveRef = useRef(isSearchActive);
+  // point indices of the search matches, kept for the label painter
+  const searchMatchIndicesRef = useRef<readonly number[]>([]);
   const showLabelsRef = useRef(showLabels);
   const callbacksRef = useRef({
     onHoverNode,
@@ -213,6 +222,7 @@ function GraphCanvas({
     const searchMatches = isSearchActiveRef.current
       ? searchMatchIndices(buffers.indexToId, searchMatchSetRef.current)
       : undefined;
+    searchMatchIndicesRef.current = searchMatches ?? [];
 
     const { highlightedPointIndices, focusedLinkIndex } =
       computeHighlightPoints({
@@ -267,16 +277,14 @@ function GraphCanvas({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
+    if (!showLabelsRef.current) return;
     const zoom = graph.getZoomLevel();
-    if (
-      shouldSkipCosmosLabels(
-        showLabelsRef.current,
-        zoom,
-        buffers.indexToNode.length,
-      )
-    ) {
-      return;
-    }
+    // far or dense views drop the ambient labels; picked nodes keep theirs
+    const ambientOff = shouldSkipCosmosLabels(
+      true,
+      zoom,
+      buffers.indexToNode.length,
+    );
 
     const theme = themeRef.current;
     const hoveredIndex = hoveredIndexRef.current;
@@ -288,8 +296,7 @@ function GraphCanvas({
         : undefined;
     // labels follow the hovered node, else the selected node
     const anchorIndex = hoveredIndex ?? selectedIndex;
-    const hasHover =
-      anchorIndex !== undefined || hoveredLinkIndex !== undefined;
+    const searchMatches = searchMatchIndicesRef.current;
     const lowZoom = zoom < COSMOS_LOW_ZOOM_THRESHOLD;
     const neighborSet = new Set<number>();
     if (anchorIndex !== undefined) {
@@ -299,67 +306,94 @@ function GraphCanvas({
       }
     }
 
-    const fontSize = Math.max(10, 12 / Math.max(zoom, 0.5));
-    ctx.font = `500 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
+    ctx.font = `500 ${LABEL_FONT_PX}px "Instrument Sans", system-ui, sans-serif`;
     ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    ctx.textBaseline = "top";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = LABEL_HALO_PX;
+    ctx.strokeStyle = theme.background;
 
-    const { indices, positions } = graph.getSampledPoints();
-    const toDraw = new Map<number, { x: number; y: number }>();
+    const candidates: CosmosLabelCandidate[] = [];
+    const seen = new Set<number>();
+    const addCandidate = (
+      idx: number,
+      rank: number,
+      spaceX: number | undefined,
+      spaceY: number | undefined,
+    ) => {
+      if (seen.has(idx) || spaceX === undefined || spaceY === undefined) return;
+      const [x, y] = graph.spaceToScreenPosition([spaceX, spaceY]);
+      if (x < 0 || x > w || y < 0 || y > h) return;
+      seen.add(idx);
+      const pointSize = buffers.sizes[idx] ?? 2;
+      candidates.push({
+        index: idx,
+        rank,
+        importance: pointSize,
+        x,
+        // below the node, so the label does not cover it
+        y: y + (pointSize / 2) * zoom + LABEL_GAP_PX,
+      });
+    };
 
     const allPositions = graph.getPointPositions();
-    if (anchorIndex !== undefined) {
-      for (const idx of neighborSet) {
-        const px = allPositions[idx * 2];
-        const py = allPositions[idx * 2 + 1];
-        if (px === undefined || py === undefined) continue;
-        const [sx, sy] = graph.spaceToScreenPosition([px, py]);
-        toDraw.set(idx, { x: sx, y: sy });
-      }
-    }
-
-    for (let i = 0; i < indices.length; i++) {
-      const idx = indices[i];
-      if (idx === undefined) continue;
-      if (toDraw.has(idx)) continue;
-      const sx = positions[i * 2];
-      const sy = positions[i * 2 + 1];
-      if (sx === undefined || sy === undefined) continue;
-      const [screenX, screenY] = graph.spaceToScreenPosition([sx, sy]);
-      toDraw.set(idx, { x: screenX, y: screenY });
-      if (toDraw.size >= MAX_LABELS) break;
-    }
-
-    let painted = 0;
-    for (const [idx, screen] of toDraw) {
-      if (painted >= MAX_LABELS) break;
-      const node = buffers.indexToNode[idx];
-      if (!node) continue;
-
-      const pointSize = buffers.sizes[idx] ?? Math.max(2, node.size * 2);
-      const screenRadius = (pointSize / 2) * zoom;
-      const isHovered = idx === anchorIndex;
-      const isNeighbor = neighborSet.has(idx);
-
-      if (
-        !shouldShowCosmosLabel({
-          screenRadius,
-          isHovered,
-          isNeighbor,
-          hasHover,
-        })
-      ) {
-        continue;
-      }
-
-      ctx.fillStyle = isHovered ? theme.label.color : theme.label.secondary;
-      ctx.fillText(
-        truncateCosmosLabel(node.title),
-        screen.x,
-        screen.y - Math.min(screenRadius * 0.35, fontSize * 0.5),
+    for (const idx of neighborSet) {
+      addCandidate(
+        idx,
+        idx === anchorIndex
+          ? COSMOS_LABEL_RANK.anchor
+          : COSMOS_LABEL_RANK.neighbor,
+        allPositions[idx * 2],
+        allPositions[idx * 2 + 1],
       );
-      painted += 1;
     }
+    for (const idx of searchMatches) {
+      addCandidate(
+        idx,
+        COSMOS_LABEL_RANK.searchMatch,
+        allPositions[idx * 2],
+        allPositions[idx * 2 + 1],
+      );
+    }
+    // ambient labels show only when no node, link or search has the attention
+    if (
+      !ambientOff &&
+      anchorIndex === undefined &&
+      hoveredLinkIndex === undefined &&
+      !isSearchActiveRef.current
+    ) {
+      const { indices, positions } = graph.getSampledPoints();
+      for (let i = 0; i < indices.length; i++) {
+        const idx = indices[i];
+        if (idx === undefined) continue;
+        addCandidate(
+          idx,
+          COSMOS_LABEL_RANK.ambient,
+          positions[i * 2],
+          positions[i * 2 + 1],
+        );
+      }
+    }
+
+    const labelText = (idx: number) =>
+      truncateCosmosLabel(buffers.indexToNode[idx]?.title ?? "");
+    const labels = placeCosmosLabels({
+      candidates,
+      maxLabels: MAX_LABELS,
+      height: LABEL_FONT_PX,
+      padding: LABEL_PADDING_PX,
+      measureWidth: (idx) => ctx.measureText(labelText(idx)).width,
+    });
+    for (const label of labels) {
+      const text = labelText(label.index);
+      ctx.strokeText(text, label.x, label.y);
+      ctx.fillStyle =
+        label.rank <= COSMOS_LABEL_RANK.searchMatch
+          ? theme.label.color
+          : theme.label.secondary;
+      ctx.fillText(text, label.x, label.y);
+    }
+    ctx.textBaseline = "middle";
 
     if (!lowZoom && (hoveredLinkIndex !== undefined || neighborSet.size > 1)) {
       const pillFontSize = Math.max(8, 10 / Math.max(zoom, 0.5));

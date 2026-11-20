@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { GraphEdgeType } from "@/lib/graph/types";
 import {
   COSMOS_EDGE_LABEL,
-  shouldShowCosmosLabel,
+  COSMOS_LABEL_RANK,
+  placeCosmosLabels,
   shouldSkipCosmosLabels,
   truncateCosmosLabel,
+  type CosmosLabelCandidate,
 } from "./cosmos-labels";
 
 describe("truncateCosmosLabel", () => {
@@ -25,27 +27,61 @@ describe("shouldSkipCosmosLabels", () => {
   });
 });
 
-describe("shouldShowCosmosLabel", () => {
-  it("always shows hovered labels", () => {
+describe("placeCosmosLabels", () => {
+  const base = { importance: 1, y: 0 };
+  const place = (candidates: CosmosLabelCandidate[], maxLabels = 10) =>
+    placeCosmosLabels({
+      candidates,
+      maxLabels,
+      height: 12,
+      padding: 2,
+      measureWidth: () => 40,
+    }).map((label) => label.index);
+
+  it("drops a label that overlaps a more important label", () => {
     expect(
-      shouldShowCosmosLabel({
-        screenRadius: 1,
-        isHovered: true,
-        isNeighbor: false,
-        hasHover: true,
-      }),
-    ).toBe(true);
+      place([
+        { ...base, index: 0, rank: COSMOS_LABEL_RANK.ambient, x: 100 },
+        {
+          ...base,
+          index: 1,
+          rank: COSMOS_LABEL_RANK.ambient,
+          x: 110,
+          importance: 5,
+        },
+        { ...base, index: 2, rank: COSMOS_LABEL_RANK.ambient, x: 300 },
+      ]),
+    ).toEqual([1, 2]);
   });
 
-  it("shows neighbors above half the minimum radius", () => {
+  it("gives the space to the lower rank", () => {
     expect(
-      shouldShowCosmosLabel({
-        screenRadius: 4,
-        isHovered: false,
-        isNeighbor: true,
-        hasHover: true,
-      }),
-    ).toBe(true);
+      place([
+        {
+          ...base,
+          index: 0,
+          rank: COSMOS_LABEL_RANK.ambient,
+          x: 100,
+          importance: 9,
+        },
+        { ...base, index: 1, rank: COSMOS_LABEL_RANK.searchMatch, x: 300 },
+        { ...base, index: 2, rank: COSMOS_LABEL_RANK.anchor, x: 100 },
+      ]),
+    ).toEqual([2, 1]);
+  });
+
+  it("stops at the label limit", () => {
+    expect(
+      place(
+        [0, 1, 2].map((index) => ({
+          ...base,
+          index,
+          rank: COSMOS_LABEL_RANK.ambient,
+          x: index * 200,
+        })),
+        2,
+      ),
+    ).toHaveLength(2);
   });
 });
 
