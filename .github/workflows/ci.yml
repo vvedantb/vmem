@@ -27,7 +27,10 @@ jobs:
       node_version: "22"
       fetch_depth: 0
       parallel: true
-      max_parallel: 0
+      # Cap concurrent commands at 3. All-at-once (0) was ~3 s faster but
+      # oversubscribed the runner: two heavy convex tests hit the 5 s default
+      # timeout under load. A cap of 3 keeps most of the speed-up and runs green.
+      max_parallel: 3
       affected_tests: true
       full_run_paths: |
         packages/backend/tests/frontiermemory/fixtures/
