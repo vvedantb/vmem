@@ -27,7 +27,7 @@ jobs:
       node_version: "22"
       fetch_depth: 0
       parallel: true
-      max_parallel: 3
+      max_parallel: 0
       affected_tests: true
       full_run_paths: |
         packages/backend/tests/frontiermemory/fixtures/
