@@ -6,6 +6,7 @@ import {
   ScreenContainer,
   SettingsSection,
   SettingsToggleRow,
+  ThemeModePicker,
 } from "@vvedantb/native-ui/layout";
 import {
   ConfirmDialog,
@@ -16,6 +17,7 @@ import {
 } from "@vvedantb/native-ui/primitives";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { setThemeMode, useThemeMode } from "@/settings/themeMode";
 import { trackerActions, useTracker } from "@/sync/store";
 import { TabScreen } from "@/ui/TabScreen";
 import { textColor, useScheme } from "@/ui/theme";
@@ -28,6 +30,7 @@ export default function SettingsScreen() {
   const { user } = useUser();
   const router = useRouter();
   const scheme = useScheme();
+  const themeMode = useThemeMode();
   const [confirm, setConfirm] = useState<Confirm>(null);
   const recording = status !== null && !status.paused;
   const counts = status?.counts;
@@ -203,6 +206,10 @@ export default function SettingsScreen() {
           <Button variant="destructive" onPress={() => setConfirm("delete")}>
             Delete all local data
           </Button>
+        </SettingsSection>
+
+        <SettingsSection title="Appearance">
+          <ThemeModePicker value={themeMode} onChange={setThemeMode} />
         </SettingsSection>
 
         <MoreFromProjectV current="vmem" />

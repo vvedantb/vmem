@@ -13,14 +13,20 @@ import { NativeUiProvider } from "@vvedantb/native-ui/theme";
 import { Toaster } from "@vvedantb/native-ui/toast";
 import { Slot, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { View } from "react-native";
 import { PUBLISHABLE_KEY } from "@/config";
 import { convex } from "@/convex/client";
 import { EnsureUser } from "@/providers/EnsureUser";
-import { navigationTheme, useScheme } from "@/ui/theme";
+import { restoreThemeMode, useThemeMode } from "@/settings/themeMode";
+import { NEUTRAL_CLASS_VARS, navigationTheme, useScheme } from "@/ui/theme";
 import { UpdateDialog } from "@/update/UpdateDialog";
+
+// This phone's last appearance mode, applied before the first screen.
+void restoreThemeMode();
 
 export default function RootLayout() {
   const scheme = useScheme();
+  const mode = useThemeMode();
   const [fontsLoaded] = useFonts({
     InstrumentSans_400Regular,
     InstrumentSans_500Medium,
@@ -37,10 +43,16 @@ export default function RootLayout() {
     >
       <ThemeProvider value={navigationTheme(scheme)}>
         <NativeUiProvider>
-          <EnsureUser />
-          <Slot />
-          <UpdateDialog />
-          <Toaster />
+          {/* Neutral repaints the class colours: global.css has light and dark only. */}
+          <View
+            className="flex-1"
+            style={mode === "neutral" ? NEUTRAL_CLASS_VARS : undefined}
+          >
+            <EnsureUser />
+            <Slot />
+            <UpdateDialog />
+            <Toaster />
+          </View>
           <StatusBar style={scheme === "dark" ? "light" : "dark"} />
         </NativeUiProvider>
       </ThemeProvider>
