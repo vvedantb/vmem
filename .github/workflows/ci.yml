@@ -23,14 +23,14 @@ jobs:
   check:
     uses: vvedantb/packages/.github/workflows/ci-app.yml@main
     with:
-      runs_on: boat-large
+      runs_on: ubuntu-latest
       node_version: "22"
       fetch_depth: 0
       parallel: true
-      # Cap concurrent commands at 3. All-at-once (0) was ~3 s faster but
-      # oversubscribed the runner: two heavy convex tests hit the 5 s default
-      # timeout under load. A cap of 3 keeps most of the speed-up and runs green.
-      max_parallel: 3
+      # ubuntu-latest has 4 vCPUs. Cap concurrent commands at 2 so parallel
+      # commands and vitest workers do not oversubscribe the runner. All-at-once
+      # and higher caps made heavy convex tests hit the 5 s default timeout.
+      max_parallel: 2
       affected_tests: true
       full_run_paths: |
         packages/backend/tests/frontiermemory/fixtures/
@@ -40,8 +40,8 @@ jobs:
         pnpm typecheck:all
         pnpm lint
         node scripts/compiler-check.mjs
-        pnpm --filter @vmem/backend exec vitest run $VV_TEST_CHANGED ${VV_TEST_CHANGED:+--passWithNoTests}
-        pnpm --filter web exec vitest run $VV_TEST_CHANGED ${VV_TEST_CHANGED:+--passWithNoTests}
+        pnpm --filter @vmem/backend exec vitest run --maxWorkers=2 $VV_TEST_CHANGED ${VV_TEST_CHANGED:+--passWithNoTests}
+        pnpm --filter web exec vitest run --maxWorkers=2 $VV_TEST_CHANGED ${VV_TEST_CHANGED:+--passWithNoTests}
         pnpm --filter @vmem/chrome-extension test
         pnpm --filter @vmem/desktop test
         pnpm --filter @vmem/mobile test
