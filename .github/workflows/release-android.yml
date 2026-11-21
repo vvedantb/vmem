@@ -25,7 +25,12 @@ on:
         type: boolean
         default: false
 
+# actions: read is required by the pinned shared workflow (aa70acf, packages
+# #321). A called workflow cannot raise permissions above the caller. Without
+# it, the run fails at startup, even though this dispatch caller does not set
+# wait_for_check_job.
 permissions:
+  actions: read
   contents: write
 
 # One release at a time, for push and dispatch runs. The version is chosen
