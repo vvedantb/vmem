@@ -13,12 +13,14 @@
 @import "@vvedantb/ui/tokens/css/utilities.css";
 @plugin "tailwindcss-animate";
 
-/* Tailwind does not scan node_modules; include shared UI, shell and app sources. */
-@source "../../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
-@source "../../../node_modules/@vvedantb/ui/shell/src/**/*.{ts,tsx}";
-@source "../../../node_modules/@vvedantb/ui/app/src/**/*.{ts,tsx}";
+/* Tailwind does not scan node_modules; include shared UI, shell and app sources.
+   Web pins a newer ui than the extension, so the hoisted root copy is the
+   extension's. Scan web's own copy. */
+@source "../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
+@source "../node_modules/@vvedantb/ui/shell/src/**/*.{ts,tsx}";
+@source "../node_modules/@vvedantb/ui/app/src/**/*.{ts,tsx}";
 /* Keeps theme vars the landing stylesheet reads, e.g. --font-instrumentSerif. */
-@source "../../../node_modules/@vvedantb/ui/src/marketing/landing.css";
+@source "../node_modules/@vvedantb/ui/src/marketing/landing.css";
 
 @theme {
   --font-instrumentSerif: "Instrument Serif", Georgia, serif;
