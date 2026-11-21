@@ -84,7 +84,7 @@ jobs:
       - run: pnpm --filter @vmem/desktop package:linux
       - name: Install display tools
         run: |
-          sudo apt-get update
+          sudo apt-get update --allow-releaseinfo-change
           sudo apt-get install -y xvfb openbox x11-utils xterm
       # Opens the packaged app.asar inside the packaged binary and fails on any
       # missing module, including the bundled get-windows path.
