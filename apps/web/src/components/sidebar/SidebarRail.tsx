@@ -126,8 +126,7 @@ export function VmemSidebarRail({
   return (
     <SidebarRail
       showDivider={showRailPanelDivider}
-      bodyClassName="scrollbar-thin"
-      footerClassName="border-t border-separator"
+      bodyClassName="scrollbar-thin justify-center-safe"
       top={
         <>
           <RailTile asChild app="vmem" label="Home" active={homeActive}>
