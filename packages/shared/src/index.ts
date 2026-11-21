@@ -13,7 +13,7 @@ export {
   buildSkillsIndexAddition,
   type SkillIndexEntry,
 } from "./prompts/memoryRagPrompt";
-export { isTheme, type Theme } from "./theme";
+export { isDarkTheme, isTheme, THEMES, type Theme } from "./theme";
 export {
   isProfileColor,
   isProfileIconName,

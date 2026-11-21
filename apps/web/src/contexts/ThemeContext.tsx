@@ -2,7 +2,7 @@ import { createContext, use, useEffect, useSyncExternalStore } from "react";
 import { useTheme } from "@/providers/theme";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
-import { isTheme, type Theme } from "@vmem/shared";
+import { isDarkTheme, isTheme, type Theme } from "@vmem/shared";
 import { patchUserSettingsGet } from "@/lib/convex-optimistic";
 
 interface ThemeContextType {
@@ -45,12 +45,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     void updateSettings({ theme: newTheme });
   };
 
-  const toggleTheme = () => {
-    const resolved = resolvedTheme === "dark" ? "light" : "dark";
-    handleSetTheme(resolved);
-  };
+  // matches the active document class (neutral counts as dark)
+  const isDark = mounted && isDarkTheme(resolvedTheme);
 
-  const isDark = mounted && resolvedTheme === "dark";
+  const toggleTheme = () => {
+    handleSetTheme(isDarkTheme(resolvedTheme) ? "light" : "dark");
+  };
 
   return (
     <ThemeContext.Provider

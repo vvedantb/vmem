@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { MemoryProvider } from "@/contexts/MemoryContext";
 import { useUpdateAvailableToast } from "@/providers/EnsureUser";
+import { isDarkTheme } from "@vmem/shared";
 import { useTheme } from "@/providers/theme";
 
 // forward resolved theme to sonner (light until the theme provider hydrates)
@@ -22,7 +23,7 @@ function ThemedSonnerToaster() {
         top: "var(--vmem-toast-offset-top)",
         right: "var(--vmem-toast-offset-right)",
       }}
-      theme={resolvedTheme === "dark" ? "dark" : "light"}
+      theme={isDarkTheme(resolvedTheme) ? "dark" : "light"}
     />
   );
 }

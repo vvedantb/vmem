@@ -121,10 +121,31 @@ describe("app ThemeProvider", () => {
       expect(html().style.colorScheme).toBe(stored);
       expect(current().theme).toBe(stored);
       expect(current().resolvedTheme).toBe(stored);
-      expect(current().themes).toEqual(["light", "dark", "system"]);
+      expect(current().themes).toEqual(["light", "dark", "neutral", "system"]);
       expect(writes).toEqual([]);
     },
   );
+
+  it("applies stored neutral as dark plus the neutral class", async () => {
+    stubSystemDark(false);
+    localStorage.setItem("theme", "neutral");
+    mounted = await mount(
+      <AppTheme>
+        <Probe />
+      </AppTheme>,
+    );
+    expect([...html().classList].sort()).toEqual([
+      "dark",
+      "keep-me",
+      "neutral",
+    ]);
+    expect(html().style.colorScheme).toBe("dark");
+    expect(current().resolvedTheme).toBe("neutral");
+
+    await act(async () => current().setTheme("light"));
+    expect(html().className).toBe("keep-me light");
+    expect(html().style.colorScheme).toBe("light");
+  });
 
   it("defaults to light when nothing is stored", async () => {
     stubSystemDark(true);
@@ -215,7 +236,7 @@ describe("app ThemeProvider", () => {
     expect(current().forcedTheme).toBe("dark");
     expect(current().theme).toBe("light");
     expect(current().resolvedTheme).toBe("light");
-    expect(current().themes).toEqual(["light", "dark"]);
+    expect(current().themes).toEqual(["light", "dark", "neutral"]);
     expect(current().systemTheme).toBeUndefined();
     expect(writes).toEqual([["theme", "light"]]);
   });
@@ -276,6 +297,22 @@ describe("ThemeContext on the app ThemeProvider", () => {
     expect(localStorage.getItem("theme")).toBe("dark");
     expect(html().className).toBe("keep-me dark");
     expect(value()).toMatchObject({ theme: "dark", isDark: true });
+  });
+
+  it("neutral counts as dark and toggles to light", async () => {
+    stubSystemDark(false);
+    convex.settings.current = { theme: "neutral" };
+    mounted = await mount(tree);
+    expect([...html().classList].sort()).toEqual([
+      "dark",
+      "keep-me",
+      "neutral",
+    ]);
+    expect(value()).toMatchObject({ theme: "neutral", isDark: true });
+
+    await act(async () => value().toggleTheme());
+    expect(html().className).toBe("keep-me light");
+    expect(convex.update).toHaveBeenLastCalledWith({ theme: "light" });
   });
 
   it("missing server theme syncs as system", async () => {

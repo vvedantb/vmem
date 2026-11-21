@@ -421,6 +421,7 @@ export const connectorFields = {
 export const userSettingsThemeValidator = v.union(
   v.literal("light"),
   v.literal("dark"),
+  v.literal("neutral"),
   v.literal("system"),
 );
 

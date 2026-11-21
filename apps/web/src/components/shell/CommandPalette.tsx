@@ -60,7 +60,7 @@ export function CommandPalette({
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const workspaceId = useActiveProfileId();
-  const { theme, toggleTheme } = useThemeContext();
+  const { isDark, toggleTheme } = useThemeContext();
   const { isAuthenticated } = useConvexAuth();
 
   useHotkey("Mod+K", () => setOpen(!open), { preventDefault: true });
@@ -227,7 +227,7 @@ export function CommandPalette({
             value="action toggle theme"
             onSelect={() => runAndClose(toggleTheme)}
           >
-            {theme === "dark" ? <IconSun /> : <IconMoon />}
+            {isDark ? <IconSun /> : <IconMoon />}
             <span>Toggle theme</span>
           </CommandItem>
           <CommandItem

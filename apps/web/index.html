@@ -21,7 +21,10 @@
               ? "dark"
               : "light";
           }
-          if (theme === "dark" || theme === "light") {
+          if (theme === "neutral") {
+            root.classList.add("dark", "neutral");
+            root.style.colorScheme = "dark";
+          } else if (theme === "dark" || theme === "light") {
             root.classList.add(theme);
             root.style.colorScheme = theme;
           }
