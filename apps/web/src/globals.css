@@ -9,7 +9,6 @@
 @import "@vvedantb/ui/tokens/css/tabs-pills.css";
 @import "@vvedantb/ui/tokens/css/dialog.css";
 @import "@vvedantb/ui/tokens/css/modal.css";
-@import "@vvedantb/ui/tokens/css/tabs.css";
 @import "@vvedantb/ui/tokens/css/utilities.css";
 @plugin "tailwindcss-animate";
 

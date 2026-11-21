@@ -651,8 +651,8 @@ importers:
         specifier: ^0.17.0
         version: 0.17.0(@ai-sdk/gateway@4.0.88(zod@3.25.76))(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(ai@7.0.108(zod@3.25.76))(convex-helpers@0.1.135(@standard-schema/spec@1.1.0)(convex@1.48.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.19.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(hono@4.12.14)(prettier@3.8.3)(react@19.3.0)(typescript@7.0.1-rc)(zod@3.25.76))(convex@1.48.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.19.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       '@vvedantb/ui':
-        specifier: ^0.59.2
-        version: 0.59.2(ceacd0efbe0621648fc2c4d7fd794a2e)
+        specifier: ^0.60.0
+        version: 0.60.0(ceacd0efbe0621648fc2c4d7fd794a2e)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -6262,8 +6262,8 @@ packages:
       zod:
         optional: true
 
-  '@vvedantb/ui@0.59.2':
-    resolution: {integrity: sha512-LhFSPB40Mgc4iepD2mTvgRx44rASipq9Tyc6/UBIFCdKcg7LCqRDgEBrjnjw0OHzqJfBK3ErCS/bmZbk7M/KmA==}
+  '@vvedantb/ui@0.60.0':
+    resolution: {integrity: sha512-YuucU5Ek9sqODZgqsoNYkVIUChHG3O9HYz/G/ujPfYq9WuJc8uJILpBzBwZfh+2SBLcu6b/kwESHz0VxlvmoTA==}
     peerDependencies:
       '@clerk/clerk-react': '>=5'
       '@json-render/core': '>=0.21.0'
@@ -18587,7 +18587,7 @@ snapshots:
       motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.59.2(ceacd0efbe0621648fc2c4d7fd794a2e)':
+  '@vvedantb/ui@0.60.0(ceacd0efbe0621648fc2c4d7fd794a2e)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)

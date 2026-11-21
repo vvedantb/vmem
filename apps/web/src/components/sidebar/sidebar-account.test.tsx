@@ -18,7 +18,7 @@ const clerk = vi.hoisted(() => ({
 }));
 const server = vi.hoisted(() => ({ pro: false }));
 const pricing = vi.hoisted(() => ({ open: vi.fn() }));
-const theme = vi.hoisted(() => ({ isDark: false, toggleTheme: vi.fn() }));
+const theme = vi.hoisted(() => ({ theme: "light", setTheme: vi.fn() }));
 
 vi.mock("convex/react", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -104,7 +104,7 @@ afterEach(async () => {
   mounted = null;
   resetDocument();
   vi.clearAllMocks();
-  theme.isDark = false;
+  theme.theme = "light";
   clerk.has.mockImplementation(() => false);
   server.pro = false;
 });
@@ -115,16 +115,16 @@ describe("SidebarUserMenu", () => {
     expect(html()).toMatchSnapshot();
   });
 
-  it("renders the open menu in light and dark mode", async () => {
+  it("cycles light to neutral, and dark to light", async () => {
     mounted = await mount(<SidebarUserMenu />);
     await openMenu();
     expect(html()).toMatchSnapshot("light");
-    await click(button("Dark mode"));
-    expect(theme.toggleTheme).toHaveBeenCalledTimes(1);
+    await click(button("Neutral mode"));
+    expect(theme.setTheme).toHaveBeenCalledWith("neutral");
 
     await mounted.unmount();
     resetDocument();
-    theme.isDark = true;
+    theme.theme = "dark";
     mounted = await mount(<SidebarUserMenu />);
     await openMenu();
     expect(button("Light mode")).toBeTruthy();

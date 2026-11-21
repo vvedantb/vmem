@@ -1,24 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { toast } from "sonner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Switch,
-  SettingsSection,
-  SettingsToggleRow,
-} from "@vvedantb/ui";
+import { Switch, SettingsSection, SettingsToggleRow } from "@vvedantb/ui";
+import { ThemeModePicker } from "@vvedantb/ui/client";
 import { api } from "@vmem/backend";
-import {
-  formatRelativeTime,
-  isTheme,
-  SETTINGS_TEXT_MAX_LENGTH,
-  THEMES,
-  type Theme,
-} from "@vmem/shared";
+import { formatRelativeTime, SETTINGS_TEXT_MAX_LENGTH } from "@vmem/shared";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { useThemeContext } from "@/contexts/ThemeContext";
@@ -26,13 +12,6 @@ import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
 import { convexErrorMessage } from "@/lib/convex-error";
 import { PreferenceTextareaRow } from "./PreferenceTextareaRow";
 import { PreferencesPageSkeleton } from "./PreferencesPageSkeleton";
-
-const THEME_LABELS: Record<Theme, string> = {
-  light: "Light",
-  dark: "Dark",
-  neutral: "Neutral",
-  system: "System",
-};
 
 export function PreferencesPage() {
   const settings = useQuery(api.userSettings.get);
@@ -68,30 +47,8 @@ export function PreferencesPage() {
 
   return (
     <SettingsPage title="Preferences">
-      <SettingsSection title="Appearance" bodyVariant="list">
-        <SettingsToggleRow
-          htmlFor="theme"
-          title="Theme"
-          action={
-            <Select
-              value={theme}
-              onValueChange={(value) => {
-                if (isTheme(value)) setTheme(value);
-              }}
-            >
-              <SelectTrigger id="theme" className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {THEMES.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {THEME_LABELS[option]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          }
-        />
+      <SettingsSection title="Appearance">
+        <ThemeModePicker value={theme} onChange={setTheme} />
       </SettingsSection>
 
       <SettingsSection
