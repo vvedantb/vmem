@@ -651,8 +651,8 @@ importers:
         specifier: ^0.17.0
         version: 0.17.0(@ai-sdk/gateway@4.0.88(zod@3.25.76))(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(ai@7.0.108(zod@3.25.76))(convex-helpers@0.1.135(@standard-schema/spec@1.1.0)(convex@1.48.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.19.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(hono@4.12.14)(prettier@3.8.3)(react@19.3.0)(typescript@7.0.1-rc)(zod@3.25.76))(convex@1.48.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.19.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       '@vvedantb/ui':
-        specifier: ^0.57.0
-        version: 0.57.0(ceacd0efbe0621648fc2c4d7fd794a2e)
+        specifier: ^0.58.1
+        version: 0.58.1(ceacd0efbe0621648fc2c4d7fd794a2e)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -5329,13 +5329,13 @@ packages:
   '@streamdown/cjk@1.0.4':
     resolution: {integrity: sha512-l5IVxqNhQDj9bDTu6h1sqxeEjZI7pW1uZ6Yu79l+9DqfmOkfGF0AJ0+y8oFi1hrFdscGqhXVNGjSgFJgh6Xh3A==}
     peerDependencies:
-      react: ^18.0.0 || ^19.0.0
+      react: 19.3.0
 
   '@streamdown/code@2.0.0':
     resolution: {integrity: sha512-sSyX/9gOOcivbP7204+sfAam+gotxjUNV+T4EuN3aa6i5x1LaqtB6Ln/Mxzd1XGvm0vNApO4oKLZs+7gzFI1kQ==}
     engines: {node: '>=20'}
     peerDependencies:
-      react: ^18.0.0 || ^19.0.0
+      react: 19.3.0
 
   '@streamdown/math@1.0.3':
     resolution: {integrity: sha512-TOTRlPYs4LBNT8GaIWNCEVrcGVQsVcfc8WZ/x/0IyO+Rvsu6W+nF+YCS4Pl3JTVWQK8QX7LbWUChSilwlyzPZw==}
@@ -5345,7 +5345,7 @@ packages:
   '@streamdown/mermaid@1.0.3':
     resolution: {integrity: sha512-TgdL9Evm4CiaBaADjQVCaXe5eEZpJpTZ7JYw/OY1OO2JCmlc/6DN2DISXj+KUYAzRw+GgJioCoorpuCN/OIXyA==}
     peerDependencies:
-      react: ^18.0.0 || ^19.0.0
+      react: 19.3.0
 
   '@stripe/stripe-js@5.6.0':
     resolution: {integrity: sha512-w8CEY73X/7tw2KKlL3iOk679V9bWseE4GzNz3zlaYxcTjmcmWOathRb0emgo/QQ3eoNzmq68+2Y2gxluAv3xGw==}
@@ -6262,8 +6262,8 @@ packages:
       zod:
         optional: true
 
-  '@vvedantb/ui@0.57.0':
-    resolution: {integrity: sha512-Fraew5Oos/s+wrz6o5beYSAukdDCLQGDGoLOz8ye5BCMxfxYmRzyZ4Cq0rLeks9e5K2qZ6LIhCEAplEiKrSxkQ==}
+  '@vvedantb/ui@0.58.1':
+    resolution: {integrity: sha512-4HEVAndwHQS/4JiWFKjREoR0olc2NS1iickP7ZmifpLSvMakZbzYPE6KYPviVtYQSr9lbJIVxIRBk6afi3cLXw==}
     peerDependencies:
       '@clerk/clerk-react': '>=5'
       '@json-render/core': '>=0.21.0'
@@ -18585,7 +18585,7 @@ snapshots:
       motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.57.0(ceacd0efbe0621648fc2c4d7fd794a2e)':
+  '@vvedantb/ui@0.58.1(ceacd0efbe0621648fc2c4d7fd794a2e)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
